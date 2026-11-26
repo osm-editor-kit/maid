@@ -1,3 +1,5 @@
+import type { UrlParser } from '@osm-editor-kit/maid-core'
+import { checkLayerUrl, guessKind } from './config.ts'
 /**
  * The URL parameter of the data layers module, `data`: the address of a GeoJSON, GPX or PMTiles file that a link shows
  * as a layer (`?data=https://…/bike.geojson`). Its iD name is `gpx` (module.tsx): iD's `gpx=` link loads the same kind
@@ -6,8 +8,7 @@
  *
  * Pure: no React, no network. The parser has the shape of core's `UrlParser`.
  */
-import type { UrlParser } from '@osm-editor-kit/maid-core'
-import { checkLayerUrl, guessKind } from './config.ts'
+import { m } from './messages.ts'
 
 /**
  * A remote data address: GeoJSON, GPX or PMTiles, https (or a path on this server). Vector tiles need source layer names
@@ -25,7 +26,7 @@ export const parseAsDataLink: UrlParser<string> = {
   eq: (a, b) => a === b,
 }
 
-/** The name of a layer a link adds: its file name without the extension (.geojson, .json, .gpx, .pmtiles), else "Linked data" */
+/** The name of a layer a link adds: its file name without the extension (.geojson, .json, .gpx, .pmtiles), else the text "Linked data" */
 export function linkedLayerName(url: string): string {
   const path = url.split(/[?#]/)[0] ?? ''
   const last =
@@ -39,7 +40,7 @@ export function linkedLayerName(url: string): string {
   } catch {
     // a name that is not encoded properly is shown as it is
   }
-  return name.trim() || 'Linked data'
+  return name.trim() || m.data_layers_linked_name()
 }
 
 /** A 32-bit FNV-1a hash of the text, in base 36 */

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "turn_restrictions_title": "Turn restrictions",
+  "turn_restrictions_help_click": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap a turn to change it: allowed, no turn, or only this turn.",
+        "input=*": "Click a turn to change it: allowed, no turn, or only this turn."
+      }
+    }
+  ],
+  "turn_restrictions_distance_label": "Search distance",
+  "turn_restrictions_distance_tip": "How far from the junction the search for connected roads goes.",
+  "turn_restrictions_via_label": "Via ways",
+  "turn_restrictions_via_tip": "How many ways a restriction may pass through; node only is the simplest, and simple is better.",
+  "turn_restrictions_from": "FROM road",
+  "turn_restrictions_not_junction": "The roads here do not make a junction where turns can be restricted.",
+  "turn_restrictions_distance_value": "Up to {distance} m",
+  "turn_restrictions_via_node": "Node only",
+  "turn_restrictions_via_one": "Up to 1 way",
+  "turn_restrictions_via_two": "Up to 2 ways",
+  "turn_restrictions_turn_left": "left turn",
+  "turn_restrictions_turn_right": "right turn",
+  "turn_restrictions_turn_u": "U-turn",
+  "turn_restrictions_turn_straight": "straight on",
+  "turn_restrictions_turn_any": "turn",
+  "turn_restrictions_state_no": "No {turn}",
+  "turn_restrictions_state_only": "Only {turn}",
+  "turn_restrictions_state_allowed": "{turn} allowed",
+  "turn_restrictions_hint": [
+    {
+      "declarations": ["input input", "input next", "input state"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{state}. Tap for: {next}",
+        "input=*": "{state}. Click for: {next}"
+      }
+    }
+  ],
+  "turn_restrictions_badge_only": "ONLY",
+  "turn_restrictions_indirect_hint": "Indirect: caused by a nearby restriction. Change the direct restriction next to it.",
+  "turn_restrictions_aria_turn": "Turn from {from} to {to}: {state}",
+  "turn_restrictions_unnamed": "Unnamed road",
+  "turn_restrictions_undo_added": "Added a turn restriction",
+  "turn_restrictions_undo_deleted": "Deleted a turn restriction",
+  "turn_restrictions_rule_label": "Turn restriction without its from, via and to members",
+  "turn_restrictions_rule_message": "The turn restriction is incomplete: it needs one from way, one via node or way, and one to way"
+}

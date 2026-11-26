@@ -10,7 +10,7 @@ import { usePresetsPending } from '../shell-context'
  * starts with a selection. The fallback has the label of the real sidebar, so its frame does not change.
  */
 const inspectorFrame = (
-  <Sidebar label="Selected feature">
+  <Sidebar label={m.shell_inspector_selected()}>
     <div aria-busy="true" />
   </Sidebar>
 )
@@ -27,7 +27,7 @@ export function InspectorSlot() {
   const pending = usePresetsPending()
   if (ids.length === 0) {
     return (
-      <Sidebar label="Inspector">
+      <Sidebar label={m.shell_inspector()}>
         <SidebarEmpty title={m.sidebar_empty_title()}>
           {m.sidebar_empty_hint({ ...device() })}
         </SidebarEmpty>

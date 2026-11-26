@@ -1,18 +1,7 @@
 import type { FetchPause, FetchPauses as PauseSource, ServiceId } from '@osm-editor-kit/maid-core'
+import { m } from '@osm-editor-kit/maid-i18n'
 import { absoluteTime, browserTimeZone, notify } from '@osm-editor-kit/maid-ui'
 import { useEffect } from 'react'
-
-/** The name of each service in the notice, with the verb that goes with it */
-const NAMES: Record<ServiceId, { readonly name: string; readonly verb: 'is' | 'are' }> = {
-  osm: { name: 'The OSM API', verb: 'is' },
-  wikimedia: { name: 'The OSM Wiki and Wikimedia', verb: 'are' },
-  mapillary: { name: 'Mapillary', verb: 'is' },
-  panoramax: { name: 'Panoramax', verb: 'is' },
-  data: { name: "A data layer's server", verb: 'is' },
-  taginfo: { name: 'Taginfo', verb: 'is' },
-  postpass: { name: 'Postpass', verb: 'is' },
-  local: { name: 'The local server', verb: 'is' },
-}
 
 /**
  * The standing notice of a paused service: who is limiting, and when loading goes on. The time is the
@@ -20,12 +9,11 @@ const NAMES: Record<ServiceId, { readonly name: string; readonly verb: 'is' | 'a
  * same pause gives the same text for the same clock.
  */
 export function pauseText(pause: FetchPause, options: { now: number; timeZone: string }): string {
-  const { name, verb } = NAMES[pause.service]
   const time = absoluteTime(
     { date: new Date(pause.until), dateOnly: false },
     { timeZone: options.timeZone, now: options.now },
   )
-  return `${name} ${verb} limiting requests. Loading continues at ${time}.`
+  return m.shell_pause({ service: pause.service, time })
 }
 
 /** The notice id of a service: one standing toast per paused service */

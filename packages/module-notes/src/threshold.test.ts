@@ -4,7 +4,7 @@ import {
   loadsAt,
   NOTES_LIMIT,
   NOTES_MIN_ZOOM,
-  TRUNCATED_NOTICE_TEXT,
+  truncatedNoticeText,
   truncationNotice,
 } from './model.ts'
 
@@ -39,6 +39,6 @@ describe('the notice of a list cut at the limit', () => {
   })
 
   test('the text names the limit the request uses', () => {
-    expect(TRUNCATED_NOTICE_TEXT).toContain(`first ${NOTES_LIMIT} notes`)
+    expect(truncatedNoticeText()).toContain(`first ${NOTES_LIMIT} notes`)
   })
 })

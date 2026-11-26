@@ -1,0 +1,18 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "surface_surface": "Revêtement",
+  "surface_smoothness": "Régularité",
+  "surface_search_surfaces": "Rechercher un revêtement",
+  "surface_search_smoothness": "Rechercher une régularité",
+  "surface_choose": "Choisir…",
+  "surface_photo_credits": "Crédits photo",
+  "surface_use_typed": "Utiliser « {value} »",
+  "surface_other_values": "Autres valeurs",
+  "surface_common_surfaces": "Revêtements courants",
+  "surface_other_surfaces": "Autres revêtements",
+  "surface_salt": "Sel",
+  "surface_not_offered": "Non proposé pour ce revêtement",
+  "surface_not_in_catalogue": "Absent du catalogue",
+  "surface_hint_choose_first": "Choisissez d’abord un revêtement pour ses photos. Voici les niveaux.",
+  "surface_hint_no_photos": "Pas de photos pour ce revêtement : les niveaux."
+}

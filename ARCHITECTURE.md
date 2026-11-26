@@ -240,8 +240,8 @@ for every app, since every app uses the core. Follow iD where in doubt (rule 3 i
 
 ## Where the code does not follow this yet
 
-The code was checked against this file on 2026-10-17 and again on 2026-11-20. What does not follow it yet (texts in
-ui, shell and eight modules; sentences from headless packages; the shell importing three modules; the ui naming
+The code was checked against this file on 2026-10-17 and again on 2026-11-20. What does not follow it yet (sentences from headless packages and a few texts
+listed there; the shell importing three modules; the ui naming
 MapRoulette; packages importing from `tools/`) is listed in
 [steps.md, Architecture follow-ups](docs/build-out/steps.md#architecture-follow-ups). Fix the code there, not the
 rule here, unless the rule is wrong.

@@ -84,8 +84,10 @@ function defaultSerialize(rows: readonly SheetRow[], cols: readonly ColId[]): st
 }
 
 function defaultDescribePaste(report: PasteReport): string {
-  const text = `${report.added} added, ${report.replaced} replaced`
-  return report.refused.length > 0 ? `${text}, ${report.refused.length} refused` : text
+  const counts = { added: report.added, replaced: report.replaced }
+  return report.refused.length > 0
+    ? m.ui_sheet_paste_default_refused({ ...counts, refused: report.refused.length })
+    : m.ui_sheet_paste_default(counts)
 }
 
 function sameIds(a: readonly RowId[], b: readonly RowId[]): boolean {
@@ -167,12 +169,12 @@ export function Sheet(props: SheetProps) {
   const pasteWait = useRef<number | null>(null)
 
   const blankRow = useMemo<SheetRow>(
-    () => ({ id: state.trailingId, label: 'new row', cells: {} }),
+    () => ({ id: state.trailingId, label: m.ui_sheet_new_row(), cells: {} }),
     [state.trailingId],
   )
   const insertedId = showTrailing ? state.inserted?.id : undefined
   const insertedRow = useMemo<SheetRow>(
-    () => ({ id: insertedId ?? '', label: 'new row', cells: {} }),
+    () => ({ id: insertedId ?? '', label: m.ui_sheet_new_row(), cells: {} }),
     [insertedId],
   )
   // The inserted row sits under its row, the trailing row at the end (the order shapeOf gives the grid).
@@ -290,8 +292,8 @@ export function Sheet(props: SheetProps) {
 
   function writeClipboard(text: string): void {
     void navigator.clipboard.writeText(text).then(
-      () => setStatus({ text: 'Copied', refused: [] }),
-      () => setStatus({ text: 'The browser did not allow the copy', refused: [] }),
+      () => setStatus({ text: m.ui_sheet_copied(), refused: [] }),
+      () => setStatus({ text: m.ui_sheet_copy_refused(), refused: [] }),
     )
   }
 
@@ -362,7 +364,7 @@ export function Sheet(props: SheetProps) {
         (text) => {
           pasteText(text, false, null)
         },
-        () => setStatus({ text: 'The browser did not allow reading the clipboard', refused: [] }),
+        () => setStatus({ text: m.ui_sheet_read_refused(), refused: [] }),
       )
     }, 0)
   }

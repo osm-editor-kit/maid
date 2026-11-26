@@ -1,0 +1,42 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "notes_label": "Hinweise",
+  "notes_show": "Hinweise anzeigen",
+  "notes_show_closed": "Auch erledigte",
+  "notes_status_off": "Hinweise sind aus. Es wird nichts geladen, bis du sie einschaltest.",
+  "notes_status_waiting": "Warte auf die Karte.",
+  "notes_status_zoom_in": "Zoome hinein, um die Hinweise zu sehen (ab Zoom {zoom}).",
+  "notes_status_loading": "Lade Hinweise …",
+  "notes_status_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Hinweis im Ausschnitt",
+        "countPlural=*": "{count} Hinweise im Ausschnitt"
+      }
+    }
+  ],
+  "notes_status_open": "Offen",
+  "notes_status_closed": "Erledigt",
+  "notes_truncated_panel": "In diesem Gebiet gibt es mehr Hinweise, als eine Anfrage liefert. Zoome hinein, um alle zu sehen.",
+  "notes_truncated_toast": "Nur die ersten {limit} Hinweise dieses Gebiets werden angezeigt. Zoome hinein, um alle zu sehen.",
+  "notes_no_text": "(kein Text)",
+  "notes_failure_paused": "Der OpenStreetMap-Server hat um eine Pause gebeten. Die Hinweise laden wieder, wenn sie vorbei ist.",
+  "notes_failure_http": "Die Hinweise konnten nicht geladen werden (HTTP {status}).",
+  "notes_failure": "Die Hinweise konnten nicht geladen werden.",
+  "notes_dock_title": "Hinweis {id}",
+  "notes_dock_opened": "Eröffnet",
+  "notes_dock_closed": "Erledigt",
+  "notes_dock_position": "Position",
+  "notes_comment_anonymous": "anonym",
+  "notes_action_opened": "eröffnet",
+  "notes_action_commented": "kommentiert",
+  "notes_action_closed": "erledigt",
+  "notes_action_reopened": "wieder geöffnet",
+  "notes_action_hidden": "ausgeblendet",
+  "notes_open_on_osm": "Auf openstreetmap.org öffnen",
+  "notes_write_later": "Hinweise schreiben geht mit der Anmeldung.",
+  "notes_dock_none": "Kein Hinweis gewählt. Wähle einen im Bereich Hinweise oder auf der Karte.",
+  "notes_dock_not_loaded": "Hinweis {id} ist nicht geladen."
+}

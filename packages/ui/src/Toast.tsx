@@ -1,3 +1,10 @@
+import {
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
+  XCircleIcon,
+  XMarkIcon,
+} from '@heroicons/react/20/solid'
 /*
  * Notices in Maid: where each one is, what starts it, how long it stays, and its kind.
  *
@@ -50,13 +57,7 @@
  * is added and when its text changes; `notify.standing` skips the call when the text is the same,
  * so a standing toast is announced once, not on every render.
  */
-import {
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  InformationCircleIcon,
-  XCircleIcon,
-  XMarkIcon,
-} from '@heroicons/react/20/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { ReactNode } from 'react'
 import { Toaster as SonnerToaster, toast } from 'sonner'
 import { useThemeInEffect } from './theme.ts'
@@ -66,7 +67,6 @@ const DONE_MS = 4000
 const FAILED_MS = 6000
 /** How long a lasting notice stays: a result the person may want to open (the changeset of an upload) */
 const LASTING_MS = 120_000
-const FALLBACK = 'Something went wrong.'
 
 /** Options for one notice. A standing notice is always given its `id`: the condition it is for. */
 export type NotifyOptions = {
@@ -85,7 +85,7 @@ export type NotifyOptions = {
  * `message`, gives that message; anything else, or an empty message, gives the fallback. A
  * message of "[object Object]" is no message either.
  */
-export function errorText(problem: unknown, fallback = FALLBACK): string {
+export function errorText(problem: unknown, fallback: string = m.ui_toast_fallback()): string {
   if (typeof problem === 'string') return problem.trim() === '' ? fallback : problem
   const message =
     problem instanceof Error

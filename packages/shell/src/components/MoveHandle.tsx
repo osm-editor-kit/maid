@@ -1,4 +1,4 @@
-import { device } from '@osm-editor-kit/maid-i18n'
+import { device, m } from '@osm-editor-kit/maid-i18n'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
@@ -129,7 +129,7 @@ function HandleButton({ onDragging }: { onDragging: (dragging: boolean) => void 
     <div
       ref={ref}
       role="button"
-      aria-label="Move feature"
+      aria-label={m.shell_move_feature()}
       className="grid size-11 cursor-grab touch-none place-items-center rounded-full bg-white text-zinc-800 shadow-md ring-1 ring-zinc-950/10 select-none active:bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10 dark:active:bg-zinc-700"
     >
       <svg
@@ -175,7 +175,7 @@ function MenuButton({ onMenu }: { onMenu: (screen: { x: number; y: number }) => 
     <div
       ref={ref}
       role="button"
-      aria-label="Edit menu"
+      aria-label={m.shell_edit_menu()}
       className="absolute top-1/2 left-full ml-2 grid size-11 -translate-y-1/2 cursor-pointer touch-none place-items-center rounded-full bg-white text-zinc-800 shadow-md ring-1 ring-zinc-950/10 select-none active:bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10 dark:active:bg-zinc-700"
     >
       <svg className="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>

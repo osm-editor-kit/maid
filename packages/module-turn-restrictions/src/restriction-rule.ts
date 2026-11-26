@@ -1,6 +1,6 @@
-import { m } from '@osm-editor-kit/maid-i18n'
 import { OsmRelation } from '@osm-editor-kit/maid-model'
 import type { Issue, Rule } from '@osm-editor-kit/maid-validation'
+import { m } from './messages.ts'
 
 export const TURN_RESTRICTION_RULE_ID = 'turn_restriction_incomplete'
 

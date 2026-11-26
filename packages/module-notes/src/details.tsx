@@ -1,5 +1,6 @@
 import { Time, type DockViewProps } from '@osm-editor-kit/maid-ui'
-import { noteWebUrl, type Note } from './model.ts'
+import { m } from './messages.ts'
+import { actionLabel, noteWebUrl, type Note } from './model.ts'
 import { useChosenNote } from './query.ts'
 import { useChosenNoteId } from './store.ts'
 
@@ -15,7 +16,7 @@ function Status({ note }: { note: Note }) {
           : 'bg-zinc-50 text-zinc-600 inset-ring-zinc-500/20 dark:bg-zinc-400/10 dark:text-zinc-300 dark:inset-ring-zinc-400/30'
       }`}
     >
-      {open ? 'Open' : 'Closed'}
+      {open ? m.notes_status_open() : m.notes_status_closed()}
     </span>
   )
 }
@@ -25,23 +26,23 @@ function NoteDetails({ note }: { note: Note }) {
   return (
     <article className="max-w-2xl p-3 text-xs">
       <header className="flex flex-wrap items-center gap-2">
-        <h3 className="text-sm font-medium">Note {note.id}</h3>
+        <h3 className="text-sm font-medium">{m.notes_dock_title({ id: note.id })}</h3>
         <Status note={note} />
       </header>
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-zinc-600 dark:text-zinc-400">
-        <dt>Opened</dt>
+        <dt>{m.notes_dock_opened()}</dt>
         <dd>
           <Time value={note.created} primary="absolute" />
         </dd>
         {note.closed && (
           <>
-            <dt>Closed</dt>
+            <dt>{m.notes_dock_closed()}</dt>
             <dd>
               <Time value={note.closed} primary="absolute" />
             </dd>
           </>
         )}
-        <dt>Position</dt>
+        <dt>{m.notes_dock_position()}</dt>
         <dd>
           {note.lat.toFixed(5)}, {note.lon.toFixed(5)}
         </dd>
@@ -53,7 +54,8 @@ function NoteDetails({ note }: { note: Note }) {
             className="border-l-2 border-zinc-950/10 pl-3 dark:border-white/10"
           >
             <p className="text-zinc-500 dark:text-zinc-400">
-              {comment.user ?? 'anonymous'} · <Time value={comment.date} /> · {comment.action}
+              {comment.user ?? m.notes_comment_anonymous()} · <Time value={comment.date} /> ·{' '}
+              {actionLabel(comment.action)}
             </p>
             <p className="mt-0.5 text-sm whitespace-pre-wrap">{comment.text}</p>
           </li>
@@ -66,10 +68,10 @@ function NoteDetails({ note }: { note: Note }) {
           rel="noopener noreferrer"
           className="text-blue-600 underline underline-offset-2 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
         >
-          Open on openstreetmap.org
+          {m.notes_open_on_osm()}
         </a>
       </p>
-      <p className="mt-2 text-zinc-500 dark:text-zinc-400">Writing notes comes with the login.</p>
+      <p className="mt-2 text-zinc-500 dark:text-zinc-400">{m.notes_write_later()}</p>
     </article>
   )
 }
@@ -78,8 +80,7 @@ function NoteDetails({ note }: { note: Note }) {
 export function NotesDock(_props: DockViewProps) {
   const chosen = useChosenNoteId()
   const note = useChosenNote()
-  if (chosen === null)
-    return <p className={QUIET}>No note chosen. Pick one in the Notes panel or on the map.</p>
-  if (!note) return <p className={QUIET}>Note {chosen} is not loaded.</p>
+  if (chosen === null) return <p className={QUIET}>{m.notes_dock_none()}</p>
+  if (!note) return <p className={QUIET}>{m.notes_dock_not_loaded({ id: chosen })}</p>
   return <NoteDetails note={note} />
 }

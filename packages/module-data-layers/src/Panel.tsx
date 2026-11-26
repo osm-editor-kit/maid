@@ -16,8 +16,8 @@ import {
 import { ColorSwatches } from './ColorSwatches.tsx'
 import {
   DATA_LAYER_KINDS,
-  KIND_LABEL,
   guessKind,
+  kindLabel,
   pickColor,
   type DataLayer,
   type DataLayerConfig,
@@ -31,6 +31,7 @@ import {
 } from './data-layers-store.ts'
 import { layersOf } from './layers.ts'
 import { colorsInUse, useLinkedLayer } from './link.ts'
+import { m } from './messages.ts'
 import { pmtilesLayersOptions } from './pmtiles.ts'
 
 /**
@@ -49,9 +50,7 @@ function useLayerProblems(layers: readonly DataLayer[], send: RemoteFetch): Reco
         results.flatMap((result, index) => {
           const layer = pmtiles[index]
           if (!layer || !result.isError) return []
-          return [
-            [layer.id, describeFailure(result.error, 'Could not read this PMTiles file').message],
-          ]
+          return [[layer.id, describeFailure(result.error, 'pmtiles').message]]
         }),
       ),
   })
@@ -62,7 +61,7 @@ function useLayerProblems(layers: readonly DataLayer[], send: RemoteFetch): Reco
         results.flatMap((result, index) => {
           const layer = gpx[index]
           if (!layer || !result.isError) return []
-          return [[layer.id, describeFailure(result.error, 'Could not read this GPX file').message]]
+          return [[layer.id, describeFailure(result.error, 'gpx').message]]
         }),
       ),
   })
@@ -89,8 +88,8 @@ function VisibilitySwitch({
       type="button"
       role="switch"
       aria-checked={checked}
-      aria-label={`Show ${label}`}
-      title={checked ? 'Shown: click to hide' : 'Hidden: click to show'}
+      aria-label={m.data_layers_show_aria({ name: label })}
+      title={checked ? m.data_layers_shown_title() : m.data_layers_hidden_title()}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-blue-500 ${checked ? 'bg-blue-600' : 'bg-zinc-300 dark:bg-zinc-600'}`}
     >
@@ -117,11 +116,11 @@ function LayerRow({
 }) {
   const detail =
     layer.origin === 'file'
-      ? 'From a file, not kept after a reload'
+      ? m.data_layers_detail_file()
       : layer.origin === 'config'
-        ? `Set by the editor · ${layer.url}`
+        ? m.data_layers_detail_config({ url: layer.url })
         : layer.origin === 'link'
-          ? `From the link · ${layer.url}`
+          ? m.data_layers_detail_link({ url: layer.url })
           : layer.url
   return (
     <li className="flex items-center gap-3 border-b border-zinc-950/5 py-2 last:border-0 dark:border-white/5">
@@ -134,7 +133,7 @@ function LayerRow({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-zinc-950 dark:text-white">{layer.name}</p>
         <p className={`truncate ${HINT}`} title={layer.url || undefined}>
-          {KIND_LABEL[layer.kind]} · {detail}
+          {kindLabel(layer.kind)} · {detail}
         </p>
         {problem ? <p className="text-xs text-red-600 dark:text-red-400">{problem}</p> : null}
       </div>
@@ -144,25 +143,33 @@ function LayerRow({
           onClick={onRemove}
           className="shrink-0 cursor-pointer rounded-sm text-xs font-medium text-zinc-600 hover:text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-300 dark:hover:text-white"
         >
-          Remove
+          {m.data_layers_remove()}
         </button>
       ) : (
-        <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">Editor</span>
+        <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">
+          {m.data_layers_editor()}
+        </span>
       )}
     </li>
   )
 }
 
-const KIND_OPTIONS = DATA_LAYER_KINDS.map((option) => ({
-  value: option,
-  label: KIND_LABEL[option],
-}))
+/** The kinds as options of the control, read when it is shown: the label of a kind is in the language of the visit */
+function kindOptions() {
+  return DATA_LAYER_KINDS.map((option) => ({ value: option, label: kindLabel(option) }))
+}
 
-const KIND_HINT: Record<DataLayerKind, string> = {
-  geojson: 'An address of GeoJSON, or a file from your computer.',
-  gpx: 'An address of a GPX track or route, or a GPX file from your computer.',
-  pmtiles: 'The layer names are read from the file.',
-  vector: 'The address has {z}, {x} and {y}. Name the source layers below.',
+function kindHint(kind: DataLayerKind): string {
+  switch (kind) {
+    case 'geojson':
+      return m.data_layers_hint_geojson()
+    case 'gpx':
+      return m.data_layers_hint_gpx()
+    case 'pmtiles':
+      return m.data_layers_hint_pmtiles()
+    case 'vector':
+      return m.data_layers_hint_vector({ z: '{z}', x: '{x}', y: '{y}' })
+  }
 }
 
 function KindChoice({
@@ -177,8 +184,8 @@ function KindChoice({
   return (
     <div className="flex flex-col gap-1">
       <SegmentedControl
-        label="Kind of data"
-        options={KIND_OPTIONS}
+        label={m.data_layers_kind_label()}
+        options={kindOptions()}
         value={kind}
         onSelect={onChoose}
         // no arrow keys here: every kind is a tab stop, and the focus ring sits on the edge
@@ -187,7 +194,7 @@ function KindChoice({
         className="w-fit"
       />
       <p className={HINT}>
-        {chosen ? KIND_HINT[kind] : `${KIND_HINT[kind]} Guessed from the address.`}
+        {chosen ? kindHint(kind) : m.data_layers_kind_guessed({ hint: kindHint(kind) })}
       </p>
     </div>
   )
@@ -249,24 +256,26 @@ function AddLayerForm({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-3 px-4 pt-3 pb-4">
-      <h3 className="text-sm font-semibold text-zinc-950 dark:text-white">Add a layer</h3>
+      <h3 className="text-sm font-semibold text-zinc-950 dark:text-white">
+        {m.data_layers_add_title()}
+      </h3>
       <label className="flex flex-col gap-1" htmlFor={`${ids}-name`}>
-        <span className={LABEL}>Name</span>
+        <span className={LABEL}>{m.data_layers_name()}</span>
         <input
           {...PLAIN_INPUT}
           id={`${ids}-name`}
           className={INPUT}
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="Bike parking"
+          placeholder={m.data_layers_name_placeholder()}
         />
       </label>
       <fieldset className="flex min-w-0 flex-col gap-1">
-        <legend className={LABEL}>Kind</legend>
+        <legend className={LABEL}>{m.data_layers_kind()}</legend>
         <KindChoice kind={kind} chosen={chosen !== undefined} onChoose={setChosen} />
       </fieldset>
       <label className="flex flex-col gap-1" htmlFor={`${ids}-url`}>
-        <span className={LABEL}>Address</span>
+        <span className={LABEL}>{m.data_layers_address()}</span>
         <input
           {...PLAIN_INPUT}
           id={`${ids}-url`}
@@ -279,7 +288,7 @@ function AddLayerForm({
       </label>
       {kind === 'geojson' || kind === 'gpx' ? (
         <label className="flex flex-col gap-1" htmlFor={`${ids}-file`}>
-          <span className={LABEL}>Or a GeoJSON or GPX file</span>
+          <span className={LABEL}>{m.data_layers_file_label()}</span>
           <input
             {...PLAIN_INPUT}
             key={fileInputKey}
@@ -293,15 +302,12 @@ function AddLayerForm({
               if (chosenFile && name.trim() === '') setName(chosenFile.name.replace(/\.[^.]+$/, ''))
             }}
           />
-          <span className={HINT}>
-            A file is kept only until the page is reloaded. When a file is chosen, the address is
-            not used.
-          </span>
+          <span className={HINT}>{m.data_layers_file_hint()}</span>
         </label>
       ) : null}
       {kind === 'vector' ? (
         <label className="flex flex-col gap-1" htmlFor={`${ids}-layers`}>
-          <span className={LABEL}>Source layers</span>
+          <span className={LABEL}>{m.data_layers_source_layers()}</span>
           <input
             {...PLAIN_INPUT}
             id={`${ids}-layers`}
@@ -310,12 +316,12 @@ function AddLayerForm({
             onChange={(event) => setSourceLayers(event.target.value)}
             placeholder="buildings, roads"
           />
-          <span className={HINT}>The names of the layers in the tiles, separated by commas.</span>
+          <span className={HINT}>{m.data_layers_source_layers_hint()}</span>
         </label>
       ) : null}
       <div className="flex items-center gap-3">
-        <span className={LABEL}>Colour</span>
-        <ColorSwatches label="Colour" value={color} onChange={setColor} />
+        <span className={LABEL}>{m.data_layers_colour()}</span>
+        <ColorSwatches label={m.data_layers_colour()} value={color} onChange={setColor} />
       </div>
       {errors.length > 0 ? (
         <ul role="alert" className="flex flex-col gap-1 text-xs text-red-600 dark:text-red-400">
@@ -325,16 +331,13 @@ function AddLayerForm({
         </ul>
       ) : null}
       <div className="flex items-center justify-between gap-3">
-        <span className={HINT}>
-          An address is requested once, now, to check it. A layer is only requested while it is
-          shown.
-        </span>
+        <span className={HINT}>{m.data_layers_check_hint()}</span>
         <button
           type="submit"
           disabled={busy}
           className="h-8 shrink-0 cursor-pointer rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-60"
         >
-          {busy ? 'Checking…' : 'Add layer'}
+          {busy ? m.data_layers_checking() : m.data_layers_add_button()}
         </button>
       </div>
     </form>
@@ -365,13 +368,13 @@ export function createPanel(
     return (
       <div>
         <div className="px-4 pt-4 pb-1">
-          <h2 className="text-base font-semibold">Data layers</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">
-            Other data, drawn under the OSM features so that you can still edit what is on top.
-          </p>
+          <h2 className="text-base font-semibold">{m.data_layers_label()}</h2>
+          <p className="text-zinc-500 dark:text-zinc-400">{m.data_layers_intro()}</p>
         </div>
         {layers.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">No data layers yet.</p>
+          <p className="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">
+            {m.data_layers_empty()}
+          </p>
         ) : (
           <ul className="px-4">
             {layers.map((layer) => (
@@ -388,7 +391,7 @@ export function createPanel(
         )}
         {linked.error ? (
           <p role="alert" className="px-4 pt-2 text-xs text-red-600 dark:text-red-400">
-            The linked data could not be loaded: {linked.error}
+            {m.data_layers_linked_error({ reason: linked.error })}
           </p>
         ) : null}
         <AddLayerForm

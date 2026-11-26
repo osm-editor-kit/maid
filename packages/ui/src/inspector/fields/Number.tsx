@@ -1,4 +1,5 @@
 import { MinusIcon, PlusIcon } from '@heroicons/react/16/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import {
   useEffect,
@@ -214,8 +215,8 @@ function NumberControl({
           <button
             ref={registerPart(parts, 'minus')}
             type="button"
-            aria-label={`Decrease ${field.label}`}
-            title={`Decrease ${field.label}`}
+            aria-label={m.ui_number_decrease({ label: field.label })}
+            title={m.ui_number_decrease({ label: field.label })}
             disabled={stepDisabled}
             onMouseDown={keepFocus}
             onClick={() => step(-1, 'minus')}
@@ -226,8 +227,8 @@ function NumberControl({
           <button
             ref={registerPart(parts, 'plus')}
             type="button"
-            aria-label={`Increase ${field.label}`}
-            title={`Increase ${field.label}`}
+            aria-label={m.ui_number_increase({ label: field.label })}
+            title={m.ui_number_increase({ label: field.label })}
             disabled={stepDisabled}
             onMouseDown={keepFocus}
             onClick={() => step(1, 'plus')}
@@ -335,7 +336,7 @@ function SpeedControl({
       <div className="w-20 shrink-0">
         <select
           ref={registerPart(parts, 'unit')}
-          aria-label={`${field.label} unit`}
+          aria-label={m.ui_number_unit({ label: field.label })}
           className={`${FRAME} rounded-l-none border-l-0 px-2`}
           value={unit}
           disabled={readOnly}
@@ -462,8 +463,8 @@ function HeightControl({
             ref={registerPart(parts, 'secondary')}
             type="text"
             inputMode="decimal"
-            aria-label={`${field.label}, inches`}
-            placeholder="in"
+            aria-label={m.ui_number_inches({ label: field.label })}
+            placeholder={m.ui_number_inches_placeholder()}
             className={INPUT}
             value={secondary}
             readOnly={readOnly}
@@ -475,7 +476,7 @@ function HeightControl({
       <div className="w-20 shrink-0">
         <select
           ref={registerPart(parts, 'unit')}
-          aria-label={`${field.label} unit`}
+          aria-label={m.ui_number_unit({ label: field.label })}
           className={`${FRAME} px-2`}
           value={unit}
           disabled={readOnly}

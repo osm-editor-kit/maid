@@ -11,6 +11,7 @@ import {
   type ImageryStored,
   type View,
 } from './helpers.ts'
+import { m } from './messages.ts'
 import type { Meters } from './offset.ts'
 import { customValue } from './url.ts'
 
@@ -119,7 +120,7 @@ export function createImageryStore(defaultBackground: string | null) {
             if (!checked.ok) return checked
             const state = get()
             if (!state.custom.some((entry) => entry.template === template)) {
-              return { ok: false, reason: 'This background was deleted.' }
+              return { ok: false, reason: m.imagery_background_deleted() }
             }
             const typed = name.trim()
             const value = customValue(checked.template)

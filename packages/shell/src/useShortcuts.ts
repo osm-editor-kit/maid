@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-hotkeys'
 import { useEffect, useEffectEvent } from 'react'
 import { pasteAt } from './clipboard'
+import { announceChanges } from './components/ChangesToast'
 import {
   afterDrawing,
   drawClick,
@@ -215,8 +216,12 @@ export function useShortcuts() {
           (candidate) => !hidden.has(candidate.id) && candidate.applies(context),
         )
         if (!operation) return
+        // the key has no hover preview: the tags it changes are shown afterwards
+        const changes = operation.changes?.(context)
         const next = engine.runOperation(operation)
-        if (next) select(next)
+        if (!next) return
+        select(next)
+        announceChanges(operation.label, changes)
       },
     })),
   ]

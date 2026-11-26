@@ -28,6 +28,7 @@ import {
   useView,
   type SaveResult,
 } from './imagery-store.ts'
+import { m } from './messages.ts'
 import { oamRows, type OamRow } from './oam-rows.ts'
 import { listOam, OAM_MIN_ZOOM, oamDrawQuery } from './oam.ts'
 import { OffsetSection } from './OffsetSection.tsx'
@@ -59,22 +60,20 @@ const ICON_BUTTON =
   'flex size-7 items-center justify-center rounded-md text-zinc-500 enabled:hover:bg-zinc-200 enabled:hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:enabled:hover:bg-zinc-600 dark:enabled:hover:text-white'
 
 /** The examples in the form's help. The host is made up: tiles.example.org is never fetched. */
-const TOKEN_EXAMPLES = [
-  { label: '{z}/{x}/{y} tiles', example: 'https://tiles.example.org/{z}/{x}/{y}.png' },
-  {
-    label: 'TMS: {-y} counts rows from the south',
-    example: 'https://tiles.example.org/{z}/{x}/{-y}.png',
-  },
-  {
-    label: 'WMS with a bounding box',
-    example:
-      'https://tiles.example.org/wms?SERVICE=WMS&REQUEST=GetMap&LAYERS=aerial&SRS={proj}&BBOX={bbox}&WIDTH={width}&HEIGHT={height}&FORMAT=image/png&TRANSPARENT=true',
-  },
-]
-const MORE_TOKENS =
-  'Also: {switch:a,b,c} for several hosts, {u} for quadkey tiles, {@2x} or {r} for retina tiles. Not supported: {w}, {s}, {n} and {e}, which MapLibre has no token for.'
-const RIGHTS =
-  'You are responsible for having the right to use this imagery. Check the provider’s terms.'
+function tokenExamples() {
+  return [
+    { label: m.imagery_token_example_xyz(), example: 'https://tiles.example.org/{z}/{x}/{y}.png' },
+    {
+      label: m.imagery_token_example_tms(),
+      example: 'https://tiles.example.org/{z}/{x}/{-y}.png',
+    },
+    {
+      label: m.imagery_token_example_wms(),
+      example:
+        'https://tiles.example.org/wms?SERVICE=WMS&REQUEST=GetMap&LAYERS=aerial&SRS={proj}&BBOX={bbox}&WIDTH={width}&HEIGHT={height}&FORMAT=image/png&TRANSPARENT=true',
+    },
+  ]
+}
 
 /** The classes that are set, joined with spaces */
 function classes(...parts: (string | false | null | undefined)[]) {
@@ -90,17 +89,11 @@ export function ImageryPanel() {
   return (
     <div>
       <div className="px-4 pt-4 pb-1">
-        <h2 className="text-base font-semibold">Background</h2>
-        <p className="text-zinc-500 dark:text-zinc-400">
-          Imagery under the OSM data. Tiles come from the provider&apos;s server once you choose a
-          layer.
-        </p>
+        <h2 className="text-base font-semibold">{m.imagery_background()}</h2>
+        <p className="text-zinc-500 dark:text-zinc-400">{m.imagery_intro()}</p>
       </div>
       {isAutomated() ? (
-        <p className="p-4 text-sm text-zinc-500 dark:text-zinc-400">
-          Backgrounds are off in automated browsers, except a template on this machine (a link with
-          `bg=custom:` to localhost).
-        </p>
+        <p className="p-4 text-sm text-zinc-500 dark:text-zinc-400">{m.imagery_automated()}</p>
       ) : (
         <PanelBody />
       )}
@@ -206,8 +199,8 @@ function PanelBody() {
           <input
             {...PLAIN_INPUT}
             type="search"
-            aria-label="Search backgrounds"
-            placeholder="Search backgrounds"
+            aria-label={m.imagery_search_backgrounds()}
+            placeholder={m.imagery_search_backgrounds()}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="h-8 w-full rounded-md bg-white px-2.5 text-sm inset-ring-1 inset-ring-zinc-950/10 placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-blue-500 dark:bg-zinc-800 dark:inset-ring-white/10"
@@ -216,23 +209,25 @@ function PanelBody() {
       ) : null}
 
       {listed === null ? (
-        <p className="px-4 pb-3 text-sm text-zinc-500 dark:text-zinc-400">Loading backgrounds…</p>
+        <p className="px-4 pb-3 text-sm text-zinc-500 dark:text-zinc-400">
+          {m.imagery_loading_backgrounds()}
+        </p>
       ) : failed ? (
         <p className="px-4 pb-3 text-sm text-red-700 dark:text-red-400">
-          The list of backgrounds could not be loaded.
+          {m.imagery_list_failed()}
         </p>
       ) : null}
 
       {listed !== null && !failed && items.length === 0 ? (
         <p className="px-4 pb-3 text-sm text-zinc-500 dark:text-zinc-400">
-          No background covers this view at this zoom.
+          {m.imagery_none_cover()}
         </p>
       ) : null}
 
       <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-1">
-        <h3 className="text-sm font-medium">Backgrounds</h3>
+        <h3 className="text-sm font-medium">{m.imagery_backgrounds()}</h3>
         <button type="button" className={TEXT_BUTTON} onClick={() => setForm({ mode: 'add' })}>
-          Add custom
+          {m.imagery_add_custom()}
         </button>
       </div>
 
@@ -257,17 +252,21 @@ function PanelBody() {
         />
       ) : null}
 
-      <div role="group" aria-label="Background" className="flex flex-col gap-1 px-2 pb-2">
+      <div
+        role="group"
+        aria-label={m.imagery_background()}
+        className="flex flex-col gap-1 px-2 pb-2"
+      >
         <Choice
-          name="None"
-          detail="No imagery under the map"
+          name={m.imagery_none()}
+          detail={m.imagery_none_detail()}
           selected={shownId === NONE}
           onSelect={() => chooseBackground(NONE)}
         />
         {isCustomValue(shownId) && !shownIsSaved ? (
           <Choice
-            name={shortLabel(shownTemplate ?? '') || 'Custom'}
-            detail="Not saved"
+            name={shortLabel(shownTemplate ?? '') || m.imagery_custom()}
+            detail={m.imagery_not_saved()}
             selected
             onSelect={() => chooseBackground(shownId)}
           />
@@ -307,13 +306,13 @@ function PanelBody() {
 
       {chosenOutOfView ? (
         <p className="px-4 pb-3 text-xs text-zinc-500 dark:text-zinc-400">
-          The chosen background does not cover this view at this zoom. It stays on the map.
+          {m.imagery_chosen_out_of_view()}
         </p>
       ) : null}
 
       {overlays.length > 0 ? (
         <div className="border-t border-zinc-950/5 px-4 py-3 dark:border-white/5">
-          <h3 className="pb-1 text-sm font-medium">Overlays</h3>
+          <h3 className="pb-1 text-sm font-medium">{m.imagery_overlays()}</h3>
           <ul>
             {overlays.map((item) => {
               const on = shown.overlays.includes(item.id)
@@ -358,9 +357,7 @@ function PanelBody() {
         className="border-t border-zinc-950/5 px-4 py-3 dark:border-white/5"
       >
         <h3 className="text-sm font-medium">OpenAerialMap</h3>
-        <p className={classes('pb-1', MUTED)}>
-          Drone and aerial images, drawn above the background.
-        </p>
+        <p className={classes('pb-1', MUTED)}>{m.imagery_oam_description()}</p>
         <ul>
           {oamList.map((row) => (
             <OamOverlay key={row.id} row={row} onToggle={(on) => toggleOverlay(row.id, on)} />
@@ -376,7 +373,7 @@ function PanelBody() {
 
       {shownId !== NONE ? (
         <label className="flex items-center gap-3 border-t border-zinc-950/5 px-4 py-3 text-sm dark:border-white/5">
-          <span className="w-20 shrink-0">Brightness</span>
+          <span className="w-20 shrink-0">{m.imagery_brightness()}</span>
           <input
             {...PLAIN_INPUT}
             type="range"
@@ -408,8 +405,7 @@ function TemplateHint(props: { template: string }) {
   if (names.length === 0) return null
   return (
     <p className="px-4 pb-3 text-xs text-amber-800 dark:text-amber-300">
-      This template has a part that looks like a key ({names.join(', ')}). A shared link includes
-      the template, so it shares that key too.
+      {m.imagery_template_key_hint({ names: names.join(', ') })}
     </p>
   )
 }
@@ -444,9 +440,9 @@ function CustomRow(props: {
       >
         <span className="flex w-full min-w-0 items-center gap-2">
           <span className="min-w-0 truncate font-medium">
-            {entry.name || label || 'Custom background'}
+            {entry.name || label || m.imagery_custom_background()}
           </span>
-          <span className={classes('ml-auto shrink-0', MUTED)}>Custom</span>
+          <span className={classes('ml-auto shrink-0', MUTED)}>{m.imagery_custom()}</span>
         </span>
         {entry.name && label ? (
           <span className={classes('w-full truncate', MUTED)}>{label}</span>
@@ -457,30 +453,30 @@ function CustomRow(props: {
       </button>
       {asking ? (
         <span className="flex shrink-0 items-center gap-1 pr-1 text-xs">
-          <span>Delete?</span>
+          <span>{m.imagery_delete_question()}</span>
           <button type="button" className={TEXT_BUTTON} onClick={onDelete}>
-            Yes
+            {m.imagery_yes()}
           </button>
           <button type="button" className={TEXT_BUTTON} onClick={onCancelAsk}>
-            No
+            {m.imagery_no()}
           </button>
         </span>
       ) : (
         <span className="flex shrink-0 gap-0.5 pr-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 touch:opacity-100">
-          <Tooltip label="Edit custom background">
+          <Tooltip label={m.imagery_edit_custom()}>
             <button
               type="button"
-              aria-label="Edit custom background"
+              aria-label={m.imagery_edit_custom()}
               className={ICON_BUTTON}
               onClick={onEdit}
             >
               <PencilIcon aria-hidden="true" className="size-4" />
             </button>
           </Tooltip>
-          <Tooltip label="Delete this custom background">
+          <Tooltip label={m.imagery_delete_custom()}>
             <button
               type="button"
-              aria-label="Delete this custom background"
+              aria-label={m.imagery_delete_custom()}
               className={ICON_BUTTON}
               onClick={onAsk}
             >
@@ -519,14 +515,14 @@ function CustomForm(props: {
   return (
     <form
       onSubmit={submit}
-      aria-label={entry ? 'Edit custom background' : 'Add custom background'}
+      aria-label={entry ? m.imagery_edit_custom() : m.imagery_add_custom_background()}
       className="mx-4 my-3 flex flex-col gap-3 rounded-lg border border-zinc-950/10 bg-zinc-50 p-3 text-sm dark:border-white/10 dark:bg-white/5"
     >
       <h4 className="text-sm font-medium">
-        {entry ? 'Edit custom background' : 'Add custom background'}
+        {entry ? m.imagery_edit_custom() : m.imagery_add_custom_background()}
       </h4>
       <label className="flex flex-col gap-1">
-        <span>Name (optional)</span>
+        <span>{m.imagery_name_optional()}</span>
         <input
           {...PLAIN_INPUT}
           type="text"
@@ -536,7 +532,7 @@ function CustomForm(props: {
         />
       </label>
       <label className="flex flex-col gap-1">
-        <span>Tile URL template</span>
+        <span>{m.imagery_tile_url_template()}</span>
         <textarea
           {...PLAIN_INPUT}
           rows={3}
@@ -556,9 +552,11 @@ function CustomForm(props: {
       ) : null}
 
       <details>
-        <summary className="cursor-pointer text-xs font-medium">Tokens that work</summary>
+        <summary className="cursor-pointer text-xs font-medium">
+          {m.imagery_tokens_that_work()}
+        </summary>
         <ul className="mt-2 flex flex-col gap-2">
-          {TOKEN_EXAMPLES.map((item) => (
+          {tokenExamples().map((item) => (
             <li key={item.label} className="flex flex-col gap-0.5">
               <span className="text-xs">{item.label}</span>
               <code className="block text-xs break-all text-zinc-600 dark:text-zinc-300">
@@ -567,17 +565,17 @@ function CustomForm(props: {
             </li>
           ))}
         </ul>
-        <p className={classes('mt-2', MUTED)}>{MORE_TOKENS}</p>
+        <p className={classes('mt-2', MUTED)}>{m.imagery_more_tokens()}</p>
       </details>
 
-      <p className={MUTED}>{RIGHTS}</p>
+      <p className={MUTED}>{m.imagery_rights()}</p>
 
       <div className="flex justify-end gap-2">
         <button type="button" className={BUTTON} onClick={onCancel}>
-          Cancel
+          {m.imagery_cancel()}
         </button>
         <button type="submit" className={PRIMARY_BUTTON} disabled={!check.ok}>
-          Save
+          {m.imagery_save()}
         </button>
       </div>
     </form>
@@ -607,7 +605,11 @@ function SeriesChoice(props: { row: SeriesRow; onSelect: (id: string) => void })
         links={row.links}
       />
       {row.chips.length > 0 ? (
-        <div role="group" aria-label={`${row.name}: dates`} className="flex flex-wrap gap-1 pl-7">
+        <div
+          role="group"
+          aria-label={m.imagery_dates_of({ name: row.name })}
+          className="flex flex-wrap gap-1 pl-7"
+        >
           {row.chips.map((chip) => (
             <DateChip key={chip.id} chip={chip} onSelect={() => onSelect(chip.id)} />
           ))}
@@ -652,13 +654,13 @@ function OamStatus(props: {
 }) {
   const { zoomedOut, loading, failed, empty } = props
   const text = zoomedOut
-    ? 'Zoom in to list the OpenAerialMap images of this area.'
+    ? m.imagery_oam_zoom_in()
     : loading
-      ? 'Loading OpenAerialMap images…'
+      ? m.imagery_oam_loading()
       : failed
-        ? 'The OpenAerialMap images could not be loaded.'
+        ? m.imagery_oam_failed()
         : empty
-          ? 'No OpenAerialMap image in this view.'
+          ? m.imagery_oam_none()
           : null
   if (text === null) return null
   return (
@@ -690,7 +692,7 @@ function DateChip(props: { chip: SeriesChip; onSelect: () => void }) {
       <span>{chip.label}</span>
       {chip.best ? (
         <span className="rounded-sm bg-blue-100 px-1 text-[10px] leading-4 font-medium text-blue-800 dark:bg-blue-400/15 dark:text-blue-300">
-          Best
+          {m.imagery_best()}
         </span>
       ) : null}
     </button>
@@ -713,7 +715,7 @@ const CATEGORY_ICONS: Record<string, { Icon: typeof CameraIcon; tone: string }> 
 
 /** The category of a layer as an icon; a category that is not listed is shown as Other */
 function CategoryIcon(props: { category: string }) {
-  const label = categoryLabel(props.category) ?? 'Other'
+  const label = categoryLabel(props.category) ?? m.imagery_category_other()
   const { Icon, tone } = CATEGORY_ICONS[props.category] ?? OTHER_ICON
   return (
     <span role="img" aria-label={label} title={label} className={classes('flex shrink-0', tone)}>
@@ -791,7 +793,7 @@ function Choice(props: {
         <span className="min-w-0 truncate font-medium">{name}</span>
         {best ? (
           <span className="shrink-0 rounded-sm bg-blue-100 px-1 text-[10px] leading-4 font-medium text-blue-800 dark:bg-blue-400/15 dark:text-blue-300">
-            Best
+            {m.imagery_best()}
           </span>
         ) : null}
         {detail ? (

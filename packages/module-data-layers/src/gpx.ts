@@ -4,9 +4,7 @@
  */
 import type { Checked } from './config.ts'
 import type { GeoJsonData } from './geojson.ts'
-
-const NOT_GPX = 'This is not GPX: it must be XML with a gpx element at the top.'
-const NOT_CONVERTED = 'This GPX file could not be converted.'
+import { m } from './messages.ts'
 
 /** The start of XML text: a prolog, comments, then the root element. Only the first part is read. */
 const ROOT_PATTERN = /^\s*(?:<\?[\s\S]*?\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<([A-Za-z_][\w.:-]*)/
@@ -41,12 +39,12 @@ function parseXml(text: string): Document | undefined {
 export async function parseGpx(text: string): Promise<Checked<GeoJsonData>> {
   const doc = parseXml(text)
   if (!doc || doc.documentElement?.localName.toLowerCase() !== 'gpx') {
-    return { ok: false, errors: [NOT_GPX] }
+    return { ok: false, errors: [m.data_layers_error_not_gpx()] }
   }
   const { gpx } = await import('@tmcw/togeojson')
   try {
     return { ok: true, value: gpx(doc) }
   } catch {
-    return { ok: false, errors: [NOT_CONVERTED] }
+    return { ok: false, errors: [m.data_layers_error_gpx_conversion()] }
   }
 }

@@ -4,6 +4,7 @@
  * `ui/sections/preset_fields.js` (which fields are shared), `ui/entity_editor.js` `changeTags` (what
  * a change writes). See docs/research/multi-selection.md, 1.1 to 1.3.
  */
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { CombinedTags } from '@osm-editor-kit/maid-model'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import type { TagSheetChange } from '@osm-editor-kit/maid-ui'
@@ -90,9 +91,9 @@ export function distinctPresets<T extends { id: string }>(
  * they differ. Empty when no feature has a type.
  */
 export function typeLabel(distinct: readonly { preset: { name: string } }[]): string {
-  if (distinct.length === 0) return 'No type'
-  if (distinct.length === 1) return distinct[0]?.preset.name ?? 'No type'
-  return 'Multiple types'
+  if (distinct.length === 0) return m.shell_no_type()
+  if (distinct.length === 1) return distinct[0]?.preset.name ?? m.shell_no_type()
+  return m.shell_multiple_types()
 }
 
 /**
@@ -111,7 +112,7 @@ export function sharedFields(perFeature: readonly (readonly Field[])[]): Field[]
 
 /** The message of a refused change: some selected features are read-only, so nothing was written. */
 export function readOnlyRefusal(readOnly: number, of: number): string {
-  return `${readOnly} of ${of} selected features are read-only. Nothing was changed.`
+  return m.shell_multi_read_only({ readOnly, of })
 }
 
 /** A refused change of several features (the result of `changeTags`, `changeTagsEach` or `changeTypeMany`) */
@@ -126,5 +127,5 @@ export type MultiRefusal =
 export function refusalMessage(refusal: MultiRefusal): string {
   return refusal.reason === 'read-only'
     ? readOnlyRefusal(refusal.readOnly, refusal.of)
-    : 'A selected feature is no longer in the data. Nothing was changed.'
+    : m.shell_multi_gone()
 }

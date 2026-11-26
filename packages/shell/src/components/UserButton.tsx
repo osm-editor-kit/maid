@@ -64,13 +64,13 @@ export function UserButton() {
             className="size-10 shrink-0 text-zinc-400 dark:text-zinc-500"
           />
           <div className="min-w-0">
-            <p className="truncate font-semibold">{auth.user ?? 'Not logged in'}</p>
+            <p className="truncate font-semibold">{auth.user ?? m.shell_user_not_logged_in()}</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               {config.source === 'dev'
-                ? 'OpenStreetMap development server. Nothing is saved to the real map.'
+                ? m.shell_user_server_dev()
                 : config.source === 'osm'
-                  ? 'OpenStreetMap. What you save changes the real map.'
-                  : 'Local test data. Nothing is saved; the login goes to the development server.'}
+                  ? m.shell_user_server_osm()
+                  : m.shell_user_server_mock()}
             </p>
           </div>
         </div>
@@ -81,7 +81,7 @@ export function UserButton() {
               onClick={() => logout()}
               className={`${ACTION} text-zinc-700 ring-1 ring-zinc-950/10 hover:bg-zinc-50 dark:text-zinc-200 dark:ring-white/15 dark:hover:bg-white/5`}
             >
-              Log out
+              {m.shell_user_log_out()}
             </button>
           ) : (
             <button
@@ -90,7 +90,7 @@ export function UserButton() {
               onClick={() => void login()}
               className={`${ACTION} bg-blue-600 text-white enabled:hover:bg-blue-500`}
             >
-              {auth.busy ? 'Waiting for the login window…' : 'Log in'}
+              {auth.busy ? m.shell_user_waiting() : m.topbar_log_in()}
             </button>
           )}
           {(auth.error ?? auth.unavailable) && (

@@ -1,9 +1,10 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useEffect, useId, useRef, type KeyboardEvent } from 'react'
 import { TAP, toolButtonTone } from '../../Toolbar.tsx'
 import type { TagEdit } from '../logic.ts'
 import { ComboField } from './Combo.tsx'
-import { MULTIPLE_VALUES } from './mixed-logic.ts'
+import { multipleValues } from './mixed-logic.ts'
 import { NumberField } from './Number.tsx'
 import {
   radioChoices,
@@ -117,13 +118,7 @@ function RadioGroup(props: {
             aria-checked={checked}
             tabIndex={choice.value === tabStop ? 0 : -1}
             disabled={!onClick}
-            title={
-              choice.some
-                ? 'On some of the selected features'
-                : choice.raw
-                  ? choice.value
-                  : undefined
-            }
+            title={choice.some ? m.ui_multi_some() : choice.raw ? choice.value : undefined}
             onClick={() => onClick?.(choice.value)}
             onKeyDown={(event) => move(event, index)}
             className={`${BUTTON} ${toolButtonTone(checked ? 'selected' : 'idle')} ${choice.some ? SOME : ''}`}
@@ -135,7 +130,7 @@ function RadioGroup(props: {
         )
       })}
       {chosen === undefined ? (
-        <span className={HINT}>{mixed ? MULTIPLE_VALUES : 'None'}</span>
+        <span className={HINT}>{mixed ? multipleValues() : m.ui_none()}</span>
       ) : null}
     </div>
   )
@@ -169,15 +164,16 @@ export function RadioField(props: FieldProps) {
   )
 }
 
-const LAYER_FIELD: Field = {
+/** The layer field of a bridge or a tunnel; read when it is drawn, as the language is set at mount */
+const layerField = (): Field => ({
   id: 'layer',
   type: 'number',
   key: 'layer',
-  label: 'Layer',
+  label: m.ui_layer(),
   placeholder: '0',
   options: [],
   universal: false,
-}
+})
 
 function withoutKey(tags: Tags, key: string) {
   return Object.fromEntries(Object.entries(tags).filter(([tagKey]) => tagKey !== key))
@@ -193,6 +189,7 @@ function withoutKey(tags: Tags, key: string) {
 export function StructureRadioField(props: FieldProps & { typeField?: Field }) {
   const { field, tags, onChange, typeField, combined } = props
   const layerId = useId()
+  const layer = layerField()
   const chosen = radioChosen(field, tags)
   const hasSubFields = chosen === 'bridge' || chosen === 'tunnel'
   // The type combo shows no type for yes, which is what the structure's key holds without one
@@ -229,9 +226,9 @@ export function StructureRadioField(props: FieldProps & { typeField?: Field }) {
       {hasSubFields ? (
         <div className="grid min-w-0 gap-1">
           <label htmlFor={layerId} className={LABEL}>
-            {LAYER_FIELD.label}
+            {layer.label}
           </label>
-          <NumberField field={LAYER_FIELD} tags={tags} id={layerId} onChange={onChange} />
+          <NumberField field={layer} tags={tags} id={layerId} onChange={onChange} />
         </div>
       ) : null}
     </div>

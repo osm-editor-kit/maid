@@ -17,6 +17,7 @@ import {
 } from '@osm-editor-kit/maid-core'
 import { queryOptions, useQueries, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useSyncExternalStore } from 'react'
+import { m } from './messages.ts'
 import {
   cellBox,
   cellsOf,
@@ -56,10 +57,10 @@ export function isPermanentFailure(error: unknown): boolean {
 /** The line the panel shows for a failed request. */
 export function failureMessage(error: unknown): string {
   if (error instanceof RateLimitedError) {
-    return 'The OpenStreetMap server asked for a pause. The notes load again when it ends.'
+    return m.notes_failure_paused()
   }
-  if (error instanceof HttpError) return `The notes could not be loaded (HTTP ${error.status}).`
-  return 'The notes could not be loaded.'
+  if (error instanceof HttpError) return m.notes_failure_http({ status: error.status })
+  return m.notes_failure()
 }
 
 /**

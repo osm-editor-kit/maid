@@ -16,12 +16,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react'
-import {
-  ENGLISH_FAVOURITE_TEXTS,
-  isDrawnGeometry,
-  type FavouriteEntry,
-  type FavouriteTexts,
-} from '../favourites.ts'
+import { isDrawnGeometry, type FavouriteEntry, type FavouriteTexts } from '../favourites.ts'
 import { FlyoutPinnedContext } from '../Flyout.tsx'
 import { GeometryIcon } from '../GeometryIcons.tsx'
 import { ICON_BUTTON, ICON_TONE } from '../icon-button.ts'
@@ -37,7 +32,7 @@ export type PickerFavourite = FavouriteEntry
 
 /**
  * The texts of the picker that the editor translates (packages/i18n: picker_recent, picker_category_expand,
- * picker_category_collapse, picker_favourites, ...). English without them.
+ * picker_category_collapse, picker_favourites, ...).
  */
 export type PresetPickerTexts = {
   recent: string
@@ -48,16 +43,6 @@ export type PresetPickerTexts = {
   favouritesExpand: string
   favouritesCollapse: string
 } & FavouriteTexts
-
-const ENGLISH_TEXTS: PresetPickerTexts = {
-  recent: 'Recently used',
-  expand: 'Show the feature types in this category',
-  collapse: 'Hide the feature types in this category',
-  favourites: 'Favourites',
-  favouritesExpand: 'Show all your favourites',
-  favouritesCollapse: 'Hide your favourites',
-  ...ENGLISH_FAVOURITE_TEXTS,
-}
 
 /** The square an icon sits in; a favourite's number sits on its corner, as a small badge */
 function IconBox(props: { children?: ReactNode; number?: string; title?: string }) {
@@ -84,8 +69,8 @@ function StarButton(props: { name: string; on: boolean; onClick: () => void }) {
     <button
       type="button"
       aria-pressed={on}
-      aria-label={on ? `Remove ${name} from favourites` : `Add ${name} to favourites`}
-      title={on ? 'Remove from favourites' : 'Add to favourites'}
+      aria-label={on ? m.favourite_remove({ name }) : m.favourite_add({ name })}
+      title={on ? m.ui_favourite_remove_title() : m.ui_favourite_add_title()}
       onMouseDown={keepFocus}
       onClick={onClick}
       className={`${ICON_BUTTON} ${on ? 'text-amber-500 dark:text-amber-400' : ICON_TONE}`}
@@ -138,8 +123,8 @@ export function PresetPicker(props: {
    * members (presets browseOf). Without it, an empty search lists what `search` gives for an empty query.
    */
   browse?: Browse
-  /** The texts the picker shows that the editor translates. English without it. */
-  texts?: PresetPickerTexts
+  /** The texts the picker shows that the editor translates */
+  texts: PresetPickerTexts
   /** Given, every row of a geometry the feature has gets a star: it makes the preset a favourite, or takes it out again */
   onToggleFavourite?: (preset: Preset, geometry: Geometry) => void
   /** Given with `onToggleFavourite`, the favourites of a geometry in the Favourites row get move up and down buttons */
@@ -155,11 +140,11 @@ export function PresetPicker(props: {
     favourites: storedFavourites = [],
     geometry,
     browse,
-    texts = ENGLISH_TEXTS,
+    texts,
     onToggleFavourite,
     onMoveFavourite,
     autoFocus = false,
-    placeholder = 'Search feature types',
+    placeholder = m.ui_picker_search_placeholder(),
   } = props
   const pinned = useContext(FlyoutPinnedContext)
   // a relation cannot be drawn, so no favourite fits it: the Favourites row is not shown for it
@@ -339,7 +324,7 @@ export function PresetPicker(props: {
           ) : null}
           {preset.id === currentId ? (
             <span className="shrink-0 rounded-full bg-blue-600/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:bg-blue-400/10 dark:text-blue-400">
-              current
+              {m.ui_picker_current()}
             </span>
           ) : null}
         </div>
@@ -348,7 +333,7 @@ export function PresetPicker(props: {
           <span className="flex shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 touch:opacity-100">
             <button
               type="button"
-              aria-label={`Move ${preset.name} up`}
+              aria-label={m.ui_move_up_named({ name: preset.name })}
               title={m.ui_move_up()}
               disabled={position <= 0}
               onMouseDown={keepFocus}
@@ -359,7 +344,7 @@ export function PresetPicker(props: {
             </button>
             <button
               type="button"
-              aria-label={`Move ${preset.name} down`}
+              aria-label={m.ui_move_down_named({ name: preset.name })}
               title={m.ui_move_down()}
               disabled={position < 0 || position === ofGeometry.length - 1}
               onMouseDown={keepFocus}

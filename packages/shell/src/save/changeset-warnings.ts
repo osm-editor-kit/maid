@@ -3,6 +3,7 @@
  * Amap), as iD's changeset editor shows them (ui/changeset_editor.js, `findIncompatibleSources`). The rules are the
  * validation rule's (maid-validation); a warning never blocks the upload.
  */
+import { m } from '@osm-editor-kit/maid-i18n'
 import { incompatibleSourceMentions } from '@osm-editor-kit/maid-validation'
 
 /** Where iD's warning links to */
@@ -20,11 +21,13 @@ export function warningsFor(
   field: 'comment' | 'source',
   text: string | undefined,
 ): ChangesetWarning[] {
-  const where = field === 'comment' ? 'in this changeset comment' : 'as a source of this changeset'
-  return incompatibleSourceMentions(text).map((mention) => ({
-    id: `${field}.${mention.product}`,
-    text: `You mentioned "${mention.value}" ${where}. ${mention.reference}`,
-  }))
+  return incompatibleSourceMentions(text).map((mention) => {
+    const values = { value: mention.value, reference: mention.reference }
+    return {
+      id: `${field}.${mention.product}`,
+      text: field === 'comment' ? m.shell_warning_comment(values) : m.shell_warning_source(values),
+    }
+  })
 }
 
 /** The warnings of a draft, the comment's first */

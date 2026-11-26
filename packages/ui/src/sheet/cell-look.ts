@@ -2,8 +2,9 @@
  * How a cell looks, as decisions on plain values (no React, no DOM): the classes of the cell and its input, the
  * box-shadow rings (active, range outline, invalid), and the length counter. Unit-tested.
  */
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { CSSProperties } from 'react'
-import { lengthNotice, MAX_VALUE_LENGTH, tooLongText } from '../inspector/logic.ts'
+import { lengthNotice, MAX_VALUE_LENGTH } from '../inspector/logic.ts'
 import type { SelectionRect } from './reducer.ts'
 
 /** Bits of `edges`: which sides of a selected cell are the outline of the range. */
@@ -101,6 +102,8 @@ export function inputClassName(look: {
 export function counterText(text: string): string | undefined {
   const notice = lengthNotice(text)
   if (notice === undefined) return undefined
-  const counted = `${notice.length} / ${MAX_VALUE_LENGTH} characters`
-  return notice.excess > 0 ? `${counted}, ${tooLongText(notice.excess)}` : counted
+  const counts = { length: notice.length, max: MAX_VALUE_LENGTH }
+  return notice.excess > 0
+    ? m.ui_counter_over({ ...counts, excess: notice.excess })
+    : m.ui_counter(counts)
 }

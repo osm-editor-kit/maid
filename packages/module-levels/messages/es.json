@@ -1,0 +1,89 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "levels_title": "Nivel",
+  "levels_none": "ninguno",
+  "levels_change_level": "Nivel {level}, cambiarlo",
+  "levels_set_level_none": "Sin nivel, establecer uno",
+  "levels_from_level": "Desde el nivel {level}",
+  "levels_from_level_none": "Desde el nivel, ninguno",
+  "levels_to_level": "Hasta el nivel {level}",
+  "levels_to_level_none": "Hasta el nivel, ninguno",
+  "levels_swap_direction": "Invertir la dirección",
+  "levels_direction_unknown": "Dirección desconocida",
+  "levels_use_pair": "Usar {from} → {to}",
+  "levels_set_level": "Establecer nivel",
+  "levels_select_as_is": "Seleccionarlo tal como está (solo lectura)",
+  "levels_select_anyway": "Seleccionar de todos modos",
+  "levels_view": "Vista",
+  "levels_3d": "3D",
+  "levels_flat_map": "Mapa plano",
+  "levels_in_3d": "Niveles en 3D",
+  "levels_building_levels": "Niveles del edificio",
+  "levels_tip": "Nivel {level}",
+  "levels_tip_edited": "Nivel {level}: en edición",
+  "levels_tip_shown": "Nivel {level}: visible, bloqueado",
+  "levels_tip_hidden": "Nivel {level}: oculto",
+  "levels_tip_selected_here": "Nivel {level}: el elemento seleccionado está aquí",
+  "levels_unleveled": "Elementos sin nivel",
+  "levels_unleveled_in_view": "Elementos sin nivel ({count} en la vista)",
+  "levels_choice_hidden": "Ocultos",
+  "levels_choice_shown": "Visibles, bloqueados",
+  "levels_choice_stop_editing": "Dejar de editarlos",
+  "levels_choice_edit_only": "Editar solo estos",
+  "levels_all_levels": "Todos los niveles",
+  "levels_all": "Todos",
+  "levels_reason_edited": "nivel en edición",
+  "levels_reason_in_view": "en la vista",
+  "levels_reason_connects": "conecta {a} y {b}",
+  "levels_reason_inside": "dentro de: {name}",
+  "levels_reason_connected_corridor": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "conectado: {count} pasillo",
+        "countPlural=other": "conectado: {count} pasillos"
+      }
+    }
+  ],
+  "levels_reason_connected_step": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "conectado: {count} escalera",
+        "countPlural=other": "conectado: {count} escaleras"
+      }
+    }
+  ],
+  "levels_reason_connected_path": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "conectado: {count} camino",
+        "countPlural=other": "conectado: {count} caminos"
+      }
+    }
+  ],
+  "levels_reason_connected_room": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "conectado: {count} sala",
+        "countPlural=other": "conectado: {count} salas"
+      }
+    }
+  ],
+  "levels_reason_connected_feature": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "conectado: {count} elemento",
+        "countPlural=other": "conectado: {count} elementos"
+      }
+    }
+  ]
+}

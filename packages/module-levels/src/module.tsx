@@ -9,6 +9,7 @@ import { LevelExtrusion } from './LevelExtrusion.tsx'
 import { LevelMenu } from './LevelMenu.tsx'
 import { LevelPicker } from './LevelPicker.tsx'
 import { LevelSection } from './LevelSection.tsx'
+import { m } from './messages.ts'
 import { parseAsLevel } from './url.ts'
 
 /**
@@ -60,7 +61,7 @@ export function levels() {
       // level or a connector, and for every feature while a level is edited
       api.register('inspector.section', {
         id: 'levels',
-        title: 'Level',
+        title: m.levels_title(),
         placement: 'top',
         when: (entity) =>
           LEVEL_KEYS.some((key) => key in entity.tags) ||

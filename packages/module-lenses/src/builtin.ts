@@ -3,6 +3,7 @@
  * like and can be copied and changed.
  */
 import type { Lens } from '@osm-editor-kit/maid-style'
+import { m } from './messages.ts'
 
 /** Warning colour for what a lens cannot show because a tag is missing */
 export const WARNING = '#e6007e'
@@ -61,26 +62,42 @@ const UNPAVED = [
 /** Surface: roads and paths by their surface tag */
 export const surfaceLens: Lens = {
   id: 'surface',
-  name: 'Surface',
-  description: 'Roads and paths by their surface: paved, unpaved, other, and no surface tag.',
+  get name() {
+    return m.lenses_surface_name()
+  },
+  get description() {
+    return m.lenses_surface_description()
+  },
   geometry: ['line'],
   rest: 'dim',
   rules: [
-    { match: { highway: [...ROADS, ...PATHS], surface: PAVED }, color: '#2b6cb0', label: 'Paved' },
+    {
+      match: { highway: [...ROADS, ...PATHS], surface: PAVED },
+      color: '#2b6cb0',
+      get label() {
+        return m.lenses_label_surface_paved()
+      },
+    },
     {
       match: { highway: [...ROADS, ...PATHS], surface: UNPAVED },
       color: '#b7791f',
-      label: 'Unpaved',
+      get label() {
+        return m.lenses_label_surface_unpaved()
+      },
     },
     {
       match: { highway: [...ROADS, ...PATHS], surface: true },
       color: '#718096',
-      label: 'Other surface',
+      get label() {
+        return m.lenses_label_surface_other()
+      },
     },
     {
       match: { highway: [...ROADS, ...PATHS], surface: false },
       color: WARNING,
-      label: 'No surface tag',
+      get label() {
+        return m.lenses_label_surface_missing()
+      },
     },
   ],
 }
@@ -88,19 +105,43 @@ export const surfaceLens: Lens = {
 /** Lit: roads and paths by their lit tag */
 export const litLens: Lens = {
   id: 'lit',
-  name: 'Lit',
-  description: 'Roads and paths by lit: lit, not lit, other values, and no lit tag.',
+  get name() {
+    return m.lenses_lit_name()
+  },
+  get description() {
+    return m.lenses_lit_description()
+  },
   geometry: ['line'],
   rest: 'dim',
   rules: [
     {
       match: { highway: [...ROADS, ...PATHS], lit: ['yes', '24/7', 'automatic', 'limited'] },
       color: '#f6c700',
-      label: 'Lit',
+      get label() {
+        return m.lenses_label_lit_lit()
+      },
     },
-    { match: { highway: [...ROADS, ...PATHS], lit: 'no' }, color: '#2d3748', label: 'Not lit' },
-    { match: { highway: [...ROADS, ...PATHS], lit: true }, color: '#a0aec0', label: 'Other value' },
-    { match: { highway: [...ROADS, ...PATHS], lit: false }, color: WARNING, label: 'No lit tag' },
+    {
+      match: { highway: [...ROADS, ...PATHS], lit: 'no' },
+      color: '#2d3748',
+      get label() {
+        return m.lenses_label_lit_not_lit()
+      },
+    },
+    {
+      match: { highway: [...ROADS, ...PATHS], lit: true },
+      color: '#a0aec0',
+      get label() {
+        return m.lenses_label_lit_other()
+      },
+    },
+    {
+      match: { highway: [...ROADS, ...PATHS], lit: false },
+      color: WARNING,
+      get label() {
+        return m.lenses_label_lit_missing()
+      },
+    },
   ],
 }
 
@@ -133,17 +174,57 @@ const SPEED_TOP = [
 
 export const maxspeedLens: Lens = {
   id: 'maxspeed',
-  name: 'Max speed',
-  description: 'Roads by their speed limit in bands, other values, and no maxspeed tag.',
+  get name() {
+    return m.lenses_maxspeed_name()
+  },
+  get description() {
+    return m.lenses_maxspeed_description()
+  },
   geometry: ['line'],
   rest: 'dim',
   rules: [
-    { match: { highway: ROADS, maxspeed: SPEED_LOW }, color: '#1a9850', label: 'Up to 30 km/h' },
-    { match: { highway: ROADS, maxspeed: SPEED_MID }, color: '#e6b800', label: '35 to 50 km/h' },
-    { match: { highway: ROADS, maxspeed: SPEED_HIGH }, color: '#f46d43', label: '55 to 80 km/h' },
-    { match: { highway: ROADS, maxspeed: SPEED_TOP }, color: '#a50026', label: 'Above 80 km/h' },
-    { match: { highway: ROADS, maxspeed: true }, color: '#7b61ff', label: 'Other value' },
-    { match: { highway: ROADS, maxspeed: false }, color: WARNING, label: 'No maxspeed tag' },
+    {
+      match: { highway: ROADS, maxspeed: SPEED_LOW },
+      color: '#1a9850',
+      get label() {
+        return m.lenses_label_maxspeed_low()
+      },
+    },
+    {
+      match: { highway: ROADS, maxspeed: SPEED_MID },
+      color: '#e6b800',
+      get label() {
+        return m.lenses_label_maxspeed_mid()
+      },
+    },
+    {
+      match: { highway: ROADS, maxspeed: SPEED_HIGH },
+      color: '#f46d43',
+      get label() {
+        return m.lenses_label_maxspeed_high()
+      },
+    },
+    {
+      match: { highway: ROADS, maxspeed: SPEED_TOP },
+      color: '#a50026',
+      get label() {
+        return m.lenses_label_maxspeed_top()
+      },
+    },
+    {
+      match: { highway: ROADS, maxspeed: true },
+      color: '#7b61ff',
+      get label() {
+        return m.lenses_label_maxspeed_other()
+      },
+    },
+    {
+      match: { highway: ROADS, maxspeed: false },
+      color: WARNING,
+      get label() {
+        return m.lenses_label_maxspeed_missing()
+      },
+    },
   ],
 }
 

@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import { favouriteModifierLabel, useStoredFavourites } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
 import { startFavourite } from '../favourites'
@@ -96,7 +97,7 @@ export function FavouriteHint() {
       className="pointer-events-none absolute top-3 left-1/2 z-30 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-xs font-medium text-zinc-800 shadow ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10 nokeys:hidden"
     >
       <kbd className="font-mono">{MODIFIER_LABEL}</kbd>{' '}
-      {name ? `${digits} · ${name}` : `no favourite ${digits}`}
+      {name ? `${digits} · ${name}` : m.shell_favourite_none({ digits })}
     </div>
   )
 }

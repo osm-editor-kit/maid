@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { fieldKeys } from './logic.ts'
 
@@ -11,11 +12,13 @@ export type RelatedCategory = 'source' | 'note' | 'check_date'
 
 export const RELATED_CATEGORIES: readonly RelatedCategory[] = ['source', 'note', 'check_date']
 
-export const CATEGORY_LABELS: Readonly<Record<RelatedCategory, string>> = {
-  source: 'Source',
-  note: 'Note',
-  check_date: 'Checked',
-}
+/** Read when a label is made, as the language is set at mount */
+export const categoryLabel = (category: RelatedCategory): string =>
+  category === 'source'
+    ? m.ui_related_source()
+    : category === 'note'
+      ? m.ui_related_note()
+      : m.ui_related_checked()
 
 /** A related tag that is set. */
 export type RelatedTag = {
@@ -158,7 +161,7 @@ export function relatedSide(baseKey: string) {
  * has several keys and the tag is not about the field's own key (`Source (left)`).
  */
 export function relatedLabel(slot: RelatedSlot, field: Field) {
-  const base = CATEGORY_LABELS[slot.category]
+  const base = categoryLabel(slot.category)
   const baseKeys = relatedBaseKeys(field)
   const mainKey = field.key ?? baseKeys[0]
   if (baseKeys.length < 2 || slot.baseKey === mainKey) return base

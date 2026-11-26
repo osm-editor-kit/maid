@@ -226,7 +226,7 @@ export function FieldRow(props: {
           {onChange && key !== undefined && measure?.can(key) ? (
             <button
               type="button"
-              aria-label={`Measure ${field.label} on the map`}
+              aria-label={m.ui_measure_named({ label: field.label })}
               aria-pressed={measure.active === key}
               title={m.ui_measure_on_map()}
               className={MEASURE_BUTTON}
@@ -239,8 +239,8 @@ export function FieldRow(props: {
           {onChange && modified && baseTags && mixedKeys.length === 0 ? (
             <button
               type="button"
-              aria-label={`Revert ${field.label}`}
-              title={`Revert ${field.label}`}
+              aria-label={m.ui_revert_named({ label: field.label })}
+              title={m.ui_revert_named({ label: field.label })}
               className={ACTION_BUTTON}
               onClick={() => apply(revertEdits(field, tags, baseTags))}
             >
@@ -250,8 +250,8 @@ export function FieldRow(props: {
           {onChange && present ? (
             <button
               type="button"
-              aria-label={`Remove ${field.label}`}
-              title={`Remove ${field.label}`}
+              aria-label={m.ui_remove_named({ label: field.label })}
+              title={m.ui_remove_named({ label: field.label })}
               className={ACTION_BUTTON}
               onClick={() =>
                 apply([

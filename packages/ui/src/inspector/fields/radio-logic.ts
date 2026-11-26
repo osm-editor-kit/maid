@@ -1,6 +1,7 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { isUnsetOption, type TagEdit } from '../logic.ts'
-import { MULTIPLE_VALUES, mixedOf } from './mixed-logic.ts'
+import { multipleValues, mixedOf } from './mixed-logic.ts'
 import type { CombinedTags } from './shared.ts'
 
 /**
@@ -167,25 +168,26 @@ export function structureTypeEdits(structure: string, tags: Tags, type: string |
  * Access (iD access.js). One row per key; each row's options are the access values, with the
  * list cut per key as iD does (access: no yes and no designated; bicycle: plus dismount).
  */
-const ACCESS_VALUES: { value: string; label: string }[] = [
-  { value: 'yes', label: 'Yes' },
-  { value: 'no', label: 'No' },
-  { value: 'designated', label: 'Designated' },
-  { value: 'permissive', label: 'Permissive' },
-  { value: 'destination', label: 'Destination' },
-  { value: 'customers', label: 'Customers' },
-  { value: 'private', label: 'Private' },
-  { value: 'permit', label: 'Permit' },
-  { value: 'unknown', label: 'Unknown' },
+const accessValues = (): { value: string; label: string }[] => [
+  { value: 'yes', label: m.ui_yes() },
+  { value: 'no', label: m.ui_no() },
+  { value: 'designated', label: m.ui_access_designated() },
+  { value: 'permissive', label: m.ui_access_permissive() },
+  { value: 'destination', label: m.ui_access_destination() },
+  { value: 'customers', label: m.ui_access_customers() },
+  { value: 'private', label: m.ui_access_private() },
+  { value: 'permit', label: m.ui_access_permit() },
+  { value: 'unknown', label: m.ui_unknown() },
 ]
 
 /** The options of one access row (access.js:85-112). */
 export function accessOptions(key: string) {
+  const all = accessValues()
   const options =
     key === 'access'
-      ? ACCESS_VALUES.filter((option) => option.value !== 'yes' && option.value !== 'designated')
-      : [...ACCESS_VALUES]
-  if (key === 'bicycle') options.push({ value: 'dismount', label: 'Dismount' })
+      ? all.filter((option) => option.value !== 'yes' && option.value !== 'designated')
+      : all
+  if (key === 'bicycle') options.push({ value: 'dismount', label: m.ui_access_dismount() })
   return options
 }
 
@@ -269,5 +271,5 @@ export function accessPlaceholder(
   if (features === undefined || features.length < 2) return impliedAccess(tags, key)
   const implied = new Set(features.map((feature) => impliedAccess(feature, key)))
   if (implied.size === 1) return features.map((feature) => impliedAccess(feature, key))[0]
-  return MULTIPLE_VALUES
+  return multipleValues()
 }

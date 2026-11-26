@@ -1,4 +1,5 @@
 import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline'
+import { m } from '@osm-editor-kit/maid-i18n'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useId, useState, type ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
@@ -84,7 +85,7 @@ export function Shell(props: {
     if (sheetOpen === undefined) setOwnSheetOpen(next)
     onSheetOpenChange?.(next)
   }
-  const label = sheetLabel ?? 'Properties'
+  const label = sheetLabel ?? m.ui_sheet_default_label()
   // The column before the sidebar slides open and shut: its width grows from 0 while its content keeps its own width
   // (clipped), so the long member list is not laid out again on each frame. Only the map beside it resizes, as when the
   // sidebar's handle is dragged. The tinted frame stays until the column is gone, so it does not jump while it closes.
@@ -136,7 +137,7 @@ export function Shell(props: {
               </div>
             </div>
             <ResizeHandle
-              label="Resize sidebar"
+              label={m.ui_resize_sidebar()}
               edge="right"
               dragging={sidebarWidth.dragging}
               {...sidebarWidth.handleProps}

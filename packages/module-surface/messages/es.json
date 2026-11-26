@@ -1,0 +1,18 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "surface_surface": "Superficie",
+  "surface_smoothness": "Regularidad",
+  "surface_search_surfaces": "Buscar superficies",
+  "surface_search_smoothness": "Buscar regularidad",
+  "surface_choose": "Elegir…",
+  "surface_photo_credits": "Créditos de las fotos",
+  "surface_use_typed": "Usar '{value}'",
+  "surface_other_values": "Otros valores",
+  "surface_common_surfaces": "Superficies comunes",
+  "surface_other_surfaces": "Otras superficies",
+  "surface_salt": "Sal",
+  "surface_not_offered": "No se ofrece para esta superficie",
+  "surface_not_in_catalogue": "No está en el catálogo",
+  "surface_hint_choose_first": "Elige primero una superficie para ver sus fotos. Estos son los niveles.",
+  "surface_hint_no_photos": "No hay fotos para esta superficie: los niveles."
+}

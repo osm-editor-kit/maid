@@ -1,5 +1,6 @@
 import { ChevronDownIcon } from '@heroicons/react/16/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
+import { m } from '@osm-editor-kit/maid-i18n'
 import {
   Flyout,
   notify,
@@ -29,9 +30,7 @@ function anchorProps(
         // cancelled here: handleJosmLinkClick cancels only after its fetch, which is too late to stop the navigation
         event.preventDefault()
         onFollow?.()
-        handleJosmLinkClick(event.nativeEvent).catch(() =>
-          notify.failed('JOSM does not answer. Is it running with remote control on?'),
-        )
+        handleJosmLinkClick(event.nativeEvent).catch(() => notify.failed(m.shell_element_josm()))
       },
     }
   return { href: link.url, target: '_blank', rel: 'noopener noreferrer', onClick: onFollow }
@@ -57,7 +56,7 @@ function LinkedValue({ value, links }: { value: string | number; links: readonly
         </a>
       )}
       <Flyout
-        label={`Links for ${text}`}
+        label={m.shell_element_links_for({ text })}
         placement="bottom-end"
         className="w-64"
         open={open}
@@ -65,8 +64,8 @@ function LinkedValue({ value, links }: { value: string | number; links: readonly
         trigger={
           <button
             type="button"
-            aria-label={`Links for ${text}`}
-            title={`Links for ${text}`}
+            aria-label={m.shell_element_links_for({ text })}
+            title={m.shell_element_links_for({ text })}
             className="grid size-5 shrink-0 cursor-pointer place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
           >
             <ChevronDownIcon aria-hidden="true" className="size-4" />
@@ -114,26 +113,30 @@ function ElementInfo({ entity, editor }: InspectorSectionProps) {
   }
   const size: Row[] =
     entity.type === 'way'
-      ? [{ label: 'Nodes', value: entity.size }]
+      ? [{ label: m.shell_element_nodes(), value: entity.size }]
       : entity.type === 'relation'
-        ? [{ label: 'Members', value: entity.size }]
+        ? [{ label: m.shell_element_members(), value: entity.size }]
         : []
   const rows: Row[] = [
     {
-      label: 'ID',
+      label: m.shell_element_id(),
       value: entity.id,
       links: idLinks(entity.id, { website, loc: placeOf(centre), countryCodes }),
     },
     ...size,
-    { label: 'Version', value: props.version },
+    { label: m.shell_element_version(), value: props.version },
     {
-      label: 'Changeset',
+      label: m.shell_element_changeset(),
       value: props.changeset,
       links: changesetRowLinks(entity.id, props.changeset, website),
     },
-    { label: 'User', value: props.user, links: userRowLinks(entity.id, props.user, website) },
     {
-      label: 'Timestamp',
+      label: m.shell_element_user(),
+      value: props.user,
+      links: userRowLinks(entity.id, props.user, website),
+    },
+    {
+      label: m.shell_element_timestamp(),
       value: props.timestamp,
       // the date, and under it how long ago, so neither needs the tooltip
       shown:
@@ -171,9 +174,11 @@ function ElementInfo({ entity, editor }: InspectorSectionProps) {
       })}
       {edited && (
         <div className="flex gap-2 py-1">
-          <dt className="w-2/5 shrink-0 text-zinc-500 dark:text-zinc-400">Status</dt>
+          <dt className="w-2/5 shrink-0 text-zinc-500 dark:text-zinc-400">
+            {m.shell_element_status()}
+          </dt>
           <dd className="min-w-0 flex-1 text-amber-700 dark:text-amber-400">
-            edited, not uploaded
+            {m.shell_element_edited()}
           </dd>
         </div>
       )}
@@ -188,7 +193,7 @@ export function elementInfo() {
     setup(api) {
       const section: InspectorSection = {
         id: 'element-info',
-        title: 'Element',
+        title: m.shell_element_title(),
         // id, version and so on are looked at now and then: folded away until asked for
         disclosure: 'closed',
         // folded, the heading still says who touched it last and when: id · user · how long ago

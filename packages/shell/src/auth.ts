@@ -1,4 +1,5 @@
 import { isAutomated } from '@osm-editor-kit/maid-core'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Server } from '@osm-editor-kit/maid-ui'
 import { useSyncExternalStore } from 'react'
 import { useShell } from './shell-context'
@@ -49,13 +50,13 @@ export function createAuth({ id, envFile, server, apiUrl, clientId, loginOrigin 
   const USER_KEY = `${id}:osm-user:${server}`
 
   function unavailable() {
-    if (isAutomated()) return 'Login is switched off in automated browsers.'
+    if (isAutomated()) return m.shell_login_automated()
     if (!clientId) {
       const variable = CLIENT_ID_VARIABLE[server]
-      return `No client id: set VITE_${variable} in ${envFile}, or the repository variable ${variable} for GitHub Pages.`
+      return m.shell_login_no_client_id({ variable, envFile })
     }
     if (loginOrigin && window.location.origin !== loginOrigin) {
-      return `Open this editor at ${loginOrigin} to log in.`
+      return m.shell_login_wrong_origin({ origin: loginOrigin })
     }
     return undefined
   }
@@ -130,7 +131,7 @@ export function createAuth({ id, envFile, server, apiUrl, clientId, loginOrigin 
     } catch (error) {
       set({
         busy: false,
-        error: error instanceof Error ? error.message : 'The login did not finish.',
+        error: error instanceof Error ? error.message : m.shell_login_unfinished(),
       })
     }
   }

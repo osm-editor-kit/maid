@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { keepsStack, useStack, type Stack } from '../stack'
+import { geometryLabel } from './geometry-label'
 import { PresetIcon } from './PresetIcon'
 
 /** The pill sits up and to the right of the place it is for, so that it does not cover the feature */
@@ -15,20 +16,9 @@ const PILL_OFFSET = { x: 14, y: 26 }
 export const STACK_CHIP_CLASS =
   'flex h-6 items-center gap-1 rounded-full bg-white px-2 text-xs font-medium text-zinc-800 shadow ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10'
 
-const GEOMETRY_LABEL = {
-  point: 'Point',
-  vertex: 'Vertex',
-  line: 'Line',
-  area: 'Area',
-  relation: 'Relation',
-}
-
-const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth']
-
 /** The accessible name of the pill: "3 features here, the first is selected" */
 function stackName(total: number, index: number) {
-  const which = ORDINALS[index] ? `the ${ORDINALS[index]}` : `number ${index + 1}`
-  return `${total} features here, ${which} is selected`
+  return m.shell_stack_selected({ total, position: index + 1 })
 }
 
 /**
@@ -45,17 +35,17 @@ export function featureItems(
 ) {
   return ids.map((id) => {
     const entity = engine.entity(id)
-    const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined
+    const kind = entity ? (entity.preset?.name ?? geometryLabel(entity.geometry)) : undefined
     return {
       id: `feature:${id}`,
-      label: entity?.tags.name ?? kind ?? 'Feature',
+      label: entity?.tags.name ?? kind ?? m.shell_feature(),
       icon: (
         <PresetIcon
           icon={entity?.preset?.icon}
           className="size-5 fill-zinc-700 dark:fill-zinc-200"
         />
       ),
-      shortcut: entity ? entity.geometry : undefined,
+      shortcut: entity ? geometryLabel(entity.geometry).toLocaleLowerCase() : undefined,
       current: isCurrent(id),
       keepOpen: true,
       section,
@@ -71,7 +61,11 @@ export function StackCount({ index, total }: { index: number; total: number }) {
   return (
     <>
       <Square2StackIcon className="size-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
-      <span>{index >= 0 ? `${index + 1} of ${total}` : `${total} features`}</span>
+      <span>
+        {index >= 0
+          ? m.shell_stack_count({ index: index + 1, total })
+          : m.shell_stack_total({ total })}
+      </span>
     </>
   )
 }
@@ -154,7 +148,7 @@ export function StackPicker() {
       {open && list && (
         <ContextMenu
           at={list.at}
-          label="Features here"
+          label={m.shell_features_here()}
           items={rows}
           onClose={() => {
             setList(null)

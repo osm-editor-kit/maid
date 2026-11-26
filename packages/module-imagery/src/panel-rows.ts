@@ -4,18 +4,37 @@
  * without a browser. `series.ts` and `ImageryPanel.tsx` use them.
  */
 import { sortListing, type Listing } from './helpers.ts'
+import { m } from './messages.ts'
 
 /** The groups of the background list, in the order they are shown */
 export const BACKGROUND_GROUPS = [
-  { id: 'local-photo', label: 'Local aerial imagery' },
-  { id: 'global-photo', label: 'Global aerial imagery' },
-  { id: 'maps', label: 'Maps' },
-  { id: 'historic', label: 'Historic' },
-  { id: 'elevation', label: 'Elevation' },
-  { id: 'other', label: 'Other' },
+  { id: 'local-photo' },
+  { id: 'global-photo' },
+  { id: 'maps' },
+  { id: 'historic' },
+  { id: 'elevation' },
+  { id: 'other' },
 ] as const
 
 export type BackgroundGroupId = (typeof BACKGROUND_GROUPS)[number]['id']
+
+/** The name of a group; read when the list is made, as the language is set at mount */
+function groupLabel(id: BackgroundGroupId): string {
+  switch (id) {
+    case 'local-photo':
+      return m.imagery_group_local_photo()
+    case 'global-photo':
+      return m.imagery_group_global_photo()
+    case 'maps':
+      return m.imagery_group_maps()
+    case 'historic':
+      return m.imagery_group_historic()
+    case 'elevation':
+      return m.imagery_group_elevation()
+    case 'other':
+      return m.imagery_group_other()
+  }
+}
 
 /**
  * The group a layer is listed under: by its category. An aerial photo is local when it has a coverage
@@ -48,7 +67,7 @@ export function backgroundGroup(category: string | undefined, worldwide: boolean
 export function groupRows<T extends { group: BackgroundGroupId }>(rows: readonly T[]) {
   return BACKGROUND_GROUPS.flatMap((group) => {
     const members = rows.filter((row) => row.group === group.id)
-    return members.length > 0 ? [{ id: group.id, label: group.label, rows: members }] : []
+    return members.length > 0 ? [{ id: group.id, label: groupLabel(group.id), rows: members }] : []
   })
 }
 
@@ -91,9 +110,10 @@ export function layerLinks(layer: Pick<Listing, 'attributionUrl' | 'licenseUrl'>
   const attribution = webUrl(layer.attributionUrl)
   const license = webUrl(layer.licenseUrl)
   const links: LayerLink[] = []
-  if (attribution !== undefined) links.push({ label: 'Attribution', url: attribution })
+  if (attribution !== undefined)
+    links.push({ label: m.imagery_link_attribution(), url: attribution })
   if (license !== undefined && license !== attribution) {
-    links.push({ label: 'License', url: license })
+    links.push({ label: m.imagery_link_license(), url: license })
   }
   return links
 }
@@ -102,9 +122,10 @@ export function layerLinks(layer: Pick<Listing, 'attributionUrl' | 'licenseUrl'>
 export function dateText(startDate: string | undefined, endDate: string | undefined) {
   const start = startDate?.trim() || undefined
   const end = endDate?.trim() || undefined
-  if (start !== undefined && end !== undefined) return start === end ? start : `${start} – ${end}`
-  if (start !== undefined) return `from ${start}`
-  if (end !== undefined) return `until ${end}`
+  if (start !== undefined && end !== undefined)
+    return start === end ? start : m.imagery_date_range({ start, end })
+  if (start !== undefined) return m.imagery_date_from({ start })
+  if (end !== undefined) return m.imagery_date_until({ end })
   return undefined
 }
 

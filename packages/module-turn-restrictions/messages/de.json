@@ -1,0 +1,50 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "turn_restrictions_title": "Abbiegebeschränkungen",
+  "turn_restrictions_help_click": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tippe eine Abbiegung an, um sie zu ändern: erlaubt, verboten oder nur diese Abbiegung.",
+        "input=*": "Klicke eine Abbiegung an, um sie zu ändern: erlaubt, verboten oder nur diese Abbiegung."
+      }
+    }
+  ],
+  "turn_restrictions_distance_label": "Suchweite",
+  "turn_restrictions_distance_tip": "Wie weit vom Knoten die Suche nach angeschlossenen Straßen reicht.",
+  "turn_restrictions_via_label": "Via-Wege",
+  "turn_restrictions_via_tip": "Wie viele Wege ein Abbiegeverbot durchlaufen darf; „nur Knoten“ ist am einfachsten, und einfach ist besser.",
+  "turn_restrictions_from": "Straße VON",
+  "turn_restrictions_not_junction": "Die Straßen hier bilden keine Kreuzung, an der Abbiegungen beschränkt werden können.",
+  "turn_restrictions_distance_value": "Bis {distance} m",
+  "turn_restrictions_via_node": "Nur Knoten",
+  "turn_restrictions_via_one": "Bis 1 Weg",
+  "turn_restrictions_via_two": "Bis 2 Wege",
+  "turn_restrictions_turn_left": "Linksabbiegen",
+  "turn_restrictions_turn_right": "Rechtsabbiegen",
+  "turn_restrictions_turn_u": "Wenden",
+  "turn_restrictions_turn_straight": "Geradeausfahren",
+  "turn_restrictions_turn_any": "Abbiegen",
+  "turn_restrictions_state_no": "{turn} verboten",
+  "turn_restrictions_state_only": "Nur {turn} erlaubt",
+  "turn_restrictions_state_allowed": "{turn} erlaubt",
+  "turn_restrictions_hint": [
+    {
+      "declarations": ["input input", "input next", "input state"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{state}. Tippen für: {next}",
+        "input=*": "{state}. Klicken für: {next}"
+      }
+    }
+  ],
+  "turn_restrictions_badge_only": "NUR",
+  "turn_restrictions_indirect_hint": "Indirekt: durch ein benachbartes Verbot entstanden. Ändere das direkte Verbot daneben.",
+  "turn_restrictions_aria_turn": "Abbiegung von {from} nach {to}: {state}",
+  "turn_restrictions_unnamed": "Namenlose Straße",
+  "turn_restrictions_undo_added": "Abbiegeverbot hinzugefügt",
+  "turn_restrictions_undo_deleted": "Abbiegeverbot gelöscht",
+  "turn_restrictions_rule_label": "Abbiegeverbot ohne Mitglieder VON, Via und NACH",
+  "turn_restrictions_rule_message": "Das Abbiegeverbot ist unvollständig: Es braucht einen Weg VON, einen Via-Knoten oder -Weg und einen Weg NACH"
+}

@@ -207,7 +207,7 @@ function RotateGesture({
       <div
         ref={handleRef}
         role="button"
-        aria-label="Rotate feature"
+        aria-label={m.shell_rotate_feature()}
         data-rotate-handle
         style={{ left: hx, top: hy }}
         className="absolute z-20 grid size-11 -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none place-items-center rounded-full bg-white text-blue-600 shadow-md ring-2 ring-blue-600 select-none active:bg-blue-50 dark:bg-zinc-800 dark:text-blue-300 dark:active:bg-zinc-700"

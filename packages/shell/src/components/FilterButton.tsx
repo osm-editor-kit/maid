@@ -1,5 +1,6 @@
 import { FunnelIcon } from '@heroicons/react/20/solid'
 import { createFilterSet } from '@osm-editor-kit/maid-filters'
+import { m } from '@osm-editor-kit/maid-i18n'
 import {
   FilterPanel,
   Flyout,
@@ -28,9 +29,7 @@ function Filters() {
   const hidden = useEngine((e) => ({ ...e.hiddenCounts() }))
   const stored = useStoredShown('filters')
   if (editor.filters.length === 0)
-    return (
-      <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">This editor has no filters.</p>
-    )
+    return <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">{m.shell_filters_none()}</p>
   const fromLink = differsFromStored(filters.toParam(), stored, '', normalizeFilters)
   const apply = (param: string) => {
     engine.setFilters(createFilterSet(editor.filters, param))
@@ -40,9 +39,9 @@ function Filters() {
     <>
       {fromLink && (
         <p className="flex flex-wrap items-center gap-x-3 px-4 pt-3 text-xs text-zinc-500 dark:text-zinc-400">
-          <span>These filters come from the link.</span>
+          <span>{m.shell_filters_from_link()}</span>
           <button type="button" className={LINK_BUTTON} onClick={() => apply(stored ?? '')}>
-            Use mine
+            {m.shell_filters_use_mine()}
           </button>
         </p>
       )}
@@ -74,22 +73,28 @@ export function FilterButton() {
   if (editor.filters.length === 0) return null
   const changed = shown ? shown.split(',').length : 0
   const fromLink = differsFromStored(shown, stored, '', normalizeFilters)
-  const base = changed > 0 ? `Filters, ${changed} changed` : 'Filters'
-  const about = 'Filters: what is editable, read-only or hidden'
+  const base = changed > 0 ? m.shell_filters_changed({ count: changed }) : m.shell_filters()
+  const about = m.shell_filters_about()
   return (
     <Tooltip
       label={base}
-      description={fromLink ? `${about}\nFrom the link you opened` : about}
+      description={fromLink ? `${about}\n${m.shell_filters_from_link_note()}` : about}
       placement="bottom"
     >
       <Flyout
-        label="Filters"
+        label={m.shell_filters()}
         placement="bottom-end"
         className="w-[46rem]"
         trigger={
           <button
             type="button"
-            aria-label={fromLink ? `${base}, from the link you opened` : base}
+            aria-label={
+              fromLink
+                ? changed > 0
+                  ? m.shell_filters_changed_from_link({ count: changed })
+                  : m.shell_filters_from_link_label()
+                : base
+            }
             className={toolButtonClass(false, changed > 0)}
           >
             <FunnelIcon aria-hidden="true" className="size-5" />
@@ -111,10 +116,8 @@ export function FilterButton() {
         }
       >
         <div className="px-4 pt-4 pb-1">
-          <h2 className="text-base font-semibold">Filters</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">
-            Choose what you can edit, what is only shown, and what is hidden.
-          </p>
+          <h2 className="text-base font-semibold">{m.shell_filters()}</h2>
+          <p className="text-zinc-500 dark:text-zinc-400">{m.shell_filters_intro()}</p>
         </div>
         <Filters />
       </Flyout>

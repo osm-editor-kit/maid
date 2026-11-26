@@ -3,6 +3,7 @@
  * little further: the person's own history first, then their recent changesets from the server, each value once.
  * Pure: the lists come from changeset-history.ts and recent-changesets.ts.
  */
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, FieldOption } from '@osm-editor-kit/maid-presets'
 import { sourceValues } from './changeset-history.ts'
 
@@ -64,16 +65,16 @@ export function extraSourceOptions(
 }
 
 /**
- * The options the schema's `source` field has (id-tagging-schema, the English labels). Used while the presets are not
+ * The options the schema's `source` field has (id-tagging-schema), with labels in the editor's language. Used while the presets are not
  * made yet, so the field is never empty.
  */
-export const SOURCE_OPTIONS: readonly FieldOption[] = [
-  { value: 'survey', label: 'Survey' },
-  { value: 'local knowledge', label: 'Local Knowledge' },
-  { value: 'aerial imagery', label: 'Aerial Imagery' },
-  { value: 'gps', label: 'GPS' },
-  { value: 'streetlevel imagery', label: 'Street-Level Photos' },
-  { value: 'osm notes', label: 'OpenStreetMap Notes' },
+export const sourceOptions = (): readonly FieldOption[] => [
+  { value: 'survey', label: m.shell_source_survey() },
+  { value: 'local knowledge', label: m.shell_source_local_knowledge() },
+  { value: 'aerial imagery', label: m.shell_source_aerial_imagery() },
+  { value: 'gps', label: m.shell_source_gps() },
+  { value: 'streetlevel imagery', label: m.shell_source_streetlevel() },
+  { value: 'osm notes', label: m.shell_source_osm_notes() },
 ]
 
 /**
@@ -85,8 +86,8 @@ export function sourceField(schema: Field | undefined, recent: readonly string[]
     id: 'source',
     type: 'semiCombo',
     key: 'source',
-    label: 'Sources',
-    options: [...SOURCE_OPTIONS],
+    label: m.shell_sources(),
+    options: [...sourceOptions()],
     universal: false,
   }
   return {
@@ -95,7 +96,7 @@ export function sourceField(schema: Field | undefined, recent: readonly string[]
     type: 'semiCombo',
     snakeCase: false,
     caseSensitive: true,
-    placeholder: 'Add a source',
+    placeholder: m.shell_source_add(),
     options: [...base.options, ...extraSourceOptions(base.options, recent)],
   }
 }

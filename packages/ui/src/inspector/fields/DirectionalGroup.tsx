@@ -191,8 +191,8 @@ function GroupRow(props: {
       {onChange && modified && baseTags && mixedKeys.length === 0 ? (
         <button
           type="button"
-          aria-label={`Revert ${field.label}`}
-          title={`Revert ${field.label}`}
+          aria-label={m.ui_revert_named({ label: field.label })}
+          title={m.ui_revert_named({ label: field.label })}
           className={ACTION_BUTTON}
           onClick={() => apply(revertEdits(field, tags, baseTags))}
         >
@@ -202,8 +202,8 @@ function GroupRow(props: {
       {onChange && present ? (
         <button
           type="button"
-          aria-label={`Remove ${field.label}`}
-          title={`Remove ${field.label}`}
+          aria-label={m.ui_remove_named({ label: field.label })}
+          title={m.ui_remove_named({ label: field.label })}
           className={ACTION_BUTTON}
           onClick={() =>
             apply([

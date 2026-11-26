@@ -150,7 +150,7 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
     >
       {open ? (
         <ResizeHandle
-          label="Resize panel"
+          label={m.ui_resize_panel()}
           edge="top"
           dragging={panelHeight.dragging}
           {...panelHeight.handleProps}

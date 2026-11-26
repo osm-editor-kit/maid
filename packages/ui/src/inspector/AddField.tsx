@@ -82,7 +82,7 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
 
   return (
     <Flyout
-      label="Add field"
+      label={m.ui_add_field()}
       placement="right-start"
       className="w-72"
       open={open}
@@ -93,7 +93,7 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
           className={twMerge(toolButtonClass(true, open), 'h-8 gap-1.5 self-end px-2.5 touch:h-11')}
         >
           <PlusIcon aria-hidden="true" className="size-4" />
-          Add field
+          {m.ui_add_field()}
         </button>
       }
     >
@@ -147,7 +147,9 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
                 {sharedLabels.has(field.id) ? (
                   <span className={`${HINT} max-w-[45%] shrink font-mono`}>{rowKey(field)}</span>
                 ) : null}
-                {field.universal ? <span className={`${HINT} shrink-0`}>general</span> : null}
+                {field.universal ? (
+                  <span className={`${HINT} shrink-0`}>{m.ui_field_general()}</span>
+                ) : null}
               </div>
             ))}
           </div>

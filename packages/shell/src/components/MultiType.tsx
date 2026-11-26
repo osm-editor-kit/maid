@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import { browseOf, type LonLat, type Preset } from '@osm-editor-kit/maid-presets'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { notify, PresetPicker } from '@osm-editor-kit/maid-ui'
@@ -78,7 +79,7 @@ export function MultiType({ ids }: { ids: readonly string[] }) {
         type="button"
         disabled={!presets}
         aria-expanded={open}
-        title="Change the feature type"
+        title={m.shell_change_type()}
         onClick={() => setOpen((value) => !value)}
         className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-zinc-950/5 disabled:opacity-50 dark:hover:bg-white/10"
       >

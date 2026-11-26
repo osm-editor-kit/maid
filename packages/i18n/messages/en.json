@@ -175,53 +175,6 @@
   "search_follow_waiting": "Waiting for your location…",
   "search_follow_background": "Not following: the map was moved",
   "search_follow_error": "Your location could not be found",
-  "turn_restrictions_title": "Turn restrictions",
-  "turn_restrictions_help_click": [
-    {
-      "declarations": ["input input"],
-      "selectors": ["input"],
-      "match": {
-        "input=touch": "Tap a turn to change it: allowed, no turn, or only this turn.",
-        "input=*": "Click a turn to change it: allowed, no turn, or only this turn."
-      }
-    }
-  ],
-  "turn_restrictions_distance_label": "Search distance",
-  "turn_restrictions_distance_tip": "How far from the junction the search for connected roads goes.",
-  "turn_restrictions_via_label": "Via ways",
-  "turn_restrictions_via_tip": "How many ways a restriction may pass through; node only is the simplest, and simple is better.",
-  "turn_restrictions_from": "FROM road",
-  "turn_restrictions_not_junction": "The roads here do not make a junction where turns can be restricted.",
-  "turn_restrictions_distance_value": "Up to {distance} m",
-  "turn_restrictions_via_node": "Node only",
-  "turn_restrictions_via_one": "Up to 1 way",
-  "turn_restrictions_via_two": "Up to 2 ways",
-  "turn_restrictions_turn_left": "left turn",
-  "turn_restrictions_turn_right": "right turn",
-  "turn_restrictions_turn_u": "U-turn",
-  "turn_restrictions_turn_straight": "straight on",
-  "turn_restrictions_turn_any": "turn",
-  "turn_restrictions_state_no": "No {turn}",
-  "turn_restrictions_state_only": "Only {turn}",
-  "turn_restrictions_state_allowed": "{turn} allowed",
-  "turn_restrictions_hint": [
-    {
-      "declarations": ["input input", "input next", "input state"],
-      "selectors": ["input"],
-      "match": {
-        "input=touch": "{state}. Tap for: {next}",
-        "input=*": "{state}. Click for: {next}"
-      }
-    }
-  ],
-  "turn_restrictions_badge_only": "ONLY",
-  "turn_restrictions_indirect_hint": "Indirect: caused by a nearby restriction. Change the direct restriction next to it.",
-  "turn_restrictions_aria_turn": "Turn from {from} to {to}: {state}",
-  "turn_restrictions_unnamed": "Unnamed road",
-  "turn_restrictions_undo_added": "Added a turn restriction",
-  "turn_restrictions_undo_deleted": "Deleted a turn restriction",
-  "turn_restrictions_rule_label": "Turn restriction without its from, via and to members",
-  "turn_restrictions_rule_message": "The turn restriction is incomplete: it needs one from way, one via node or way, and one to way",
   "issues_ignore": "Ignore this issue",
   "issues_ignored_count": "{count} ignored",
   "issues_show_again": "Show again",
@@ -341,29 +294,6 @@
   "map_display_wireframe_hint": "Outlines only, thin lines.",
   "map_display_edits": "Highlight changes",
   "map_display_edits_hint": "Created and changed features in colour.",
-  "traffic_sign_empty": "No signs yet. Search below by name or sign ID to add one.",
-  "traffic_sign_add_placeholder": "Add sign…",
-  "traffic_sign_search_label": "Search traffic signs",
-  "traffic_sign_no_results": [
-    {
-      "declarations": ["input input"],
-      "selectors": ["input"],
-      "match": {
-        "input=touch": "No sign matches. Tap the return key to add the text as it is.",
-        "input=*": "No sign matches. Press Enter to add the text as it is."
-      }
-    }
-  ],
-  "traffic_sign_more_results": "{count} more, keep typing to narrow down",
-  "traffic_sign_no_sign": "No sign",
-  "traffic_sign_unknown": "Unknown sign",
-  "traffic_sign_move_up": "Move up",
-  "traffic_sign_move_down": "Move down",
-  "traffic_sign_moved": "Moved to position {position} of {total}",
-  "traffic_sign_remove": "Remove",
-  "traffic_sign_remove_sign": "Remove {sign}",
-  "traffic_sign_loading": "Loading signs…",
-  "traffic_sign_mixed": "Multiple values",
   "relations_edit": "Edit",
   "relations_edit_label": "Edit {relation}: open it beside the inspector and keep it in the bar over the map",
   "relations_bar_label": "Relations you work on",
@@ -601,5 +531,514 @@
   "route_overview_label_loop_start": "Side loop",
   "route_overview_label_loop_end": "Back on the route",
   "draw_copied_tags": "Took over all tags of the selected way. Please check them: {tags}",
-  "draw_copied_tags_remove": "Remove tags"
+  "draw_copied_tags_remove": "Remove tags",
+  "ui_resize_sidebar": "Resize sidebar",
+  "ui_resize_panel": "Resize panel",
+  "ui_sheet_default_label": "Properties",
+  "ui_filter_reset": "Reset",
+  "ui_filter_editable": "Editable",
+  "ui_filter_readonly": "Read-only",
+  "ui_filter_hidden": "Hidden",
+  "ui_filter_switch_label": "{filter}: what can be done",
+  "ui_theme": "Theme",
+  "ui_theme_light": "Light theme",
+  "ui_theme_dark": "Dark theme",
+  "ui_theme_system": "Match system",
+  "ui_info_documentation": "Documentation of {tag}",
+  "ui_info_about": "About {label}",
+  "ui_info_wiki": "OSM Wiki",
+  "ui_info_data_item": "Data item",
+  "ui_close_named": "Close {label}",
+  "ui_favourite_number": "Number of {name}",
+  "ui_differs": "differs",
+  "ui_toast_fallback": "Something went wrong.",
+  "ui_picker_current": "current",
+  "ui_picker_search_placeholder": "Search feature types",
+  "ui_favourite_add_title": "Add to favourites",
+  "ui_favourite_remove_title": "Remove from favourites",
+  "ui_move_up_named": "Move {name} up",
+  "ui_move_down_named": "Move {name} down",
+  "ui_add_field": "Add field",
+  "ui_yes": "Yes",
+  "ui_no": "No",
+  "ui_none": "None",
+  "ui_check_assumed_yes": "Assumed to be Yes",
+  "ui_too_long": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} character too long",
+        "countPlural=*": "{count} characters too long"
+      }
+    }
+  ],
+  "ui_counter_over": [
+    {
+      "declarations": [
+        "input length",
+        "input max",
+        "input excess",
+        "local excessPlural = excess: plural"
+      ],
+      "selectors": ["excessPlural"],
+      "match": {
+        "excessPlural=one": "{length} / {max} characters, {excess} character too long",
+        "excessPlural=*": "{length} / {max} characters, {excess} characters too long"
+      }
+    }
+  ],
+  "ui_counter": "{length} / {max} characters",
+  "ui_number_decrease": "Decrease {label}",
+  "ui_number_increase": "Increase {label}",
+  "ui_number_unit": "{label} unit",
+  "ui_number_inches": "{label}, inches",
+  "ui_number_inches_placeholder": "in",
+  "ui_multi_some": "On some of the selected features",
+  "ui_multi_add": "Add",
+  "ui_multi_add_to": "Add to {label}",
+  "ui_remove_named": "Remove {label}",
+  "ui_revert_named": "Revert {label}",
+  "ui_open_in_new_tab": "Open {label} in a new tab",
+  "ui_layer": "Layer",
+  "ui_localized_add": "Add a language",
+  "ui_localized_add_translation": "Add a translation of {label}",
+  "ui_localized_translation": "Translation of {label}",
+  "ui_localized_remove_in": "Remove the {label} in {code}",
+  "ui_localized_remove_new": "Remove the new {label}",
+  "ui_localized_remove_key": "Remove {key}",
+  "ui_localized_remove_row": "Remove this row",
+  "ui_localized_code_missing": "Enter a language code, or remove this translation.",
+  "ui_localized_code_invalid": "Use a language code such as de, pt-BR or zh-Hant.",
+  "ui_localized_code_taken": "{key} already has a value.",
+  "ui_address_street": "Street",
+  "ui_address_place": "Place",
+  "ui_address_switch_street": "Switch to street",
+  "ui_address_switch_place": "Switch to place",
+  "ui_related_edit": "Edit {label}",
+  "ui_related_source": "Source",
+  "ui_related_note": "Note",
+  "ui_related_checked": "Checked",
+  "ui_related_add_source": "Add a source for {label}",
+  "ui_related_add_note": "Add a note for {label}",
+  "ui_related_add_check_date": "Add a check date for {label}",
+  "ui_measure_named": "Measure {label} on the map",
+  "ui_date_invalid": "Not a YYYY, YYYY-MM or YYYY-MM-DD date. Saved as typed.",
+  "ui_access_access": "Access",
+  "ui_access_foot": "Foot",
+  "ui_access_motor_vehicle": "Motor vehicle",
+  "ui_access_bicycle": "Bicycle",
+  "ui_access_horse": "Horse",
+  "ui_access_designated": "Designated",
+  "ui_access_permissive": "Permissive",
+  "ui_access_destination": "Destination",
+  "ui_access_customers": "Customers",
+  "ui_access_private": "Private",
+  "ui_access_permit": "Permit",
+  "ui_access_dismount": "Dismount",
+  "ui_multiple_values": "Multiple values",
+  "ui_not_set": "not set",
+  "ui_sheet_new_row": "new row",
+  "ui_sheet_copied": "Copied",
+  "ui_sheet_copy_refused": "The browser did not allow the copy",
+  "ui_sheet_read_refused": "The browser did not allow reading the clipboard",
+  "ui_sheet_no_tag": "(no tag)",
+  "ui_sheet_suggestions": "Suggestions for {column}",
+  "ui_sheet_refused_line": "Line {line}: {text}",
+  "ui_sheet_paste_default": "{added} added, {replaced} replaced",
+  "ui_sheet_paste_default_refused": "{added} added, {replaced} replaced, {refused} refused",
+  "ui_sheet_duplicate": "{column} \"{value}\" is already on another row",
+  "ui_clip_outside": "outside the sheet",
+  "ui_clip_below": "below the last row",
+  "ui_clip_empty_key": "empty key",
+  "ui_clip_empty_value": "empty value",
+  "ui_clip_not_object": "not an object",
+  "ui_clip_not_text": "not a text",
+  "ui_clip_no_separator": "no separator",
+  "ui_clip_json_array": "a JSON array, not tags",
+  "ui_tags_key": "Key",
+  "ui_tags_value": "Value",
+  "ui_tags_read_only": "The key is read-only",
+  "ui_tags_duplicate": "A tag with this key exists",
+  "ui_tags_no_key": "A tag needs a key",
+  "ui_tags_gone": "The row is no longer in the sheet",
+  "ui_tags_column_fixed": "This column cannot be changed",
+  "ui_tags_line_invalid": "The line has no key or no value",
+  "ui_tags_several_lines": "Several lines cannot go into one value",
+  "ui_tags_star": "\"*\" stands for several values and is not written",
+  "ui_tags_changed": "Changed tags",
+  "ui_tags_added": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Added a tag",
+        "countPlural=*": "Added {count} tags"
+      }
+    }
+  ],
+  "ui_tags_removed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Removed a tag",
+        "countPlural=*": "Removed {count} tags"
+      }
+    }
+  ],
+  "ui_tags_renamed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Renamed a tag",
+        "countPlural=*": "Renamed {count} tags"
+      }
+    }
+  ],
+  "ui_paste_none_lines": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "No tag pasted: {count} line could not be read",
+        "countPlural=*": "No tag pasted: {count} lines could not be read"
+      }
+    }
+  ],
+  "ui_paste_none_same": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "No tag pasted: {count} tag already has this value",
+        "countPlural=*": "No tag pasted: {count} tags already have this value"
+      }
+    }
+  ],
+  "ui_paste_none": "No tag pasted",
+  "ui_paste_done": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} tag pasted",
+        "countPlural=*": "{count} tags pasted"
+      }
+    }
+  ],
+  "ui_paste_done_replaced": [
+    {
+      "declarations": ["input count", "input replaced", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} tag pasted, {replaced} replaced",
+        "countPlural=*": "{count} tags pasted, {replaced} replaced"
+      }
+    }
+  ],
+  "ui_paste_done_unchanged": [
+    {
+      "declarations": ["input count", "input unchanged", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} tag pasted, {unchanged} unchanged",
+        "countPlural=*": "{count} tags pasted, {unchanged} unchanged"
+      }
+    }
+  ],
+  "ui_paste_done_both": [
+    {
+      "declarations": [
+        "input count",
+        "input replaced",
+        "input unchanged",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} tag pasted, {replaced} replaced, {unchanged} unchanged",
+        "countPlural=*": "{count} tags pasted, {replaced} replaced, {unchanged} unchanged"
+      }
+    }
+  ],
+  "ui_paste_lines_refused": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} line could not be read",
+        "countPlural=*": "{count} lines could not be read"
+      }
+    }
+  ],
+  "shell_command_filter_protected": "A filter protects this feature",
+  "shell_command_other_level": "This feature is on another level than the one you edit",
+  "shell_command_value": "Value",
+  "shell_command_move": "Move",
+  "shell_command_copy": "Copy",
+  "shell_command_copy_tags": "Copy tags",
+  "shell_command_copy_tags_select_one": "Select one feature to copy its tags",
+  "shell_command_copy_tags_none": "This feature has no tags",
+  "shell_command_copies_these": "Copies these tags:",
+  "shell_command_copied_tags": "The copied tags:",
+  "shell_undo_removed_copied_tags": "Removed the copied tags",
+  "shell_undo_changed_type": "Changed the feature type",
+  "shell_undo_changed_type_to": "Changed the feature type to {name}",
+  "shell_undo_measured_width": "Measured width",
+  "shell_undo_pasted_tags": "Pasted tags",
+  "shell_login_automated": "Login is switched off in automated browsers.",
+  "shell_login_no_client_id": "No client id: set VITE_{variable} in {envFile}, or the repository variable {variable} for GitHub Pages.",
+  "shell_login_wrong_origin": "Open this editor at {origin} to log in.",
+  "shell_login_unfinished": "The login did not finish.",
+  "shell_geometry_vertex": "Vertex",
+  "shell_geometry_relation": "Relation",
+  "shell_feature": "Feature",
+  "shell_loading": "Loading…",
+  "shell_feature_type": "feature type",
+  "shell_inspector": "Inspector",
+  "shell_inspector_selected": "Selected feature",
+  "shell_inspector_selected_many": "Selected features",
+  "shell_change_type": "Change the feature type",
+  "shell_readonly_other_level": "Read-only: this feature is on another level. Choose its level in the level picker on the map.",
+  "shell_readonly_filter": "Read-only: a filter protects this feature. Change it under “Filters” in the top bar.",
+  "shell_fields": "Fields",
+  "shell_tags": "Tags",
+  "shell_features": "Features",
+  "shell_multi_select_only": "Select only {name}",
+  "shell_multi_take_out": "Take {name} out of the selection",
+  "shell_no_type": "No type",
+  "shell_multiple_types": "Multiple types",
+  "shell_multi_read_only": "{readOnly} of {of} selected features are read-only. Nothing was changed.",
+  "shell_multi_gone": "A selected feature is no longer in the data. Nothing was changed.",
+  "shell_zoom_in": "Zoom in",
+  "shell_zoom_out": "Zoom out",
+  "shell_edit": "Edit",
+  "shell_edit_menu": "Edit menu",
+  "shell_here_features": "Here: {count} features",
+  "shell_move_feature": "Move feature",
+  "shell_rotate_feature": "Rotate feature",
+  "shell_magnifier": "Magnifier of the measure: the background, three times larger",
+  "shell_features_here": "Features here",
+  "shell_stack_selected": [
+    {
+      "declarations": ["input total", "input position"],
+      "selectors": ["position"],
+      "match": {
+        "position=1": "{total} features here, the first is selected",
+        "position=2": "{total} features here, the second is selected",
+        "position=3": "{total} features here, the third is selected",
+        "position=4": "{total} features here, the fourth is selected",
+        "position=5": "{total} features here, the fifth is selected",
+        "position=6": "{total} features here, the sixth is selected",
+        "position=7": "{total} features here, the seventh is selected",
+        "position=8": "{total} features here, the eighth is selected",
+        "position=*": "{total} features here, number {position} is selected"
+      }
+    }
+  ],
+  "shell_restore_title": "Restore your unsaved edits?",
+  "shell_restore_around": "Around {name}",
+  "shell_restore_choose": "Restore them, or discard them and start fresh.",
+  "shell_restore_discard": "Discard them",
+  "shell_restore_restore": "Restore my edits",
+  "shell_restore_edits_heading": "Edits",
+  "shell_restore_none_left": "No feature is left changed at the point the history was saved at.",
+  "shell_restore_all_undone": "(all undone)",
+  "shell_restore_n_undone": "({count} undone)",
+  "shell_restore_step_undone": "(undone)",
+  "shell_save_no_tags": "no tags",
+  "shell_save_element": [
+    {
+      "declarations": ["input type", "input id", "input what"],
+      "selectors": ["type"],
+      "match": {
+        "type=node": "node {id} · {what}",
+        "type=way": "way {id} · {what}",
+        "type=relation": "relation {id} · {what}",
+        "type=*": "{type} {id} · {what}"
+      }
+    }
+  ],
+  "shell_save_element_new": [
+    {
+      "declarations": ["input type", "input what"],
+      "selectors": ["type"],
+      "match": {
+        "type=node": "node new · {what}",
+        "type=way": "way new · {what}",
+        "type=relation": "relation new · {what}",
+        "type=*": "{type} new · {what}"
+      }
+    }
+  ],
+  "shell_save_created": "Created",
+  "shell_save_changed": "Changed",
+  "shell_save_deleted": "Deleted",
+  "shell_save_n_created": "{count} created",
+  "shell_save_n_changed": "{count} changed",
+  "shell_save_n_deleted": "{count} deleted",
+  "shell_save_and_more": "and {count} more",
+  "shell_save_copyright": "OpenStreetMap copyright",
+  "shell_save_done_osm": [
+    {
+      "declarations": ["input count", "input changesets", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Your edits are changeset {changesets} on OpenStreetMap.",
+        "countPlural=*": "Your edits are changesets {changesets} on OpenStreetMap."
+      }
+    }
+  ],
+  "shell_save_done_dev": [
+    {
+      "declarations": ["input count", "input changesets", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Your edits are changeset {changesets} on the development server.",
+        "countPlural=*": "Your edits are changesets {changesets} on the development server."
+      }
+    }
+  ],
+  "shell_save_upload_failed": "The upload failed.",
+  "shell_save_nothing_yet": "Nothing to save yet.",
+  "shell_save_comment_label": "Changeset comment",
+  "shell_save_recent_comments": "Your recent comments",
+  "shell_save_comment_placeholder": "What did you change, and from which source?",
+  "shell_save_hashtags": "Hashtags: {hashtags}",
+  "shell_save_source": "Source",
+  "shell_save_recent_sources": "Recent sources",
+  "shell_save_uploading": "Uploading…",
+  "shell_save_upload_osm": "Upload to OpenStreetMap",
+  "shell_save_upload_dev": "Upload to the development server",
+  "shell_save_unsaved_edits": "unsaved edits",
+  "shell_save_server_only": "Saving is only possible on a server",
+  "shell_save_blocked_mock": "Saving works only on a server: open Maid with ?api=osm (OpenStreetMap) or ?api=dev (the development server). Edits on the local test data stay in this browser.",
+  "shell_save_blocked_login": "Log in to save.",
+  "shell_save_tag_too_long": [
+    {
+      "declarations": ["input part", "input feature", "input message"],
+      "selectors": ["part"],
+      "match": {
+        "part=key": "A tag key is too long: shorten it before saving ({feature}). {message}.",
+        "part=*": "A tag value is too long: shorten it before saving ({feature}). {message}."
+      }
+    }
+  ],
+  "shell_feature_name": [
+    {
+      "declarations": ["input kind", "input id"],
+      "selectors": ["kind"],
+      "match": {
+        "kind=node": "node {id}",
+        "kind=way": "way {id}",
+        "kind=relation": "relation {id}",
+        "kind=*": "feature {id}"
+      }
+    }
+  ],
+  "shell_feature_name_new": [
+    {
+      "declarations": ["input kind"],
+      "selectors": ["kind"],
+      "match": {
+        "kind=node": "new node",
+        "kind=way": "new way",
+        "kind=relation": "new relation",
+        "kind=*": "new feature"
+      }
+    }
+  ],
+  "shell_feature_kind": [
+    {
+      "declarations": ["input kind"],
+      "selectors": ["kind"],
+      "match": {
+        "kind=node": "node",
+        "kind=way": "way",
+        "kind=relation": "relation",
+        "kind=*": "feature"
+      }
+    }
+  ],
+  "shell_source_survey": "Survey",
+  "shell_source_local_knowledge": "Local Knowledge",
+  "shell_source_aerial_imagery": "Aerial Imagery",
+  "shell_source_gps": "GPS",
+  "shell_source_streetlevel": "Street-Level Photos",
+  "shell_source_osm_notes": "OpenStreetMap Notes",
+  "shell_sources": "Sources",
+  "shell_source_add": "Add a source",
+  "shell_warning_comment": "You mentioned \"{value}\" in this changeset comment. {reference}",
+  "shell_warning_source": "You mentioned \"{value}\" as a source of this changeset. {reference}",
+  "shell_user_not_logged_in": "Not logged in",
+  "shell_user_server_dev": "OpenStreetMap development server. Nothing is saved to the real map.",
+  "shell_user_server_osm": "OpenStreetMap. What you save changes the real map.",
+  "shell_user_server_mock": "Local test data. Nothing is saved; the login goes to the development server.",
+  "shell_user_log_out": "Log out",
+  "shell_user_waiting": "Waiting for the login window…",
+  "shell_filters_none": "This editor has no filters.",
+  "shell_filters_from_link": "These filters come from the link.",
+  "shell_filters_use_mine": "Use mine",
+  "shell_filters": "Filters",
+  "shell_filters_intro": "Choose what you can edit, what is only shown, and what is hidden.",
+  "shell_filters_about": "Filters: what is editable, read-only or hidden",
+  "shell_filters_from_link_note": "From the link you opened",
+  "shell_filters_changed": "Filters, {count} changed",
+  "shell_filters_changed_from_link": "Filters, {count} changed, from the link you opened",
+  "shell_filters_from_link_label": "Filters, from the link you opened",
+  "shell_pause": [
+    {
+      "declarations": ["input service", "input time"],
+      "selectors": ["service"],
+      "match": {
+        "service=osm": "The OSM API is limiting requests. Loading continues at {time}.",
+        "service=wikimedia": "The OSM Wiki and Wikimedia are limiting requests. Loading continues at {time}.",
+        "service=mapillary": "Mapillary is limiting requests. Loading continues at {time}.",
+        "service=panoramax": "Panoramax is limiting requests. Loading continues at {time}.",
+        "service=data": "A data layer's server is limiting requests. Loading continues at {time}.",
+        "service=taginfo": "Taginfo is limiting requests. Loading continues at {time}.",
+        "service=postpass": "Postpass is limiting requests. Loading continues at {time}.",
+        "service=*": "The local server is limiting requests. Loading continues at {time}."
+      }
+    }
+  ],
+  "shell_element_josm": "JOSM does not answer. Is it running with remote control on?",
+  "shell_element_links_for": "Links for {text}",
+  "shell_element_nodes": "Nodes",
+  "shell_element_members": "Members",
+  "shell_element_id": "ID",
+  "shell_element_version": "Version",
+  "shell_element_changeset": "Changeset",
+  "shell_element_user": "User",
+  "shell_element_timestamp": "Timestamp",
+  "shell_element_status": "Status",
+  "shell_element_edited": "edited, not uploaded",
+  "shell_element_title": "Element",
+  "shell_favourite_none": "no favourite {digits}",
+  "shell_changes_before": "Before",
+  "shell_changes_after": "After",
+  "shell_changes_before_of": "{label}: before",
+  "shell_changes_after_of": "{label}: after",
+  "shell_restore_summary": [
+    {
+      "declarations": ["input edits", "input features", "local editsPlural = edits: plural"],
+      "selectors": ["editsPlural", "features"],
+      "match": {
+        "editsPlural=one, features=none": "1 unsaved edit",
+        "editsPlural=one, features=one": "1 unsaved edit to 1 feature",
+        "editsPlural=one, features=*": "1 unsaved edit to {features} features",
+        "editsPlural=*, features=none": "{edits} unsaved edits",
+        "editsPlural=*, features=one": "{edits} unsaved edits to 1 feature",
+        "editsPlural=*, features=*": "{edits} unsaved edits to {features} features"
+      }
+    }
+  ],
+  "shell_stack_count": "{index} of {total}",
+  "shell_stack_total": "{total} features",
+  "shell_multi_title": "{count} features",
+  "shell_multi_read_only_notice": "{readOnly} of {count} selected features are read-only: a change is refused for all of them. Change the filters under “Filters” in the top bar.",
+  "ui_field_general": "general",
+  "shell_changes_toast_title": "{label}: tags changed"
 }

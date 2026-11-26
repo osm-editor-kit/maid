@@ -18,6 +18,7 @@
  * UTF-16 code units: digits before letters, capitals before lower case, ':' before letters. the old tag list sorted
  * with localeCompare; this is a change. "hold" keeps the order of the rows and puts new keys last.
  */
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Tags } from '@osm-editor-kit/maid-presets'
 import { excessOf, tooLongText } from '../../inspector/logic.ts'
 import { serializeTags, type TagEntry, type TagParse } from '../clipboard.ts'
@@ -78,11 +79,12 @@ export type PastePlan = {
   superseded: TagParse['superseded']
 }
 
-export const READ_ONLY = 'The key is read-only'
-export const DUPLICATE = 'A tag with this key exists'
-export const NO_KEY = 'A tag needs a key'
-export const GONE = 'The row is no longer in the sheet'
-const COLUMN = 'This column cannot be changed'
+// the refusals' texts are read when a change is refused, as the language is set at mount
+export const readOnlyText = () => m.ui_tags_read_only()
+export const duplicateText = () => m.ui_tags_duplicate()
+export const noKeyText = () => m.ui_tags_no_key()
+export const goneText = () => m.ui_tags_gone()
+export const columnText = () => m.ui_tags_column_fixed()
 
 /** A key or value as the sheet stores it: trimmed and in Unicode NFC. Never cut. */
 export function cleanText(text: string): string {
@@ -235,7 +237,9 @@ function lengthMessage(text: string): string | undefined {
 export const TAG_COLUMNS: SheetColumn[] = [
   {
     id: 'key',
-    header: 'Key',
+    get header() {
+      return m.ui_tags_key()
+    },
     width: '1fr',
     mono: true,
     unique: true,
@@ -244,7 +248,9 @@ export const TAG_COLUMNS: SheetColumn[] = [
   },
   {
     id: 'value',
-    header: 'Value',
+    get header() {
+      return m.ui_tags_value()
+    },
     width: '1fr',
     mono: true,
     clean: cleanText,
@@ -261,10 +267,9 @@ export function tagChangeLabel(before: Tags, after: Tags): string | undefined {
     return was !== undefined && was !== tagValue(after, key)
   }).length
   if (added + removed + changed === 0) return undefined
-  if (changed === 0 && removed === 0) return added === 1 ? 'Added a tag' : `Added ${added} tags`
-  if (changed === 0 && added === 0)
-    return removed === 1 ? 'Removed a tag' : `Removed ${removed} tags`
-  return 'Changed tags'
+  if (changed === 0 && removed === 0) return m.ui_tags_added({ count: added })
+  if (changed === 0 && added === 0) return m.ui_tags_removed({ count: removed })
+  return m.ui_tags_changed()
 }
 
 type Work = { tags: Tags; rows: SheetRow[]; nextId: number; refused: Refusal[] }
@@ -285,15 +290,15 @@ function removeRow(work: Work, id: RowId, readOnlyKey: ReadOnlyKeys): Work {
   const row = findRow(work, id)
   if (!row) return work
   const key = rowKey(row)
-  if (row.readOnly === true || readOnlyKey(key)) return refuse(work, key, READ_ONLY)
+  if (row.readOnly === true || readOnlyKey(key)) return refuse(work, key, readOnlyText())
   return { ...work, tags: without(work.tags, key), rows: work.rows.filter((r) => r.id !== id) }
 }
 
 function setValue(work: Work, id: RowId, text: string, readOnlyKey: ReadOnlyKeys): Work {
   const row = findRow(work, id)
-  if (!row) return refuse(work, '', GONE)
+  if (!row) return refuse(work, '', goneText())
   const key = rowKey(row)
-  if (row.readOnly === true || readOnlyKey(key)) return refuse(work, key, READ_ONLY)
+  if (row.readOnly === true || readOnlyKey(key)) return refuse(work, key, readOnlyText())
   const value = cleanText(text)
   if (value === (tagValue(work.tags, key) ?? '')) return work
   const tags = value === '' ? without(work.tags, key) : { ...work.tags, [key]: value }
@@ -303,15 +308,15 @@ function setValue(work: Work, id: RowId, text: string, readOnlyKey: ReadOnlyKeys
 /** Renames the key of a row: the tag moves to the new key with its value, and the row keeps its id and place. */
 function renameKey(work: Work, id: RowId, text: string, readOnlyKey: ReadOnlyKeys): Work {
   const row = findRow(work, id)
-  if (!row) return refuse(work, '', GONE)
+  if (!row) return refuse(work, '', goneText())
   const oldKey = rowKey(row)
   const newKey = cleanText(text)
   if (newKey === oldKey) return work
   if (newKey === '') return removeRow(work, id, readOnlyKey)
   if (row.readOnly === true || readOnlyKey(oldKey) || readOnlyKey(newKey)) {
-    return refuse(work, newKey, READ_ONLY)
+    return refuse(work, newKey, readOnlyText())
   }
-  if (keyTaken(work, newKey)) return refuse(work, newKey, DUPLICATE)
+  if (keyTaken(work, newKey)) return refuse(work, newKey, duplicateText())
   const value = tagValue(work.tags, oldKey)
   const rest = without(work.tags, oldKey)
   const tags = value === undefined ? rest : { ...rest, [newKey]: value }
@@ -328,9 +333,9 @@ function insertRow(
 ): Work {
   const key = cleanText(cells.key ?? '')
   const value = cleanText(cells.value ?? '')
-  if (key === '') return refuse(work, '', NO_KEY)
-  if (readOnlyKey(key)) return refuse(work, key, READ_ONLY)
-  if (keyTaken(work, key)) return refuse(work, key, DUPLICATE)
+  if (key === '') return refuse(work, '', noKeyText())
+  if (readOnlyKey(key)) return refuse(work, key, readOnlyText())
+  if (keyTaken(work, key)) return refuse(work, key, duplicateText())
   const taken = work.rows.some((row) => row.id === id)
   const minted = taken
     ? mint(work.nextId, new Set(work.rows.map((row) => row.id)))
@@ -348,11 +353,11 @@ function applyChange(work: Work, change: SheetChange, readOnlyKey: ReadOnlyKeys)
     case 'set':
       if (change.col === 'key') return renameKey(work, change.row, change.text, readOnlyKey)
       if (change.col === 'value') return setValue(work, change.row, change.text, readOnlyKey)
-      return refuse(work, '', COLUMN)
+      return refuse(work, '', columnText())
     case 'clear':
       if (change.col === 'key') return removeRow(work, change.row, readOnlyKey)
       if (change.col === 'value') return setValue(work, change.row, '', readOnlyKey)
-      return refuse(work, '', COLUMN)
+      return refuse(work, '', columnText())
     case 'insert':
       return insertRow(work, change.row, change.cells, readOnlyKey, change.after)
     case 'remove':
@@ -416,13 +421,13 @@ export function planTagPaste(
       report.refused.push({
         line: entry.line,
         text: `${entry.key}=${entry.value}`,
-        reason: 'The line has no key or no value',
+        reason: m.ui_tags_line_invalid(),
       })
       continue
     }
     const row = previous.rows.find((candidate) => rowKey(candidate) === key)
     if (readOnlyKey(key) || row?.readOnly === true) {
-      report.refused.push({ line: entry.line, text: `${key}=${value}`, reason: READ_ONLY })
+      report.refused.push({ line: entry.line, text: `${key}=${value}`, reason: readOnlyText() })
       continue
     }
     // A mixed row (several features, tag-combined.ts) has no single current value: a paste always writes it.
@@ -432,7 +437,7 @@ export function planTagPaste(
       report.refused.push({
         line: entry.line,
         text: `${key}=${value}`,
-        reason: '"*" stands for several values and is not written',
+        reason: m.ui_tags_star(),
       })
       continue
     }
@@ -460,28 +465,26 @@ export function planTagPaste(
   }
 }
 
-function plural(count: number, one: string, many: string): string {
-  return count === 1 ? one : many
-}
-
 /** The line under the sheet after a paste: "5 tags pasted, 2 replaced", "No tag pasted: 2 lines could not be read". */
 export function describePaste(report: PasteReport): string {
   const touched = report.added + report.replaced
   const refused = report.refused.length
-  const lines = `${refused} ${plural(refused, 'line', 'lines')}`
   if (touched === 0) {
-    if (refused > 0) return `No tag pasted: ${lines} could not be read`
-    if (report.unchanged > 0) {
-      const tags = `${report.unchanged} ${plural(report.unchanged, 'tag', 'tags')}`
-      return `No tag pasted: ${tags} already ${plural(report.unchanged, 'has', 'have')} this value`
-    }
-    return 'No tag pasted'
+    if (refused > 0) return m.ui_paste_none_lines({ count: refused })
+    if (report.unchanged > 0) return m.ui_paste_none_same({ count: report.unchanged })
+    return m.ui_paste_none()
   }
-  let text = `${touched} ${plural(touched, 'tag', 'tags')} pasted`
-  if (report.replaced > 0) text += `, ${report.replaced} replaced`
-  if (report.unchanged > 0) text += `, ${report.unchanged} unchanged`
-  if (refused > 0) text += `. ${lines} could not be read`
-  return text
+  const { replaced, unchanged } = report
+  const done =
+    replaced > 0 && unchanged > 0
+      ? m.ui_paste_done_both({ count: touched, replaced, unchanged })
+      : replaced > 0
+        ? m.ui_paste_done_replaced({ count: touched, replaced })
+        : unchanged > 0
+          ? m.ui_paste_done_unchanged({ count: touched, unchanged })
+          : m.ui_paste_done({ count: touched })
+  // two sentences of the line under the sheet: what was pasted, then what was not read
+  return refused > 0 ? `${done}. ${m.ui_paste_lines_refused({ count: refused })}` : done
 }
 
 function linesOf(pairs: { key: string; value: string }[]): string {

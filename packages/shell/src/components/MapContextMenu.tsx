@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import { ContextMenu } from '@osm-editor-kit/maid-ui'
 import { editMenuItems, useEditCommands, usePasteCommand } from '../commands'
 import { useSelection } from '../selection'
@@ -45,7 +46,7 @@ export function MapContextMenu({ place, onClose }: { place: MenuPlace; onClose: 
           features,
           (id) => selected.includes(id),
           (id) => select(id),
-          `Here: ${features.length} features`,
+          m.shell_here_features({ count: features.length }),
         )
       : [],
   )
@@ -61,7 +62,7 @@ export function MapContextMenu({ place, onClose }: { place: MenuPlace; onClose: 
   return (
     <ContextMenu
       at={place}
-      label="Edit"
+      label={m.shell_edit()}
       items={items}
       marker={marker}
       onClose={() => {

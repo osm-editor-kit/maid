@@ -7,6 +7,7 @@ import { Time } from '@osm-editor-kit/maid-ui'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { Layer, Source, useMap, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
+import { m } from './messages.ts'
 import {
   loadsAt,
   markersOf,
@@ -15,7 +16,7 @@ import {
   summaryLine,
   truncationNotice,
   TRUNCATED_NOTICE_ID,
-  TRUNCATED_NOTICE_TEXT,
+  truncatedNoticeText,
   type Note,
   type NotesMode,
 } from './model.ts'
@@ -189,7 +190,7 @@ export function notes(options: { apiUrl: string }) {
           function noticeOfCutList() {
             const step = truncationNotice(noticeShown, truncatedInView)
             if (step.shown !== noticeShown) session.setNoticeShown(step.shown)
-            if (step.notify) notify.info(TRUNCATED_NOTICE_TEXT, { id: TRUNCATED_NOTICE_ID })
+            if (step.notify) notify.info(truncatedNoticeText(), { id: TRUNCATED_NOTICE_ID })
           },
           [truncatedInView, noticeShown, session],
         )
@@ -240,18 +241,17 @@ export function notes(options: { apiUrl: string }) {
         const inView = view ? notesIn(notes, view.bbox, showClosed) : []
 
         let status: string
-        if (!enabled) status = 'Notes are off. Nothing is loaded until you switch them on.'
-        else if (!view) status = 'Waiting for the map.'
-        else if (!loadsAt(view.zoom))
-          status = `Zoom in to see the notes (from zoom ${NOTES_MIN_ZOOM}).`
-        else if (loading) status = 'Loading notes…'
-        else status = `${inView.length} ${inView.length === 1 ? 'note' : 'notes'} in view`
+        if (!enabled) status = m.notes_status_off()
+        else if (!view) status = m.notes_status_waiting()
+        else if (!loadsAt(view.zoom)) status = m.notes_status_zoom_in({ zoom: NOTES_MIN_ZOOM })
+        else if (loading) status = m.notes_status_loading()
+        else status = m.notes_status_count({ count: inView.length })
 
         return (
           <div className="p-4 text-sm">
-            <h2 className="mb-1 text-base font-semibold">Notes</h2>
+            <h2 className="mb-1 text-base font-semibold">{m.notes_label()}</h2>
             <label className="flex cursor-pointer items-center justify-between gap-3 py-1.5">
-              <span>Show notes</span>
+              <span>{m.notes_show()}</span>
               <input
                 {...PLAIN_INPUT}
                 type="checkbox"
@@ -262,7 +262,7 @@ export function notes(options: { apiUrl: string }) {
               />
             </label>
             <label className="flex cursor-pointer items-center justify-between gap-3 py-1.5">
-              <span>Also closed ones</span>
+              <span>{m.notes_show_closed()}</span>
               <input
                 {...PLAIN_INPUT}
                 type="checkbox"
@@ -274,7 +274,7 @@ export function notes(options: { apiUrl: string }) {
             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{status}</p>
             {truncated && enabled && (
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                This area has more notes than one request gives. Zoom in to see all of them.
+                {m.notes_truncated_panel()}
               </p>
             )}
             {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
@@ -297,8 +297,8 @@ export function notes(options: { apiUrl: string }) {
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{summaryLine(note)}</span>
                         <span className="block text-zinc-500 dark:text-zinc-400">
-                          {note.status === 'open' ? 'Open' : 'Closed'} ·{' '}
-                          <Time value={note.created} />
+                          {note.status === 'open' ? m.notes_status_open() : m.notes_status_closed()}{' '}
+                          · <Time value={note.created} />
                         </span>
                       </span>
                     </button>
@@ -315,14 +315,14 @@ export function notes(options: { apiUrl: string }) {
       api.register('map.content', { id: 'notes', component: NotesOnMap })
       api.register('topbar.panel', {
         id: 'notes',
-        label: 'Notes',
+        label: m.notes_label(),
         icon: <ChatBubbleLeftEllipsisIcon />,
         component: NotesPanel,
         width: 'w-80',
       })
       api.register('dock.view', {
         id: 'notes',
-        label: 'Notes',
+        label: m.notes_label(),
         component: NotesDock,
         // the tab is there while a note is chosen (on the map or in the panel)
         available: { get: chosenNoteState.get, subscribe: chosenNoteState.subscribe },

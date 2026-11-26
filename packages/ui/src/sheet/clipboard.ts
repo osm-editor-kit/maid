@@ -3,6 +3,7 @@
  * sections 3 (a) and 6): spreadsheet text (TSV) for the grid, and the tag forms of the Tags use
  * (`key=value` lines, Overpass and JOSM quoting, a JSON object).
  */
+import { m } from '@osm-editor-kit/maid-i18n'
 import { z } from 'zod'
 import type {
   CellRef,
@@ -215,12 +216,12 @@ export function planPositionalPaste(
   for (const w of writes) {
     const col = grid.columns[w.col]
     if (col === undefined) {
-      if (w.text !== '') refuse(w, 'outside the sheet')
+      if (w.text !== '') refuse(w, m.ui_clip_outside())
       continue
     }
     if (w.row >= grid.rows.length) {
       if (grid.trailingId === undefined) {
-        if (w.text !== '') refuse(w, 'below the last row')
+        if (w.text !== '') refuse(w, m.ui_clip_below())
         continue
       }
       if (col.readOnly === true) {
@@ -305,8 +306,8 @@ function tagSink() {
     refused.push({ line, text, reason })
   }
   const add = (line: number, text: string, key: string, value: string): void => {
-    if (key === '') return refuse(line, text, 'empty key')
-    if (value === '') return refuse(line, text, 'empty value')
+    if (key === '') return refuse(line, text, m.ui_clip_empty_key())
+    if (value === '') return refuse(line, text, m.ui_clip_empty_value())
     const earlier = entries.get(key)
     if (earlier !== undefined) superseded.push({ key, line: earlier.line, by: line })
     entries.set(key, { key, value, line })
@@ -322,7 +323,7 @@ const jsonText = z.union([z.string(), z.number(), z.boolean()])
 function readJsonTags(json: unknown, sink: TagSink): void {
   const top = jsonObject.safeParse(json)
   if (!top.success) {
-    sink.refuse(0, '', 'not an object')
+    sink.refuse(0, '', m.ui_clip_not_object())
     return
   }
   const nested = jsonObject.safeParse(top.data.tags ?? top.data.properties)
@@ -330,7 +331,7 @@ function readJsonTags(json: unknown, sink: TagSink): void {
   for (const [key, raw] of Object.entries(source)) {
     const value = jsonText.safeParse(raw)
     if (!value.success) {
-      sink.refuse(0, key, 'not a text')
+      sink.refuse(0, key, m.ui_clip_not_text())
       continue
     }
     sink.add(0, key, clean(key), clean(String(value.data)))
@@ -372,7 +373,7 @@ function splitPair(part: string): PairSplit {
   const quoted = quotedKeyPair(part)
   if (quoted !== undefined) return { ok: true, ...quoted }
   const at = plainSeparator(part)
-  if (at < 0) return { ok: false, reason: 'no separator' }
+  if (at < 0) return { ok: false, reason: m.ui_clip_no_separator() }
   return { ok: true, key: tidy(part.slice(0, at)), value: tidy(part.slice(at + 1)) }
 }
 
@@ -423,7 +424,7 @@ export function parseTagText(text: string): TagParse {
   } else if (body.startsWith('[')) {
     const json = parseJson(body)
     if (json.ok && z.array(z.unknown()).safeParse(json.value).success) {
-      sink.refuse(0, body, 'a JSON array, not tags')
+      sink.refuse(0, body, m.ui_clip_json_array())
       return sink.result()
     }
   }

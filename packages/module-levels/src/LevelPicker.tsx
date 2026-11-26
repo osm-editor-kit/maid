@@ -18,6 +18,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useMap } from 'react-map-gl/maplibre'
 import { twMerge } from 'tailwind-merge'
 import { buttonClass } from './look.ts'
+import { m } from './messages.ts'
 import { levelViewActions, useThreeD } from './view-store.ts'
 
 /** From this OSM zoom on the picker shows, as MapComplete's floor selector does */
@@ -67,11 +68,11 @@ export function levelLabel(level: number): string {
 
 /** A level button's tooltip: what the level is now, in a word (the neighbouring buttons show the rest) */
 export function levelTip(level: number, state: LevelState | undefined): string {
-  const name = `Level ${levelLabel(level)}`
-  if (state === 'edited') return `${name}: editing`
-  if (state === 'shown') return `${name}: shown, locked`
-  if (state === 'hidden') return `${name}: hidden`
-  return name
+  const label = levelLabel(level)
+  if (state === 'edited') return m.levels_tip_edited({ level: label })
+  if (state === 'shown') return m.levels_tip_shown({ level: label })
+  if (state === 'hidden') return m.levels_tip_hidden({ level: label })
+  return m.levels_tip({ level: label })
 }
 
 /** The floors after a new reading: while the person works on a level or in 3D the list only grows, so it does not jump */
@@ -219,20 +220,20 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
 
   return (
     <div className={COLUMN}>
-      <ControlGroup label="View" className="pointer-events-auto shrink-0">
-        <Tooltip label={threeD ? 'Flat map' : 'Levels in 3D'} placement="right">
+      <ControlGroup label={m.levels_view()} className="pointer-events-auto shrink-0">
+        <Tooltip label={threeD ? m.levels_flat_map() : m.levels_in_3d()} placement="right">
           <button
             type="button"
             aria-pressed={threeD}
             onClick={() => levelViewActions.setThreeD(!threeD)}
             className={buttonClass(threeD)}
           >
-            3D
+            {m.levels_3d()}
           </button>
         </Tooltip>
       </ControlGroup>
       <ControlGroup
-        label="Building levels"
+        label={m.levels_building_levels()}
         className="pointer-events-auto min-h-0 w-24 overflow-y-auto"
       >
         {floorChoices(floors, edited).map((floor) => {
@@ -245,7 +246,7 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
               key={floor}
               label={
                 selectedHere
-                  ? `Level ${levelLabel(floor)}: the selected feature is here`
+                  ? m.levels_tip_selected_here({ level: levelLabel(floor) })
                   : levelTip(floor, state)
               }
               placement="right"
@@ -282,7 +283,7 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
         })}
         {/* the features without a level: one row; its flyout (on hover, pinned by a click) holds the three choices */}
         <Flyout
-          label="Features without a level"
+          label={m.levels_unleveled()}
           placement="right"
           hover
           className="w-56 p-1"
@@ -299,7 +300,7 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
                 noneState === 'hidden' && HIDDEN_TEXT,
               )}
             >
-              <span>none</span>
+              <span>{m.levels_none()}</span>
               <span className="flex items-center gap-1">
                 <CountPill count={counts.unleveled} />
                 {noneState && <StateIcon state={noneState} />}
@@ -308,37 +309,39 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
           }
         >
           <p className="px-2 pt-1 pb-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-            Features without a level ({countLabel(counts.unleveled)} in view)
+            {m.levels_unleveled_in_view({ count: countLabel(counts.unleveled) })}
           </p>
           <UnleveledChoice
             state="hidden"
             current={noneState === 'hidden'}
             disabled={typeof level !== 'number'}
-            label="Hidden"
+            label={m.levels_choice_hidden()}
             onChoose={() => engine.setUnleveledVisible(false)}
           />
           <UnleveledChoice
             state="shown"
             current={noneState === 'shown'}
             disabled={typeof level !== 'number'}
-            label="Shown, locked"
+            label={m.levels_choice_shown()}
             onChoose={() => engine.setUnleveledVisible(true)}
           />
           <UnleveledChoice
             state="edited"
             current={noneState === 'edited'}
-            label={noneState === 'edited' ? 'Stop editing them' : 'Edit only these'}
+            label={
+              noneState === 'edited' ? m.levels_choice_stop_editing() : m.levels_choice_edit_only()
+            }
             onChoose={() => engine.setLevel(noneState === 'edited' ? null : 'none')}
           />
         </Flyout>
-        <Tooltip label="All levels" placement="right">
+        <Tooltip label={m.levels_all_levels()} placement="right">
           <button
             type="button"
             aria-pressed={level === null}
             onClick={() => engine.setLevel(null)}
             className={buttonClass(level === null)}
           >
-            All
+            {m.levels_all()}
           </button>
         </Tooltip>
       </ControlGroup>

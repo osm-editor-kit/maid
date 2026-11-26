@@ -1,7 +1,8 @@
 import { levelsOf } from '@osm-editor-kit/maid-levels'
+import { m } from './messages.ts'
 
-/** The reason of the edited level's offer: the menu shows it in the current look */
-export const EDITED_REASON = 'edited level'
+/** The reason of the edited level's offer: the menu shows it in the current look. Read when needed, as the language is set at mount. */
+export const editedReason = () => m.levels_reason_edited()
 
 /**
  * The levels offered for a feature that has no level yet (LevelMenu.tsx). Pure: the engine's data comes in through
@@ -34,15 +35,17 @@ export type LevelSuggestion = {
   incline?: 'up' | 'down'
 }
 
-/** What the connected ways are, for the reason text: singular and plural */
-const KIND_NAMES = {
-  corridor: ['corridor', 'corridors'],
-  step: ['step', 'steps'],
-  path: ['path', 'paths'],
-  room: ['room', 'rooms'],
-  feature: ['feature', 'features'],
-} as const
-type Kind = keyof typeof KIND_NAMES
+/** What the connected ways are, for the reason text */
+type Kind = 'corridor' | 'step' | 'path' | 'room' | 'feature'
+
+/** "connected: 2 corridors": one message per kind, which has the singular and the plural */
+function connectedReason(kind: Kind, count: number): string {
+  if (kind === 'corridor') return m.levels_reason_connected_corridor({ count })
+  if (kind === 'step') return m.levels_reason_connected_step({ count })
+  if (kind === 'path') return m.levels_reason_connected_path({ count })
+  if (kind === 'room') return m.levels_reason_connected_room({ count })
+  return m.levels_reason_connected_feature({ count })
+}
 
 /**
  * The level most of the other ways at a node share, with those ways. A way on several levels (`repeat_on`, a range)
@@ -127,7 +130,7 @@ export function suggestLevels(input: {
     return suggestion
   }
 
-  if (input.edited !== null) add(String(input.edited), EDITED_REASON)
+  if (input.edited !== null) add(String(input.edited), editedReason())
 
   // a connector (steps, a ramp, an escalator) joins the level at its first end and the level at its last end
   const own = input.tagsOf(input.id)
@@ -139,7 +142,7 @@ export function suggestLevels(input: {
     if (a && b && a.level !== b.level) {
       const pair = add(
         `${Math.min(a.level, b.level)};${Math.max(a.level, b.level)}`,
-        `connects ${a.level} and ${b.level}`,
+        m.levels_reason_connects({ a: a.level, b: b.level }),
         [...a.ids, ...b.ids],
       )
       if (pair) pair.incline ??= inclineOf(a.level, b.level)
@@ -178,21 +181,19 @@ export function suggestLevels(input: {
         best = count
       }
     }
-    const n = group.ids.length
-    const [singular, plural] = KIND_NAMES[kind]
-    add(value, `connected: ${n} ${n === 1 ? singular : plural}`, group.ids)
+    add(value, connectedReason(kind, group.ids.length), group.ids)
   }
 
   for (const room of input.enclosing) {
     if (room.id === input.id) continue
-    add(room.value, `inside: ${room.name}`, [room.id])
+    add(room.value, m.levels_reason_inside({ name: room.name }), [room.id])
   }
 
   return [...suggestions.values()]
 }
 
 /** The reason of a level that is only in view: nothing next to the feature is on it */
-export const IN_VIEW_REASON = 'in view'
+export const inViewReason = () => m.levels_reason_in_view()
 
 /**
  * Every level to offer, highest first, as the level picker lists them: the suggestions (the edited level, the levels
@@ -211,12 +212,12 @@ export function withLevelsInView(
   const more = [...levels]
     .map(String)
     .filter((value) => !known.has(value))
-    .map((value): LevelSuggestion => ({ value, reasons: [IN_VIEW_REASON], ids: [] }))
+    .map((value): LevelSuggestion => ({ value, reasons: [inViewReason()], ids: [] }))
   const first = (value: string) => Number(value.split(';')[0])
   return [...suggestions, ...more].sort((a, b) => first(b.value) - first(a.value))
 }
 
 /** True when something around the feature suggests the level (a connected way, a room it is in): shown in bold */
 export function isRecommended(suggestion: LevelSuggestion): boolean {
-  return suggestion.reasons.some((reason) => reason !== EDITED_REASON && reason !== IN_VIEW_REASON)
+  return suggestion.reasons.some((reason) => reason !== editedReason() && reason !== inViewReason())
 }

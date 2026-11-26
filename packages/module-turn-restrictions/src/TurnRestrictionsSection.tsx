@@ -1,5 +1,5 @@
 import { moduleStorage, type Editor } from '@osm-editor-kit/maid-core'
-import { device, m } from '@osm-editor-kit/maid-i18n'
+import { device } from '@osm-editor-kit/maid-i18n'
 import { osmIntersection, type Intersection } from '@osm-editor-kit/maid-model'
 import {
   RELATION_CHOSEN,
@@ -18,6 +18,7 @@ import {
   type JunctionTurn,
 } from './junction.ts'
 import { JunctionDiagram, turnHint } from './JunctionDiagram.tsx'
+import { m } from './messages.ts'
 import { cycleTurn, turnStateOf, type RemovedTurn } from './turns.ts'
 
 export type TurnRestrictionsDefaults = {

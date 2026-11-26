@@ -1,4 +1,5 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type {
   Geometry,
   LonLat,
@@ -110,7 +111,7 @@ export function changeType({ editor, engine }: Parts, id: string, preset: Preset
     entity.preset,
     at(engine.centreOf(id)),
   )
-  engine.setTags(id, tags, `Changed the feature type to ${preset.name}`)
+  engine.setTags(id, tags, m.shell_undo_changed_type_to({ name: preset.name }))
 }
 
 /**
@@ -123,7 +124,7 @@ export function changeTypeMany(
   { editor, engine }: Parts,
   ids: readonly string[],
   preset: Preset,
-  annotation = 'Changed tags',
+  annotation = m.ui_tags_changed(),
 ): ChangeTagsResult {
   const { presets } = editor
   if (!presets) return { ok: false, reason: 'missing' }
@@ -243,7 +244,7 @@ export function giveFavouriteTagsToNode({ editor, engine }: Parts, id: string) {
     entity.preset,
     at(engine.centreOf(id)),
   )
-  engine.setTags(id, tags, 'Changed the feature type')
+  engine.setTags(id, tags, m.shell_undo_changed_type())
 }
 
 /**
@@ -261,6 +262,6 @@ export function giveFavouriteType({ engine }: Pick<Parts, 'engine'>, id: string,
     undefined,
     at(engine.centreOf(id)),
   )
-  engine.setTags(id, tags, `Changed the feature type to ${found.preset.name}`)
+  engine.setTags(id, tags, m.shell_undo_changed_type_to({ name: found.preset.name }))
   return true
 }

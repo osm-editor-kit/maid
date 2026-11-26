@@ -3,6 +3,7 @@ import { defineModule } from '@osm-editor-kit/maid-core'
 import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { checkConfigLayers, type DataLayerConfig } from './config.ts'
 import { createMapContent } from './MapLayers.tsx'
+import { m } from './messages.ts'
 import { registerPmtilesProtocol } from './pmtiles.ts'
 import { parseAsDataLink } from './url.ts'
 
@@ -49,7 +50,7 @@ export function dataLayers(options: DataLayersOptions = {}) {
       api.register('map.content', { id: 'data-layers', component: MapContent })
       api.register('topbar.panel', {
         id: 'data-layers',
-        label: 'Data layers',
+        label: m.data_layers_label(),
         icon: <Square3Stack3DIcon aria-hidden="true" />,
         component: Panel,
         width: 'w-[28rem]',

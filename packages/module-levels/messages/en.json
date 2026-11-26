@@ -1,0 +1,89 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "levels_title": "Level",
+  "levels_none": "none",
+  "levels_change_level": "Level {level}, change it",
+  "levels_set_level_none": "No level, set one",
+  "levels_from_level": "From level {level}",
+  "levels_from_level_none": "From level, none",
+  "levels_to_level": "To level {level}",
+  "levels_to_level_none": "To level, none",
+  "levels_swap_direction": "Swap the direction",
+  "levels_direction_unknown": "Direction unknown",
+  "levels_use_pair": "Use {from} → {to}",
+  "levels_set_level": "Set level",
+  "levels_select_as_is": "Select it as it is (read-only)",
+  "levels_select_anyway": "Select anyway",
+  "levels_view": "View",
+  "levels_3d": "3D",
+  "levels_flat_map": "Flat map",
+  "levels_in_3d": "Levels in 3D",
+  "levels_building_levels": "Building levels",
+  "levels_tip": "Level {level}",
+  "levels_tip_edited": "Level {level}: editing",
+  "levels_tip_shown": "Level {level}: shown, locked",
+  "levels_tip_hidden": "Level {level}: hidden",
+  "levels_tip_selected_here": "Level {level}: the selected feature is here",
+  "levels_unleveled": "Features without a level",
+  "levels_unleveled_in_view": "Features without a level ({count} in view)",
+  "levels_choice_hidden": "Hidden",
+  "levels_choice_shown": "Shown, locked",
+  "levels_choice_stop_editing": "Stop editing them",
+  "levels_choice_edit_only": "Edit only these",
+  "levels_all_levels": "All levels",
+  "levels_all": "All",
+  "levels_reason_edited": "edited level",
+  "levels_reason_in_view": "in view",
+  "levels_reason_connects": "connects {a} and {b}",
+  "levels_reason_inside": "inside: {name}",
+  "levels_reason_connected_corridor": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "connected: {count} corridor",
+        "countPlural=other": "connected: {count} corridors"
+      }
+    }
+  ],
+  "levels_reason_connected_step": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "connected: {count} step",
+        "countPlural=other": "connected: {count} steps"
+      }
+    }
+  ],
+  "levels_reason_connected_path": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "connected: {count} path",
+        "countPlural=other": "connected: {count} paths"
+      }
+    }
+  ],
+  "levels_reason_connected_room": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "connected: {count} room",
+        "countPlural=other": "connected: {count} rooms"
+      }
+    }
+  ],
+  "levels_reason_connected_feature": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "connected: {count} feature",
+        "countPlural=other": "connected: {count} features"
+      }
+    }
+  ]
+}

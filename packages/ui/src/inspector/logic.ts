@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, FieldOption, Tags } from '@osm-editor-kit/maid-presets'
 import { directionalKeys } from './fields/directional-logic.ts'
 import type { MixedValue } from './fields/shared.ts'
@@ -45,8 +46,8 @@ export function lengthNotice(draft: string) {
 }
 
 /** The message under an input that is over the limit: "7 characters too long", "1 character too long". */
-export function tooLongText(excess: number) {
-  return `${excess} ${excess === 1 ? 'character' : 'characters'} too long`
+export function tooLongText(excess: number): string {
+  return m.ui_too_long({ count: excess })
 }
 
 const LANGUAGE = /^[a-z]{2,3}(?:[-_][A-Za-z0-9]+)*$/
@@ -274,18 +275,18 @@ export function checkLabel(
   type: string,
   value: string | undefined,
   impliedYes = false,
-) {
+): string {
   const current = checkValue(type, value)
   if (current === undefined) {
-    if (impliedYes) return 'Assumed to be Yes'
-    return field.options.find((option) => isUnsetOption(option))?.label || 'Unknown'
+    if (impliedYes) return m.ui_check_assumed_yes()
+    return field.options.find((option) => isUnsetOption(option))?.label || m.ui_unknown()
   }
   const option = field.options.find(
     (candidate: FieldOption) =>
       !isUnsetOption(candidate) && candidate.value.toLowerCase() === current,
   )
   if (option) return option.label
-  if (current === 'yes') return 'Yes'
-  if (current === 'no') return 'No'
+  if (current === 'yes') return m.ui_yes()
+  if (current === 'no') return m.ui_no()
   return `"${current}"`
 }

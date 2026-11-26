@@ -50,7 +50,7 @@ export function tagDetails(
   if (keys.length === 0) return undefined
   return {
     title,
-    columns: [{ label: 'Value' }],
+    columns: [{ label: m.shell_command_value() }],
     rows: keys.map((key) => ({ label: key, cells: [tags[key]] })),
   }
 }
@@ -64,10 +64,8 @@ const groupRank = (group: string | undefined) =>
   GROUP_RANK.get(group ?? DEFAULT_GROUP) ?? GROUP_RANK.get(DEFAULT_GROUP)!
 
 /** Why the commands of a protected feature cannot run: a filter protects it, or it is on another level than the one edited */
-const PROTECTED_REASON = {
-  filter: 'A filter protects this feature',
-  level: 'This feature is on another level than the one you edit',
-} as const
+const protectedText = (cause: 'filter' | 'level'): string =>
+  cause === 'level' ? m.shell_command_other_level() : m.shell_command_filter_protected()
 
 /**
  * True if a filter protects the entity: it may be looked at, not changed. The builder records
@@ -110,7 +108,7 @@ export function usePasteCommand(at: { lon: number; lat: number } | undefined) {
   return [
     {
       id: 'paste',
-      label: 'Paste',
+      label: m.paste_tags_submit(),
       icon: commandIcon('paste'),
       shortcut: modKey('V'),
       group: 'position',
@@ -161,9 +159,9 @@ export function useEditCommands(at?: { lon: number; lat: number }) {
     if (ids.length === 0) return []
     // a level lock first: choosing the feature's level is the quicker way out
     const protectedReason = ids.some((id) => engine.isOffLevel(id))
-      ? PROTECTED_REASON.level
+      ? protectedText('level')
       : ids.some((id) => protectedBy(engine, id))
-        ? PROTECTED_REASON.filter
+        ? protectedText('filter')
         : undefined
     const place: [number, number] | undefined =
       lon !== undefined && lat !== undefined ? [lon, lat] : undefined
@@ -232,7 +230,7 @@ export function useEditCommands(at?: { lon: number; lat: number }) {
     const rest: Command[] = [
       {
         id: 'move',
-        label: 'Move',
+        label: m.shell_command_move(),
         icon: commandIcon('move'),
         shortcut: 'M',
         group: 'position',
@@ -241,7 +239,7 @@ export function useEditCommands(at?: { lon: number; lat: number }) {
       },
       {
         id: 'rotate',
-        label: 'Rotate',
+        label: m.rotate_panel_title(),
         icon: commandIcon('rotate'),
         shortcut: 'R',
         group: 'position',
@@ -251,7 +249,7 @@ export function useEditCommands(at?: { lon: number; lat: number }) {
       },
       {
         id: 'copy',
-        label: 'Copy',
+        label: m.shell_command_copy(),
         icon: commandIcon('copy'),
         shortcut: modKey('C'),
         group: 'position',
@@ -261,31 +259,31 @@ export function useEditCommands(at?: { lon: number; lat: number }) {
       // the tags of one feature, as key=value lines on the system clipboard; the paste dialog applies them
       {
         id: 'copy-tags',
-        label: 'Copy tags',
+        label: m.shell_command_copy_tags(),
         icon: commandIcon('copy-tags'),
         group: 'position',
         reason:
           ids.length !== 1
-            ? 'Select one feature to copy its tags'
+            ? m.shell_command_copy_tags_select_one()
             : Object.keys(tagsOfFeature(e, ids[0]!)).length === 0
-              ? 'This feature has no tags'
+              ? m.shell_command_copy_tags_none()
               : undefined,
         run: () => tagClipboardActions.copy(tagsOfFeature(engine, ids[0]!)),
         details:
           ids.length === 1
-            ? () => tagDetails('Copies these tags:', tagsOfFeature(engine, ids[0]!))
+            ? () => tagDetails(m.shell_command_copies_these(), tagsOfFeature(engine, ids[0]!))
             : undefined,
       },
       ...(copied
         ? [
             {
               id: 'paste-tags',
-              label: 'Paste tags',
+              label: m.paste_tags_title(),
               icon: commandIcon('paste-tags'),
               group: 'position',
               reason: protectedReason,
               run: () => tagClipboardActions.openPaste(ids),
-              details: () => tagDetails('The copied tags:', copied),
+              details: () => tagDetails(m.shell_command_copied_tags(), copied),
             },
           ]
         : []),

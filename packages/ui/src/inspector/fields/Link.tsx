@@ -1,4 +1,5 @@
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/16/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
 import { cleanValue } from '../logic.ts'
@@ -79,7 +80,7 @@ export function AddonInput({ tagKey, value, onChange, addons, hint, ...rest }: A
 
 /** The open button: a link in a new tab when the address is valid, else a disabled button. */
 export function OpenLink({ href, label }: { href: string | undefined; label: string }) {
-  const text = `Open ${label} in a new tab`
+  const text = m.ui_open_in_new_tab({ label })
   const icon = <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-4" />
   if (href === undefined) {
     return (
@@ -107,7 +108,7 @@ export function UrlField(props: FieldProps) {
   const { field, tags, id, onChange, combined } = props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
-  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? m.ui_unknown())
   return (
     <AddonInput
       id={id}
@@ -135,7 +136,7 @@ export function IdentifierField(props: FieldProps) {
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
   const linkable = field.urlFormat !== undefined && field.pattern !== undefined
-  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? m.ui_unknown())
   return (
     <AddonInput
       id={id}
@@ -160,7 +161,7 @@ export function EmailField(props: FieldProps) {
   const { field, tags, id, onChange, combined } = props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
-  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? m.ui_unknown())
   return (
     <DraftInput
       id={id}
@@ -183,7 +184,7 @@ export function TelField(props: FieldProps) {
   const { field, tags, id, onChange, combined } = props
   const key = telKey(field, tags)
   if (key === undefined) return <FallbackField {...props} />
-  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? m.ui_unknown())
   return (
     <DraftInput
       id={id}

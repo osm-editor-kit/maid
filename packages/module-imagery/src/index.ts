@@ -7,6 +7,7 @@ import type { Drawn } from './eli.ts'
 import { backgroundName, usedNames } from './helpers.ts'
 import { createImageryStore, ImageryStoreProvider, type ImageryUrls } from './imagery-store.ts'
 import { drawnShown, ImageryLayers } from './ImageryLayers.tsx'
+import { m } from './messages.ts'
 import { setOamFetch } from './oam.ts'
 import { registerOffsetProtocol } from './offset-protocol.ts'
 import {
@@ -97,7 +98,7 @@ export function imagery(options: ImageryOptions = {}) {
       })
       api.register('topbar.panel', {
         id: 'imagery',
-        label: 'Background',
+        label: m.imagery_background(),
         icon: createElement(PhotoIcon, { 'aria-hidden': true }),
         component: Panel,
         width: 'w-96',

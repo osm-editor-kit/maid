@@ -11,18 +11,20 @@ type Option = {
   Icon: (props: React.SVGProps<SVGSVGElement>) => React.ReactNode
 }
 
-const OPTIONS: readonly Option[] = [
-  { state: 'editable', label: 'Editable', Icon: PencilIcon },
-  { state: 'readonly', label: 'Read-only', Icon: PencilSlashIcon },
-  { state: 'hidden', label: 'Hidden', Icon: EyeSlashIcon },
+/** Read when the panel draws, as the language is set at mount */
+const options = (): readonly Option[] => [
+  { state: 'editable', label: m.ui_filter_editable(), Icon: PencilIcon },
+  { state: 'readonly', label: m.ui_filter_readonly(), Icon: PencilSlashIcon },
+  { state: 'hidden', label: m.ui_filter_hidden(), Icon: EyeSlashIcon },
 ]
 
 /** The three states as the icon buttons of each filter's switch */
-const STATE_OPTIONS = OPTIONS.map((option) => ({
-  value: option.state,
-  label: option.label,
-  icon: <option.Icon aria-hidden="true" className="size-4" />,
-}))
+const stateOptions = () =>
+  options().map((option) => ({
+    value: option.state,
+    label: option.label,
+    icon: <option.Icon aria-hidden="true" className="size-4" />,
+  }))
 
 /** Lists the filters with a three-way switch each: what can be done with their objects on the map. */
 export function FilterPanel(props: {
@@ -36,6 +38,7 @@ export function FilterPanel(props: {
   const { filters, states, onChange, counts } = props
   const current = (filter: Filter) => states[filter.id] ?? filter.state
   const differing = filters.filter((filter) => current(filter) !== filter.state)
+  const stateChoices = stateOptions()
 
   return (
     <div>
@@ -49,7 +52,7 @@ export function FilterPanel(props: {
               for (const filter of differing) onChange(filter.id, filter.state)
             }}
           >
-            Reset
+            {m.ui_filter_reset()}
           </button>
         ) : null}
       </div>
@@ -62,8 +65,8 @@ export function FilterPanel(props: {
             // the switch first, so the switches of a column line up and each row reads as one group
             <li key={filter.id} className="flex break-inside-avoid items-center gap-3 py-1.5">
               <SegmentedControl
-                label={`${filter.label}: what can be done`}
-                options={STATE_OPTIONS}
+                label={m.ui_filter_switch_label({ filter: filter.label })}
+                options={stateChoices}
                 value={state}
                 onSelect={(next) => onChange(filter.id, next)}
                 className="shrink-0"

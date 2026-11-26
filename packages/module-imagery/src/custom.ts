@@ -10,6 +10,7 @@
  */
 import type { RasterSourceSpec } from '@osm-editor-kit/maplibre-editor-layer-index'
 import type { Drawn } from './eli.ts'
+import { m } from './messages.ts'
 
 /**
  * A saved custom background: its name, and its template, which is its key (the URL keeps the template, as iD does:
@@ -97,12 +98,12 @@ export function toRasterSource(
   options: { devicePixelRatio: number },
 ): Translated {
   const text = cleanTemplate(template).replace(/#[\s\S]*/u, '')
-  if (text === '') return refuse('Enter a tile URL template.')
+  if (text === '') return refuse(m.imagery_refuse_empty())
   if (!/^https?:\/\//i.test(text)) {
-    return refuse('The template must start with https:// or http://.')
+    return refuse(m.imagery_refuse_scheme())
   }
   if (/[{}]/.test(text.replace(TOKEN, ''))) {
-    return refuse('A brace has no partner: each { needs a } after it, and a } needs a {.')
+    return refuse(m.imagery_refuse_brace())
   }
 
   const names = [...text.matchAll(TOKEN)].map((match) => match[1] ?? '')
@@ -126,36 +127,34 @@ export function toRasterSource(
     } else if (name === 'proj' || name === 'wkid' || name === 'width' || name === 'height') {
       wmsOnly = wmsOnly ?? name
     } else if (RETIRED.has(name)) {
-      return refuse(
-        `{${name}} is not supported: MapLibre has no token for it. Use {bbox} for a WMS template.`,
-      )
+      return refuse(m.imagery_refuse_retired({ token: `{${name}}` }))
     } else if (name.startsWith('switch:')) {
       switches.push(name.slice('switch:'.length))
     } else {
-      return refuse(`The token {${name}} is not supported.`)
+      return refuse(m.imagery_refuse_token({ token: `{${name}}` }))
     }
   }
 
-  if (switches.length > 1) return refuse('Use one {switch:…} in a template.')
+  if (switches.length > 1) return refuse(m.imagery_refuse_one_switch())
   const choices = switches[0]?.split(',') ?? []
   if (switches.length === 1 && choices.some((choice) => choice === '')) {
-    return refuse('{switch:…} needs one or more hosts, separated by commas, with none left empty.')
+    return refuse(m.imagery_refuse_switch_hosts())
   }
 
   if (wmsOnly !== null && !bbox) {
-    return refuse(`{${wmsOnly}} is only used in a WMS template, together with {bbox}.`)
+    return refuse(m.imagery_refuse_wms_only({ token: `{${wmsOnly}}` }))
   }
   const tileAddress = zoom || x || y || flipped
   const kinds = [tileAddress, quadkey, bbox].filter(Boolean).length
   if (kinds === 0) {
-    return refuse('Use {z}, {x} and {y} for tiles, {u} for quadkeys, or {bbox} for WMS.')
+    return refuse(m.imagery_refuse_no_address())
   }
   if (kinds > 1) {
-    return refuse('Use one kind of address in a template: {z}, {x} and {y}, or {u}, or {bbox}.')
+    return refuse(m.imagery_refuse_two_kinds())
   }
-  if (y && flipped) return refuse('Use either {y} or {-y}, not both.')
+  if (y && flipped) return refuse(m.imagery_refuse_y_both())
   if (tileAddress && !(zoom && x && (y || flipped))) {
-    return refuse('Tiles need {z} (or {zoom}), {x} and {y}.')
+    return refuse(m.imagery_refuse_tiles_need())
   }
 
   const tiles = (switches.length === 1 ? choices : ['']).map((choice) => {
@@ -167,9 +166,9 @@ export function toRasterSource(
   for (const tile of tiles) {
     // the tokens are replaced by a letter, so that the address can be read as a URL
     const protocol = protocolOf(tile.replace(/\{[^{}]*\}/g, 'x'))
-    if (protocol === null) return refuse('This is not a web address.')
+    if (protocol === null) return refuse(m.imagery_refuse_not_web())
     if (protocol !== 'http:' && protocol !== 'https:') {
-      return refuse('The template must start with https:// or http://.')
+      return refuse(m.imagery_refuse_scheme())
     }
   }
 

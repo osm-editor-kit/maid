@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import { useState } from 'react'
 import { isFavouriteNumber } from './favourites.ts'
 import { PLAIN_INPUT } from './plain-input.ts'
@@ -34,7 +35,7 @@ export function FavouriteNumberField(props: {
       inputMode="numeric"
       autoComplete="off"
       spellCheck={false}
-      aria-label={`Number of ${name}`}
+      aria-label={m.ui_favourite_number({ name })}
       aria-invalid={!valid}
       title={title}
       value={draft}

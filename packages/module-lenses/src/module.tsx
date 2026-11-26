@@ -6,6 +6,7 @@ import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { BUILT_IN_LENSES } from './builtin.ts'
 import { type DefaultLook, setDefaultLook } from './default-look.ts'
 import { lensActions, lensChoice } from './lens-store.ts'
+import { m } from './messages.ts'
 import { useLensUrl } from './sync.ts'
 import { parseAsLens } from './url.ts'
 
@@ -63,7 +64,7 @@ export function lenses(
       api.register('map.content', { id: 'lenses', component: LensUrlSync })
       api.register('topbar.panel', {
         id: 'lenses',
-        label: 'Map style',
+        label: m.lenses_map_style(),
         icon: <SwatchIcon aria-hidden="true" className="size-5" />,
         component: LensPanel,
         width: 'w-96',

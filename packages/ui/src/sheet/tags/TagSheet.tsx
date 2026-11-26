@@ -54,8 +54,8 @@ export function CopyTagsButton(props: { tags?: Tags; combined?: CombinedTags }) 
         ? copyAllCombinedText(props.combined)
         : copyAllText(props.tags ?? {})
     void navigator.clipboard.writeText(text).then(
-      () => notify.done('Copied'),
-      () => notify.info('The browser did not allow the copy'),
+      () => notify.done(m.ui_sheet_copied()),
+      () => notify.info(m.ui_sheet_copy_refused()),
     )
   }
   return (
@@ -173,8 +173,8 @@ export function TagSheet(props: TagSheetProps) {
   const copyAll = () => {
     const text = combined !== undefined ? copyAllCombinedText(combined) : copyAllText(tags)
     void navigator.clipboard.writeText(text).then(
-      () => setNote({ text: 'Copied' }),
-      () => setNote({ text: 'The browser did not allow the copy' }),
+      () => setNote({ text: m.ui_sheet_copied() }),
+      () => setNote({ text: m.ui_sheet_copy_refused() }),
     )
   }
 

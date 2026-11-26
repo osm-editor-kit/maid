@@ -1,0 +1,42 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "notes_label": "Notes",
+  "notes_show": "Afficher les notes",
+  "notes_show_closed": "Aussi les notes fermées",
+  "notes_status_off": "Les notes sont désactivées. Rien n’est chargé tant que vous ne les activez pas.",
+  "notes_status_waiting": "En attente de la carte.",
+  "notes_status_zoom_in": "Zoomez pour voir les notes (à partir du zoom {zoom}).",
+  "notes_status_loading": "Chargement des notes…",
+  "notes_status_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} note dans la vue",
+        "countPlural=*": "{count} notes dans la vue"
+      }
+    }
+  ],
+  "notes_status_open": "Ouverte",
+  "notes_status_closed": "Fermée",
+  "notes_truncated_panel": "Cette zone compte plus de notes qu’une requête n’en renvoie. Zoomez pour les voir toutes.",
+  "notes_truncated_toast": "Seules les {limit} premières notes de cette zone sont affichées. Zoomez pour les voir toutes.",
+  "notes_no_text": "(pas de texte)",
+  "notes_failure_paused": "Le serveur OpenStreetMap a demandé une pause. Les notes se rechargent quand elle prend fin.",
+  "notes_failure_http": "Les notes n’ont pas pu être chargées (HTTP {status}).",
+  "notes_failure": "Les notes n’ont pas pu être chargées.",
+  "notes_dock_title": "Note {id}",
+  "notes_dock_opened": "Ouverte le",
+  "notes_dock_closed": "Fermée le",
+  "notes_dock_position": "Position",
+  "notes_comment_anonymous": "anonyme",
+  "notes_action_opened": "ouverte",
+  "notes_action_commented": "commentée",
+  "notes_action_closed": "fermée",
+  "notes_action_reopened": "rouverte",
+  "notes_action_hidden": "masquée",
+  "notes_open_on_osm": "Ouvrir sur openstreetmap.org",
+  "notes_write_later": "L’écriture de notes viendra avec la connexion.",
+  "notes_dock_none": "Aucune note choisie. Choisissez-en une dans le panneau des notes ou sur la carte.",
+  "notes_dock_not_loaded": "La note {id} n’est pas chargée."
+}

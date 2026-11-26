@@ -103,7 +103,6 @@ export {
 } from './Sidebar.tsx'
 export {
   DRAWN_GEOMETRIES,
-  ENGLISH_FAVOURITE_TEXTS,
   drawableGeometries,
   favouriteModifierLabel,
   favouritesFor,

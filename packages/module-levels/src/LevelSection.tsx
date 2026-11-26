@@ -23,6 +23,7 @@ import {
 } from './level-section.ts'
 import { isConnector, type LevelSuggestion } from './level-suggestions.ts'
 import { levelOffersFor, nearbySuggestionsFor, SetLevelMenu } from './LevelMenu.tsx'
+import { m } from './messages.ts'
 
 /** The menu's width (w-20, 80 px): it opens left of the button */
 const MENU_OFFSET = 88
@@ -32,6 +33,14 @@ type Open = {
   end: 'single' | 'from' | 'to'
   at: { x: number; y: number }
   suggestions: LevelSuggestion[]
+}
+
+/** The accessible name of one end of a connector: "From level 1", "To level, none" */
+function endLabel(end: 'from' | 'to', value: number | null): string {
+  if (end === 'from') {
+    return value === null ? m.levels_from_level_none() : m.levels_from_level({ level: value })
+  }
+  return value === null ? m.levels_to_level_none() : m.levels_to_level({ level: value })
 }
 
 const noSubscribe = () => () => {}
@@ -117,12 +126,16 @@ export function LevelSection({ entity }: InspectorSectionProps) {
             type="button"
             className={LEVEL_CHIP}
             disabled={readOnly}
-            aria-label={hasLevel ? `Level ${level}, change it` : 'No level, set one'}
+            aria-label={hasLevel ? m.levels_change_level({ level }) : m.levels_set_level_none()}
             onPointerEnter={() => engine.hoverLevel(readOnly ? null : (firstLevel ?? 'none'))}
             onPointerLeave={() => engine.hoverLevel(null)}
             onClick={(event) => openMenu(event, 'single')}
           >
-            {hasLevel ? level : <span className="text-zinc-500 dark:text-zinc-400">none</span>}
+            {hasLevel ? (
+              level
+            ) : (
+              <span className="text-zinc-500 dark:text-zinc-400">{m.levels_none()}</span>
+            )}
           </button>
         </div>
         {open?.end === 'single' && (
@@ -153,7 +166,7 @@ export function LevelSection({ entity }: InspectorSectionProps) {
         type="button"
         className={LEVEL_CHIP}
         disabled={readOnly}
-        aria-label={`${end === 'from' ? 'From' : 'To'} level${value === null ? ', none' : ` ${value}`}`}
+        aria-label={endLabel(end, value)}
         onPointerEnter={() => engine?.hoverLevel(readOnly || value === null ? null : value)}
         onPointerLeave={() => engine?.hoverLevel(null)}
         onClick={(event) => openMenu(event, end)}
@@ -173,11 +186,11 @@ export function LevelSection({ entity }: InspectorSectionProps) {
         />
         {endButton('to', pair.to)}
         {level !== undefined && pair.to !== null && !readOnly && (
-          <Tooltip label="Swap the direction">
+          <Tooltip label={m.levels_swap_direction()}>
             <button
               type="button"
               className={twMerge(FIELD_ROW_BUTTON, 'ml-auto size-6')}
-              aria-label="Swap the direction"
+              aria-label={m.levels_swap_direction()}
               onClick={() => engine.assignLevel(entity.id, level, nextIncline(incline))}
             >
               <ArrowsRightLeftIcon className="size-4" aria-hidden />
@@ -187,7 +200,7 @@ export function LevelSection({ entity }: InspectorSectionProps) {
       </div>
       {(!pair.known || showUse) && (
         <div className="flex items-center gap-2">
-          {!pair.known && <span className={FIELD_HINT}>Direction unknown</span>}
+          {!pair.known && <span className={FIELD_HINT}>{m.levels_direction_unknown()}</span>}
           {showUse && suggestedPair && suggested && (
             <Tooltip label={suggested.reasons.join(' · ')}>
               <button
@@ -199,7 +212,10 @@ export function LevelSection({ entity }: InspectorSectionProps) {
                   setOpen(null)
                 }}
               >
-                Use {suggestedPair.from} → {suggestedPair.to}
+                {m.levels_use_pair({
+                  from: suggestedPair.from ?? m.levels_none(),
+                  to: suggestedPair.to ?? m.levels_none(),
+                })}
               </button>
             </Tooltip>
           )}

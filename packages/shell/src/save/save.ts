@@ -1,4 +1,5 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
+import { m } from '@osm-editor-kit/maid-i18n'
 import { discardedTags } from '@osm-editor-kit/maid-presets'
 import {
   applyOverrides,
@@ -89,7 +90,7 @@ export async function uploadEdits(
   }: Pick<Shell, 'config' | 'editor' | 'auth' | 'engine' | 'brand' | 'version'>,
   draft: Draft,
 ) {
-  if (config.source === 'mock') throw new Error('Saving is only possible on a server')
+  if (config.source === 'mock') throw new Error(m.shell_save_server_only())
   const [first] = uploadErrors(editor)
   if (first !== undefined) throw new Error(errorSentence(first))
   const change = pendingChange(editor)

@@ -50,8 +50,8 @@ export function pairSuggestion(
 ): LevelSuggestion | undefined {
   return suggestions.find(
     (suggestion) =>
-      suggestion.value.includes(';') &&
-      suggestion.reasons.some((reason) => reason.startsWith('connects')),
+      // only the connector's own pair carries an incline (suggestLevels), whatever language its reason is in
+      suggestion.value.includes(';') && suggestion.incline !== undefined,
   )
 }
 

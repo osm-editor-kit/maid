@@ -33,6 +33,7 @@ import {
   surfacePicture,
   surfaceTitle,
 } from './logic.ts'
+import { m } from './messages.ts'
 import { PICTURES } from './photos.ts'
 
 /** Which picker is open */
@@ -44,16 +45,17 @@ type Card = { value: string; label: string; description?: string; picture?: Pict
 /** A group of cards; the title is absent for a picker with one group */
 type CardGroup = { title?: string; items: Card[] }
 
-/** The surface cards do not change: computed once */
-const SURFACE_CARDS: CardGroup[] = surfaceGroups().map((group) => ({
-  title: group.title,
-  items: group.items.map((item) => ({
-    value: item.value,
-    label: item.label,
-    picture: item.picture,
-  })),
-}))
-const SURFACE_OTHERS = surfaceOthers()
+/** The surface cards, with their group titles in the app's language; made when the picker is shown */
+function surfaceCards(): CardGroup[] {
+  return surfaceGroups().map((group) => ({
+    title: group.title,
+    items: group.items.map((item) => ({
+      value: item.value,
+      label: item.label,
+      picture: item.picture,
+    })),
+  }))
+}
 
 const TILE =
   'group/tile flex w-full min-w-0 flex-col gap-1.5 rounded-lg border border-zinc-950/10 bg-white p-1.5 text-left text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:text-white'
@@ -137,7 +139,7 @@ function TileFace(props: {
           className="size-full"
         />
       </span>
-      <span className="min-w-0 truncate text-sm">{empty ? 'Choose…' : label}</span>
+      <span className="min-w-0 truncate text-sm">{empty ? m.surface_choose() : label}</span>
     </>
   )
 }
@@ -149,7 +151,7 @@ function Credits(props: { paths: readonly string[] }) {
   return (
     <details className={`text-xs ${MUTED}`}>
       <summary className="cursor-pointer select-none hover:text-zinc-950 dark:hover:text-white">
-        Photo credits
+        {m.surface_photo_credits()}
       </summary>
       <ul className="mt-1.5 grid gap-1 break-words">
         {credits.map((credit) => (
@@ -261,7 +263,9 @@ function Picker(props: {
     .map((group) => ({ title: group.title, items: group.items.filter((item) => place.has(item)) }))
     .filter((group) => group.items.length > 0)
   const typedOption: Named[] =
-    view.typed === undefined ? [] : [{ value: view.typed, label: `Use '${query.trim()}'` }]
+    view.typed === undefined
+      ? []
+      : [{ value: view.typed, label: m.surface_use_typed({ value: query.trim() }) }]
   const options: Named[] = [...view.cards, ...view.others, ...typedOption]
   const cardCount = view.cards.length
   const active = options.length === 0 ? -1 : Math.min(activeIndex, options.length - 1)
@@ -385,9 +389,11 @@ function Picker(props: {
         </div>
 
         {view.others.length > 0 || view.typed !== undefined ? (
-          <div role="group" aria-label="Other values" className="mt-3 grid gap-0.5">
+          <div role="group" aria-label={m.surface_other_values()} className="mt-3 grid gap-0.5">
             {view.others.length > 0 ? (
-              <p className={`px-2 pt-1 pb-0.5 text-xs font-medium ${MUTED}`}>Other values</p>
+              <p className={`px-2 pt-1 pb-0.5 text-xs font-medium ${MUTED}`}>
+                {m.surface_other_values()}
+              </p>
             ) : null}
             {view.others.map((other, offset) => (
               <ValueRow
@@ -403,7 +409,7 @@ function Picker(props: {
             {view.typed !== undefined ? (
               <ValueRow
                 id={optionId(othersStart + view.others.length)}
-                label={`Use '${query.trim()}'`}
+                label={m.surface_use_typed({ value: query.trim() })}
                 value={view.typed}
                 active={othersStart + view.others.length === active}
                 chosen={view.typed === chosen}
@@ -427,11 +433,11 @@ function SurfacePicker(props: {
 }) {
   return (
     <Picker
-      label="Surface"
-      placeholder="Search surfaces"
+      label={m.surface_surface()}
+      placeholder={m.surface_search_surfaces()}
       tagKey={SURFACE_KEY}
-      groups={SURFACE_CARDS}
-      others={SURFACE_OTHERS}
+      groups={surfaceCards()}
+      others={surfaceOthers()}
       columns={4}
       chosen={props.chosen}
       onPick={props.onPick}
@@ -467,22 +473,22 @@ function SmoothnessPicker(props: {
             label: smoothnessTitle(chosen) ?? chosen,
             picture: smoothnessPicture(surface, chosen),
             description: isKnownSmoothness(chosen)
-              ? 'Not offered for this surface'
-              : 'Not in the catalogue',
+              ? m.surface_not_offered()
+              : m.surface_not_in_catalogue(),
           },
         ]
       : []
   const cards = [...notOffered, ...offered]
   const hint =
     surface === undefined
-      ? 'Choose a surface first for its photos. These are the levels.'
+      ? m.surface_hint_choose_first()
       : photos
         ? undefined
-        : 'No photos for this surface: the levels.'
+        : m.surface_hint_no_photos()
   return (
     <Picker
-      label="Smoothness"
-      placeholder="Search smoothness"
+      label={m.surface_smoothness()}
+      placeholder={m.surface_search_smoothness()}
       tagKey={SMOOTHNESS_KEY}
       groups={[{ items: cards }]}
       others={smoothnessOthers(cards.map((card) => card.value))}
@@ -560,7 +566,7 @@ export function SurfaceSmoothnessField(props: FieldProps) {
     <div className="grid grid-cols-2 gap-2.5">
       <ValueTile
         id={id}
-        name="Surface"
+        name={m.surface_surface()}
         tagKey={SURFACE_KEY}
         picker={SURFACE_KEY}
         open={open}
@@ -574,7 +580,7 @@ export function SurfaceSmoothnessField(props: FieldProps) {
         ) : undefined}
       </ValueTile>
       <ValueTile
-        name="Smoothness"
+        name={m.surface_smoothness()}
         tagKey={SMOOTHNESS_KEY}
         picker={SMOOTHNESS_KEY}
         open={open}

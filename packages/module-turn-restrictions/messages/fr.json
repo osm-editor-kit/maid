@@ -1,0 +1,50 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "turn_restrictions_title": "Restrictions de virage",
+  "turn_restrictions_help_click": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez un virage pour le changer : autorisé, interdit, ou seul autorisé.",
+        "input=*": "Cliquez sur un virage pour le changer : autorisé, interdit, ou seul autorisé."
+      }
+    }
+  ],
+  "turn_restrictions_distance_label": "Distance de recherche",
+  "turn_restrictions_distance_tip": "Jusqu’où du nœud la recherche des routes connectées va.",
+  "turn_restrictions_via_label": "Voies via",
+  "turn_restrictions_via_tip": "Le nombre de voies qu’une restriction peut traverser ; nœud seul est le plus simple, et le simple est préférable.",
+  "turn_restrictions_from": "Route DE",
+  "turn_restrictions_not_junction": "Les routes ici ne forment pas un carrefour où limiter des virages.",
+  "turn_restrictions_distance_value": "Jusqu’à {distance} m",
+  "turn_restrictions_via_node": "Nœud seul",
+  "turn_restrictions_via_one": "Jusqu’à 1 voie",
+  "turn_restrictions_via_two": "Jusqu’à 2 voies",
+  "turn_restrictions_turn_left": "virage à gauche",
+  "turn_restrictions_turn_right": "virage à droite",
+  "turn_restrictions_turn_u": "demi-tour",
+  "turn_restrictions_turn_straight": "tout droit",
+  "turn_restrictions_turn_any": "virage",
+  "turn_restrictions_state_no": "Interdit : {turn}",
+  "turn_restrictions_state_only": "Seulement : {turn}",
+  "turn_restrictions_state_allowed": "Autorisé : {turn}",
+  "turn_restrictions_hint": [
+    {
+      "declarations": ["input input", "input next", "input state"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{state}. Toucher pour : {next}",
+        "input=*": "{state}. Cliquer pour : {next}"
+      }
+    }
+  ],
+  "turn_restrictions_badge_only": "SEUL",
+  "turn_restrictions_indirect_hint": "Indirect : causé par une restriction voisine. Modifiez la restriction directe à côté.",
+  "turn_restrictions_aria_turn": "Virage de {from} vers {to} : {state}",
+  "turn_restrictions_unnamed": "Route sans nom",
+  "turn_restrictions_undo_added": "Restriction de virage ajoutée",
+  "turn_restrictions_undo_deleted": "Restriction de virage supprimée",
+  "turn_restrictions_rule_label": "Restriction de virage sans ses membres from, via et to",
+  "turn_restrictions_rule_message": "La restriction de virage est incomplète : il lui faut une voie DE, un nœud ou des voies via et une voie VERS"
+}

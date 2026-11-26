@@ -7,6 +7,7 @@
  * the bundled files.
  */
 import { catalogue, type SurfaceInfo } from '@osm-editor-kit/surface-smoothness-data'
+import { m } from './messages.ts'
 
 /** The two tag keys the field writes */
 export const SURFACE_KEY = 'surface'
@@ -114,12 +115,12 @@ export function surfaceGroups() {
   const groups: SurfaceGroup[] = [
     {
       id: 'common',
-      title: 'Common surfaces',
+      title: m.surface_common_surfaces(),
       items: entries.filter((info) => info.smoothnessQuest).map(choice),
     },
     {
       id: 'other',
-      title: 'Other surfaces',
+      title: m.surface_other_surfaces(),
       items: entries.filter((info) => !info.smoothnessQuest).map(choice),
     },
   ]
@@ -231,7 +232,7 @@ export function optionStep(
  */
 export function surfaceOthers(): Named[] {
   const cards = new Set(Object.keys(catalogue.surfaces))
-  const textOnly: Named[] = [{ value: 'salt', label: 'Salt' }]
+  const textOnly: Named[] = [{ value: 'salt', label: m.surface_salt() }]
   return [...surfaceOptions().filter((option) => !cards.has(option.value)), ...textOnly]
 }
 

@@ -456,6 +456,7 @@
       "dependencies": {
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
         "@tanstack/react-query": "^5.105.0",
@@ -497,6 +498,7 @@
       "dependencies": {
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
         "@osm-editor-kit/maplibre-editor-layer-index": "1.0.0",
@@ -539,6 +541,7 @@
       "dependencies": {
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-editor-kit/maid-style": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
@@ -557,6 +560,7 @@
       "dependencies": {
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
         "@osm-editor-kit/maid-levels": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
@@ -601,6 +605,7 @@
       "dependencies": {
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
         "@tanstack/react-query": "^5.105.0",
@@ -743,6 +748,7 @@
       "dependencies": {
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",

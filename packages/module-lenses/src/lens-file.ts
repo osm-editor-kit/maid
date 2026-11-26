@@ -5,6 +5,7 @@
  */
 import { parseColour, type Lens, type LensGeometry } from '@osm-editor-kit/maid-style'
 import { z } from 'zod'
+import { m } from './messages.ts'
 import { NO_LENS } from './url.ts'
 
 export const MAX_FILE_BYTES = 256 * 1024
@@ -14,17 +15,16 @@ const GEOMETRIES = ['line', 'area', 'point'] as const
 const REST = ['dim', 'normal', 'hide'] as const
 const ID = /^[a-z0-9][a-z0-9_-]{0,63}$/
 
-const ID_MESSAGE =
-  'expected 1 to 64 lower-case letters, digits, dashes or underscores, starting with a letter or digit'
-const TEXT_MESSAGE = 'expected a text'
-const COLOUR_MESSAGE = 'expected a colour like #1a7f37 or rgb(26, 127, 55)'
-const MATCH_MESSAGE =
-  'expected a value, a list of values, true (the tag is set) or false (the tag is missing)'
-const WIDTH_MESSAGE = 'expected a number above 0 and up to 20 (px)'
-const OPACITY_MESSAGE = 'expected a number from 0 to 1'
-const DASH_MESSAGE = 'expected 1 to 8 lengths in px, each above 0 and up to 100'
-const GEOMETRY_MESSAGE = 'expected a list of line, area or point'
-const RULES_MESSAGE = 'expected a list with at least one rule'
+// The sentences are made when a problem is reported (zod calls an `error` function then), never at module level
+const ID_MESSAGE = () => m.lenses_file_expected_id()
+const TEXT_MESSAGE = () => m.lenses_file_expected_text()
+const COLOUR_MESSAGE = () => m.lenses_file_expected_colour()
+const MATCH_MESSAGE = () => m.lenses_file_expected_match()
+const WIDTH_MESSAGE = () => m.lenses_file_expected_width()
+const OPACITY_MESSAGE = () => m.lenses_file_expected_opacity()
+const DASH_MESSAGE = () => m.lenses_file_expected_dash()
+const GEOMETRY_MESSAGE = () => m.lenses_file_expected_geometry()
+const RULES_MESSAGE = () => m.lenses_file_expected_rules()
 
 export type LensFileResult = { ok: true; lenses: Lens[] } | { ok: false; errors: string[] }
 
@@ -33,7 +33,7 @@ const text = (max: number) =>
   z
     .string({ error: TEXT_MESSAGE })
     .refine((value) => value.trim() !== '', { error: TEXT_MESSAGE })
-    .max(max, { error: `at most ${max} characters` })
+    .max(max, { error: () => m.lenses_file_at_most_characters({ max }) })
 
 const colour = z
   .string({ error: COLOUR_MESSAGE })
@@ -67,9 +67,9 @@ const geometryList = z
 const rule = z.object(
   {
     match: z.record(
-      z.string().refine((key) => key.trim() !== '', { error: 'a tag key is empty' }),
+      z.string().refine((key) => key.trim() !== '', { error: () => m.lenses_file_tag_key_empty() }),
       matchValue,
-      { error: 'expected an object with the tags to match' },
+      { error: () => m.lenses_file_expected_tags() },
     ),
     color: colour.optional(),
     width: z
@@ -91,7 +91,7 @@ const rule = z.object(
       .optional(),
     label: text(60).optional(),
   },
-  { error: 'expected an object' },
+  { error: () => m.lenses_file_expected_object() },
 )
 
 /** A row of a chosen legend (`Lens.legend`) */
@@ -110,15 +110,18 @@ const legendEntry = z.object(
     road: z.boolean().optional(),
     sign: z.boolean().optional(),
   },
-  { error: 'expected an object' },
+  { error: () => m.lenses_file_expected_object() },
 )
 
 const legend = z.object(
   {
-    entries: z.array(legendEntry).min(1).max(20, { error: 'at most 20 legend entries' }),
+    entries: z
+      .array(legendEntry)
+      .min(1)
+      .max(20, { error: () => m.lenses_file_at_most_legend_entries() }),
     note: text(300).optional(),
   },
-  { error: 'expected an object with entries' },
+  { error: () => m.lenses_file_expected_entries() },
 )
 
 /** One lens as the file gives it. The ids that are reserved or used twice are checked by the caller. */
@@ -130,12 +133,12 @@ export const lensSchema = z.object(
     rules: z
       .array(rule, { error: RULES_MESSAGE })
       .min(1, { error: RULES_MESSAGE, abort: true })
-      .max(MAX_RULES, { error: `at most ${MAX_RULES} rules` }),
-    rest: z.enum(REST, { error: 'expected one of dim, normal, hide' }).optional(),
+      .max(MAX_RULES, { error: () => m.lenses_file_at_most_rules({ max: MAX_RULES }) }),
+    rest: z.enum(REST, { error: () => m.lenses_file_expected_rest() }).optional(),
     geometry: geometryList.optional(),
     legend: legend.optional(),
   },
-  { error: 'expected an object' },
+  { error: () => m.lenses_file_expected_object() },
 )
 
 /**
@@ -149,7 +152,7 @@ function problem(root: string, issue: z.core.$ZodIssue) {
   const where = path
     .map((part) => (typeof part === 'number' ? `[${part}]` : `.${String(part)}`))
     .join('')
-  return `${root}${where}: ${message}`
+  return m.lenses_file_problem({ where: `${root}${where}`, message })
 }
 
 /**
@@ -161,8 +164,8 @@ export function parseLensFile(source: string, reserved: readonly string[] = []):
   try {
     data = JSON.parse(source)
   } catch (error) {
-    const reason = error instanceof Error ? error.message : 'unknown error'
-    return { ok: false, errors: [`The file is not valid JSON: ${reason}`] }
+    const reason = error instanceof Error ? error.message : m.lenses_file_unknown_error()
+    return { ok: false, errors: [m.lenses_file_invalid_json({ reason })] }
   }
   let items: unknown[]
   if (Array.isArray(data)) items = data
@@ -170,10 +173,10 @@ export function parseLensFile(source: string, reserved: readonly string[] = []):
   else {
     return {
       ok: false,
-      errors: ['Expected one lens (an object with id, name and rules) or a list of lenses'],
+      errors: [m.lenses_file_expected_lens_or_list()],
     }
   }
-  if (items.length === 0) return { ok: false, errors: ['The list has no lenses'] }
+  if (items.length === 0) return { ok: false, errors: [m.lenses_file_no_lenses()] }
 
   const problems: string[] = []
   const lenses: Lens[] = []
@@ -186,16 +189,19 @@ export function parseLensFile(source: string, reserved: readonly string[] = []):
       return
     }
     const lens = parsed.data
-    if (lens.id === NO_LENS) problems.push(`${path}.id: "${NO_LENS}" means no lens in a link`)
+    if (lens.id === NO_LENS)
+      problems.push(m.lenses_file_id_means_none({ path: `${path}.id`, id: NO_LENS }))
     else if (reserved.includes(lens.id))
-      problems.push(`${path}.id: "${lens.id}" is a built-in lens`)
-    else if (seen.has(lens.id)) problems.push(`${path}.id: "${lens.id}" is used twice in the file`)
+      problems.push(m.lenses_file_id_built_in({ path: `${path}.id`, id: lens.id }))
+    else if (seen.has(lens.id))
+      problems.push(m.lenses_file_id_twice({ path: `${path}.id`, id: lens.id }))
     seen.add(lens.id)
     lenses.push(lens)
   })
   if (problems.length > 0) {
     const errors = problems.slice(0, MAX_ERRORS)
-    if (problems.length > MAX_ERRORS) errors.push(`and ${problems.length - MAX_ERRORS} more`)
+    if (problems.length > MAX_ERRORS)
+      errors.push(m.lenses_file_and_more({ count: problems.length - MAX_ERRORS }))
     return { ok: false, errors }
   }
   return { ok: true, lenses }

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "surface_surface": "Oberfläche",
+  "surface_smoothness": "Ebenheit",
+  "surface_search_surfaces": "Oberflächen suchen",
+  "surface_search_smoothness": "Ebenheit suchen",
+  "surface_choose": "Wählen…",
+  "surface_photo_credits": "Bildnachweise",
+  "surface_use_typed": "'{value}' verwenden",
+  "surface_other_values": "Andere Werte",
+  "surface_common_surfaces": "Häufige Oberflächen",
+  "surface_other_surfaces": "Andere Oberflächen",
+  "surface_salt": "Salz",
+  "surface_not_offered": "Für diese Oberfläche nicht vorgesehen",
+  "surface_not_in_catalogue": "Nicht im Katalog",
+  "surface_hint_choose_first": "Wähle zuerst eine Oberfläche, um ihre Fotos zu sehen. Das sind die Stufen.",
+  "surface_hint_no_photos": "Keine Fotos für diese Oberfläche: die Stufen."
+}

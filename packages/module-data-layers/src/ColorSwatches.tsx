@@ -6,6 +6,7 @@ import { PencilIcon } from '@heroicons/react/16/solid'
 import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import type { CSSProperties, KeyboardEvent } from 'react'
 import { PALETTE } from './config.ts'
+import { m } from './messages.ts'
 import { colourName, stepIndex, swatchIndex } from './swatch.ts'
 
 const SWATCH =
@@ -65,14 +66,16 @@ export function ColorSwatches({
         })}
       </div>
       <label
-        title={custom ? `Custom colour ${value}` : 'Custom colour'}
+        title={
+          custom ? m.data_layers_colour_custom_value({ value }) : m.data_layers_colour_custom()
+        }
         className={`${SWATCH} focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-blue-500 ${custom ? CHOSEN : 'bg-white dark:bg-zinc-800'}`}
         style={custom ? { backgroundColor: value, ...ringColour(value) } : undefined}
       >
         <input
           {...PLAIN_INPUT}
           type="color"
-          aria-label="Custom colour"
+          aria-label={m.data_layers_colour_custom()}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           className="absolute inset-0 size-full cursor-pointer opacity-0"

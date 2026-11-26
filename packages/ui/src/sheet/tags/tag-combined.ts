@@ -7,6 +7,7 @@
  * key to all, `remove` deletes it where present, `rename` moves each feature's own value to the new key (iD
  * keyChange). Paste adds and overrides and never removes (decision 3 of 2026-10-13). No React, no DOM.
  */
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Tags } from '@osm-editor-kit/maid-presets'
 import type { Combined, CombinedTags } from '../../inspector/fields/shared.ts'
 import { serializeTags } from '../clipboard.ts'
@@ -22,15 +23,16 @@ import type { TagModel } from './tag-model.ts'
 import {
   cleanText,
   codeUnits,
-  DUPLICATE,
-  GONE,
+  columnText,
+  duplicateText,
+  goneText,
   insertAfter,
   mint,
-  NO_KEY,
+  noKeyText,
   NONE,
   nextOrder,
   orderRows,
-  READ_ONLY,
+  readOnlyText,
   type ReadOnlyKeys,
   type Refusal,
   replaceRow,
@@ -190,7 +192,7 @@ function removeRow(work: Work, id: RowId, readOnlyKey: ReadOnlyKeys): Work {
   const row = findRow(work, id)
   if (!row) return work
   const key = rowKey(row)
-  if (row.readOnly === true || readOnlyKey(key)) return refuse(work, key, READ_ONLY)
+  if (row.readOnly === true || readOnlyKey(key)) return refuse(work, key, readOnlyText())
   const next = { ...work, rows: work.rows.filter((r) => r.id !== id) }
   return present(row.cells.value?.value) ? putRemove(next, key) : next
 }
@@ -201,9 +203,9 @@ function removeRow(work: Work, id: RowId, readOnlyKey: ReadOnlyKeys): Work {
  */
 function setValue(work: Work, id: RowId, text: string, readOnlyKey: ReadOnlyKeys): Work {
   const row = findRow(work, id)
-  if (!row) return refuse(work, '', GONE)
+  if (!row) return refuse(work, '', goneText())
   const key = rowKey(row)
-  if (row.readOnly === true || readOnlyKey(key)) return refuse(work, key, READ_ONLY)
+  if (row.readOnly === true || readOnlyKey(key)) return refuse(work, key, readOnlyText())
   const value = cleanText(text)
   const cell = row.cells.value?.value
   if (cell?.kind === 'mixed') {
@@ -236,15 +238,15 @@ function writeValue(work: Work, id: RowId, key: string, value: string, wasAbsent
  */
 function renameKey(work: Work, id: RowId, text: string, readOnlyKey: ReadOnlyKeys): Work {
   const row = findRow(work, id)
-  if (!row) return refuse(work, '', GONE)
+  if (!row) return refuse(work, '', goneText())
   const oldKey = rowKey(row)
   const newKey = cleanText(text)
   if (newKey === oldKey) return work
   if (newKey === '') return removeRow(work, id, readOnlyKey)
   if (row.readOnly === true || readOnlyKey(oldKey) || readOnlyKey(newKey)) {
-    return refuse(work, newKey, READ_ONLY)
+    return refuse(work, newKey, readOnlyText())
   }
-  if (keyTaken(work, newKey)) return refuse(work, newKey, DUPLICATE)
+  if (keyTaken(work, newKey)) return refuse(work, newKey, duplicateText())
   const cell: CellValue = row.cells.value?.value ?? { kind: 'value', text: '' }
   const moved = present(cell)
     ? { ...work, rename: [...work.rename, { from: oldKey, to: newKey }] }
@@ -262,9 +264,9 @@ function insertRow(
 ): Work {
   const key = cleanText(cells.key ?? '')
   const value = cleanText(cells.value ?? '')
-  if (key === '') return refuse(work, '', NO_KEY)
-  if (readOnlyKey(key)) return refuse(work, key, READ_ONLY)
-  if (keyTaken(work, key)) return refuse(work, key, DUPLICATE)
+  if (key === '') return refuse(work, '', noKeyText())
+  if (readOnlyKey(key)) return refuse(work, key, readOnlyText())
+  if (keyTaken(work, key)) return refuse(work, key, duplicateText())
   const taken = work.rows.some((row) => row.id === id)
   const minted = taken
     ? mint(work.nextId, new Set(work.rows.map((row) => row.id)))
@@ -286,11 +288,11 @@ function applyChange(work: Work, change: SheetChange, readOnlyKey: ReadOnlyKeys)
     case 'set':
       if (change.col === 'key') return renameKey(work, change.row, change.text, readOnlyKey)
       if (change.col === 'value') return setValue(work, change.row, change.text, readOnlyKey)
-      return refuse(work, '', 'This column cannot be changed')
+      return refuse(work, '', columnText())
     case 'clear':
       if (change.col === 'key') return removeRow(work, change.row, readOnlyKey)
       if (change.col === 'value') return setValue(work, change.row, '', readOnlyKey)
-      return refuse(work, '', 'This column cannot be changed')
+      return refuse(work, '', columnText())
     case 'insert':
       return insertRow(work, change.row, change.cells, readOnlyKey, change.after)
     case 'remove':
@@ -305,15 +307,15 @@ function labelOf(work: Work): string | undefined {
   const renamed = work.rename.length
   if (setCount + removed + renamed === 0) return undefined
   if (renamed > 0 && setCount === 0 && removed === 0) {
-    return renamed === 1 ? 'Renamed a tag' : `Renamed ${renamed} tags`
+    return m.ui_tags_renamed({ count: renamed })
   }
   if (removed > 0 && setCount === 0 && renamed === 0) {
-    return removed === 1 ? 'Removed a tag' : `Removed ${removed} tags`
+    return m.ui_tags_removed({ count: removed })
   }
   if (setCount > 0 && removed === 0 && renamed === 0 && work.added.length === setCount) {
-    return setCount === 1 ? 'Added a tag' : `Added ${setCount} tags`
+    return m.ui_tags_added({ count: setCount })
   }
-  return 'Changed tags'
+  return m.ui_tags_changed()
 }
 
 function changeOf(work: Work): TagSheetChange | undefined {

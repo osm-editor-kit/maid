@@ -1,7 +1,8 @@
-import { device, m } from '@osm-editor-kit/maid-i18n'
+import { device } from '@osm-editor-kit/maid-i18n'
 import { Tooltip } from '@osm-editor-kit/maid-ui'
 import type { ReactNode } from 'react'
 import { roadLook, type JunctionSketch, type JunctionTurn, type Point } from './junction.ts'
+import { m } from './messages.ts'
 import type { TurnKind, TurnState } from './turns.ts'
 
 /** The word of a turn kind ("left turn"), as the texts say it in lower case */

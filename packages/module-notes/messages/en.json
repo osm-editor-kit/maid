@@ -1,0 +1,42 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "notes_label": "Notes",
+  "notes_show": "Show notes",
+  "notes_show_closed": "Also closed ones",
+  "notes_status_off": "Notes are off. Nothing is loaded until you switch them on.",
+  "notes_status_waiting": "Waiting for the map.",
+  "notes_status_zoom_in": "Zoom in to see the notes (from zoom {zoom}).",
+  "notes_status_loading": "Loading notes…",
+  "notes_status_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} note in view",
+        "countPlural=*": "{count} notes in view"
+      }
+    }
+  ],
+  "notes_status_open": "Open",
+  "notes_status_closed": "Closed",
+  "notes_truncated_panel": "This area has more notes than one request gives. Zoom in to see all of them.",
+  "notes_truncated_toast": "Only the first {limit} notes of this area are shown. Zoom in to see all.",
+  "notes_no_text": "(no text)",
+  "notes_failure_paused": "The OpenStreetMap server asked for a pause. The notes load again when it ends.",
+  "notes_failure_http": "The notes could not be loaded (HTTP {status}).",
+  "notes_failure": "The notes could not be loaded.",
+  "notes_dock_title": "Note {id}",
+  "notes_dock_opened": "Opened",
+  "notes_dock_closed": "Closed",
+  "notes_dock_position": "Position",
+  "notes_comment_anonymous": "anonymous",
+  "notes_action_opened": "opened",
+  "notes_action_commented": "commented",
+  "notes_action_closed": "closed",
+  "notes_action_reopened": "reopened",
+  "notes_action_hidden": "hidden",
+  "notes_open_on_osm": "Open on openstreetmap.org",
+  "notes_write_later": "Writing notes comes with the login.",
+  "notes_dock_none": "No note chosen. Pick one in the Notes panel or on the map.",
+  "notes_dock_not_loaded": "Note {id} is not loaded."
+}

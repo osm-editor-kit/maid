@@ -39,19 +39,12 @@ import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { pickerTexts } from './favourite-texts'
 import { fieldOverlayFor, widthKeyTarget } from './field-overlay'
+import { geometryLabel } from './geometry-label'
 import { measureTags } from './measure-tags'
 import { MultiInspector } from './MultiInspector'
 import { Operations } from './Operations'
 import { PresetIcon } from './PresetIcon'
 import { createReferenceLoader } from './reference'
-
-const GEOMETRY_LABEL = {
-  point: 'Point',
-  vertex: 'Vertex',
-  line: 'Line',
-  area: 'Area',
-  relation: 'Relation',
-}
 
 /**
  * The taginfo suggestions of the tags sheet, one source per geometry, as iD's taginfo.js: one client on the
@@ -165,7 +158,7 @@ export function Inspector() {
 
   if (!id) {
     return (
-      <Sidebar label="Inspector">
+      <Sidebar label={m.shell_inspector()}>
         <SidebarEmpty title={m.sidebar_empty_title()}>
           {m.sidebar_empty_hint({ ...device() })}
         </SidebarEmpty>
@@ -208,7 +201,7 @@ export function Inspector() {
       // a measure of no distance (two clicks in one place) writes nothing
       if (Object.keys(changes).length === 0) return
       // the feature's tags as they are now, with the changes: one edit, so one undo step
-      engine.setTags(id, { ...engine.entity(id)?.tags, ...changes }, 'Measured width')
+      engine.setTags(id, { ...engine.entity(id)?.tags, ...changes }, m.shell_undo_measured_width())
     })
   }
   const { presets } = editor
@@ -236,11 +229,11 @@ export function Inspector() {
     newFeatureId === id &&
     (!entity.preset || (presets !== undefined && presets.isFallback(entity.preset)))
   const picking = onChange !== undefined && (picker?.id === id ? picker.open : untagged)
-  const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined
+  const kind = entity ? (entity.preset?.name ?? geometryLabel(entity.geometry)) : undefined
 
   // the name, and under it the kind of thing when the feature has a name. Without a name the kind is the
   // title and nothing is under it. Id and node count are in the "Element" group.
-  const title = entity ? (entity.tags.name ?? kind ?? 'Feature') : 'Loading…'
+  const title = entity ? (entity.tags.name ?? kind ?? m.shell_feature()) : m.shell_loading()
   const hasName = entity?.tags.name !== undefined
   const details = entity ? (hasName && kind !== title ? kind : undefined) : id
   const canChangeType = onChange !== undefined && presets !== undefined
@@ -266,7 +259,7 @@ export function Inspector() {
       <>
         {reference ? (
           <InfoPopover
-            label={kind ?? 'feature type'}
+            label={kind ?? m.shell_feature_type()}
             reference={reference}
             load={loadReference}
             // a small "i", as beside a field's title; its hit area reaches 32 px, as the star's
@@ -281,7 +274,7 @@ export function Inspector() {
 
   return (
     <WikiContext value={wiki}>
-      <Sidebar label="Selected feature">
+      <Sidebar label={m.shell_inspector_selected()}>
         <SidebarHeader
           icon={
             <PresetIcon icon={entity?.preset?.icon} className="fill-zinc-700 dark:fill-zinc-200" />
@@ -293,7 +286,7 @@ export function Inspector() {
           // as in iD, the feature's head is the button that changes its type
           onTitleClick={canChangeType ? () => setPicker({ id, open: !picking }) : undefined}
           expanded={picking}
-          titleAction="Change the feature type"
+          titleAction={m.shell_change_type()}
           // in a flyout that points at the head, so the fields below stay where they are
           titleFlyout={
             entity && presets ? (
@@ -334,8 +327,8 @@ export function Inspector() {
             {entity.readOnly ? (
               <p className="mb-3 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">
                 {engine.isOffLevel(entity.id)
-                  ? 'Read-only: this feature is on another level. Choose its level in the level picker on the map.'
-                  : 'Read-only: a filter protects this feature. Change it under “Filters” in the top bar.'}
+                  ? m.shell_readonly_other_level()
+                  : m.shell_readonly_filter()}
               </p>
             ) : (
               <Operations />
@@ -352,7 +345,7 @@ export function Inspector() {
                 onHover={(id) => engine.setHover(id)}
               />
               {(fields.length > 0 || moreFields.length > 0) && (
-                <SidebarDisclosure title="Fields" defaultOpen remember="fields">
+                <SidebarDisclosure title={m.shell_fields()} defaultOpen remember="fields">
                   <PresetFields
                     // picked fields belong to the feature: a new feature starts with none
                     key={id}
@@ -383,7 +376,7 @@ export function Inspector() {
                 </SidebarDisclosure>
               )}
               <SidebarDisclosure
-                title="Tags"
+                title={m.shell_tags()}
                 remember="tags"
                 detail={Object.keys(entity.tags).length}
                 defaultOpen
@@ -391,7 +384,7 @@ export function Inspector() {
               >
                 <TagSheet
                   copyButton={false}
-                  label="Tags"
+                  label={m.shell_tags()}
                   tags={entity.tags}
                   featureKey={id}
                   // a filter made the feature read-only: the sheet is shown, navigable and copyable, not edited

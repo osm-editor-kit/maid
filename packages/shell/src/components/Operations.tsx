@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import { CommandBar } from '@osm-editor-kit/maid-ui'
 import { useEditCommands } from '../commands'
 
@@ -16,7 +17,7 @@ export function Operations() {
     // a toolbar row under the header: no headline, the icons speak for themselves. The space above and under it
     // sets it off from the head and the sections (the sidebar's body has no top padding, for its sticky headings)
     <div className="py-3">
-      <CommandBar label="Edit" items={items} />
+      <CommandBar label={m.shell_edit()} items={items} />
     </div>
   )
 }

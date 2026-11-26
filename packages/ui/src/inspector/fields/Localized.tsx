@@ -9,7 +9,7 @@ import { cleanValue } from '../logic.ts'
 import { DraftInput, LengthNotice, useLengthLimit } from './DraftInput.tsx'
 import { FallbackField } from './Fallback.tsx'
 import { commitLanguageRow, languageVariants, type LanguageVariant } from './localized-logic.ts'
-import { keyDisplay, MULTIPLE_VALUES, mixedKeysOf, mixedOf, mixedTitle } from './mixed-logic.ts'
+import { keyDisplay, multipleValues, mixedKeysOf, mixedOf, mixedTitle } from './mixed-logic.ts'
 import type { FieldProps, MixedValue } from './shared.ts'
 import { INPUT, LIMITED, ROW_BUTTON } from './shared.ts'
 
@@ -31,7 +31,7 @@ export function LocalizedField(props: FieldProps) {
 function LocalizedControl(props: FieldProps) {
   const { field, tags, id, onChange, labelActions, combined } = props
   const key = field.key ?? ''
-  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? m.ui_unknown())
   const base = shown.value
   // the translations: those the tags share, and those that are mixed (their value is empty, see LanguageRow)
   const variants = [
@@ -90,10 +90,10 @@ function LocalizedControl(props: FieldProps) {
       ))}
       {onChange && labelActions
         ? createPortal(
-            <Tooltip label="Add a language">
+            <Tooltip label={m.ui_localized_add()}>
               <button
                 type="button"
-                aria-label={`Add a translation of ${field.label}`}
+                aria-label={m.ui_localized_add_translation({ label: field.label })}
                 onClick={addRow}
                 className={ROW_BUTTON}
               >
@@ -212,8 +212,8 @@ function LanguageRow(props: {
         <input
           {...PLAIN_INPUT}
           type="text"
-          aria-label={`Translation of ${field.label}`}
-          placeholder={mixed ? MULTIPLE_VALUES : undefined}
+          aria-label={m.ui_localized_translation({ label: field.label })}
+          placeholder={mixed ? multipleValues() : undefined}
           title={mixed ? mixedTitle(mixed) : undefined}
           value={text}
           readOnly={!editable}
@@ -238,10 +238,14 @@ function LanguageRow(props: {
           type="button"
           aria-label={
             variant
-              ? `Remove the ${field.label} in ${variant.code}`
-              : `Remove the new ${field.label}`
+              ? m.ui_localized_remove_in({ label: field.label, code: variant.code })
+              : m.ui_localized_remove_new({ label: field.label })
           }
-          title={variant ? `Remove ${variant.tagKey}` : 'Remove this row'}
+          title={
+            variant
+              ? m.ui_localized_remove_key({ key: variant.tagKey })
+              : m.ui_localized_remove_row()
+          }
           className={ROW_BUTTON}
           onClick={() => {
             if (variant) onChange?.(variant.tagKey, undefined)

@@ -1,0 +1,89 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "levels_title": "Niveau",
+  "levels_none": "aucun",
+  "levels_change_level": "Niveau {level}, le modifier",
+  "levels_set_level_none": "Aucun niveau, en définir un",
+  "levels_from_level": "De niveau {level}",
+  "levels_from_level_none": "De niveau, aucun",
+  "levels_to_level": "Vers le niveau {level}",
+  "levels_to_level_none": "Vers le niveau, aucun",
+  "levels_swap_direction": "Inverser le sens",
+  "levels_direction_unknown": "Sens inconnu",
+  "levels_use_pair": "Utiliser {from} → {to}",
+  "levels_set_level": "Définir le niveau",
+  "levels_select_as_is": "La sélectionner telle quelle (lecture seule)",
+  "levels_select_anyway": "Sélectionner quand même",
+  "levels_view": "Vue",
+  "levels_3d": "3D",
+  "levels_flat_map": "Carte à plat",
+  "levels_in_3d": "Niveaux en 3D",
+  "levels_building_levels": "Niveaux du bâtiment",
+  "levels_tip": "Niveau {level}",
+  "levels_tip_edited": "Niveau {level} : en cours de modification",
+  "levels_tip_shown": "Niveau {level} : affiché, verrouillé",
+  "levels_tip_hidden": "Niveau {level} : masqué",
+  "levels_tip_selected_here": "Niveau {level} : l'élément sélectionné est ici",
+  "levels_unleveled": "Éléments sans niveau",
+  "levels_unleveled_in_view": "Éléments sans niveau ({count} dans la vue)",
+  "levels_choice_hidden": "Masqués",
+  "levels_choice_shown": "Affichés, verrouillés",
+  "levels_choice_stop_editing": "Arrêter de les modifier",
+  "levels_choice_edit_only": "Modifier seulement ceux-ci",
+  "levels_all_levels": "Tous les niveaux",
+  "levels_all": "Tous",
+  "levels_reason_edited": "niveau en cours de modification",
+  "levels_reason_in_view": "dans la vue",
+  "levels_reason_connects": "relie {a} et {b}",
+  "levels_reason_inside": "à l'intérieur : {name}",
+  "levels_reason_connected_corridor": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "relié : {count} couloir",
+        "countPlural=other": "relié : {count} couloirs"
+      }
+    }
+  ],
+  "levels_reason_connected_step": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "relié : {count} escalier",
+        "countPlural=other": "relié : {count} escaliers"
+      }
+    }
+  ],
+  "levels_reason_connected_path": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "relié : {count} chemin",
+        "countPlural=other": "relié : {count} chemins"
+      }
+    }
+  ],
+  "levels_reason_connected_room": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "relié : {count} pièce",
+        "countPlural=other": "relié : {count} pièces"
+      }
+    }
+  ],
+  "levels_reason_connected_feature": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "relié : {count} élément",
+        "countPlural=other": "relié : {count} éléments"
+      }
+    }
+  ]
+}

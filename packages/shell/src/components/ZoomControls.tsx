@@ -18,14 +18,14 @@ export function ZoomControls() {
   const pitch = usePitch()
   return (
     <MapControls>
-      <ControlGroup label="Map">
+      <ControlGroup label={m.maplibre_map_title()}>
         <ControlButton
-          label="Zoom in"
+          label={m.shell_zoom_in()}
           icon={<PlusIcon className="size-5" />}
           onClick={() => mainMap?.zoomIn()}
         />
         <ControlButton
-          label="Zoom out"
+          label={m.shell_zoom_out()}
           icon={<MinusIcon className="size-5" />}
           onClick={() => mainMap?.zoomOut()}
         />

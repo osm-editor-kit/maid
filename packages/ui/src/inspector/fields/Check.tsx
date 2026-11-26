@@ -3,7 +3,7 @@ import { checkAfterClick, checkCycle, checkLabel, checkStateFor, impliesYes } fr
 import { checkBoxOf } from './check-logic.ts'
 import { CheckBox } from './CheckBox.tsx'
 import { FallbackField } from './Fallback.tsx'
-import { MULTIPLE_VALUES, mixedOf } from './mixed-logic.ts'
+import { multipleValues, mixedOf } from './mixed-logic.ts'
 import type { FieldProps } from './shared.ts'
 
 /**
@@ -29,7 +29,7 @@ export function CheckField(props: FieldProps) {
   const label =
     mixed === undefined
       ? `${checkLabel(field, field.type, current, implied)}${reversed ? `, ${m.oneway_reversed_label()}` : ''}`
-      : MULTIPLE_VALUES
+      : multipleValues()
   const cycle = checkCycle(field)
   const { box, ariaChecked } = checkBoxOf(checked)
   return (

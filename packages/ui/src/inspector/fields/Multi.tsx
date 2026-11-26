@@ -8,6 +8,7 @@ import {
   useFloating,
 } from '@floating-ui/react'
 import { XMarkIcon } from '@heroicons/react/16/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, FieldOption } from '@osm-editor-kit/maid-presets'
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
@@ -16,7 +17,7 @@ import { moveActive } from '../picker-logic.ts'
 import { CheckBox } from './CheckBox.tsx'
 import { filterOptions, iconSlotOf, shownText } from './combo-logic.ts'
 import { IconSlot } from './IconSlot.tsx'
-import { mixedOf, MULTIPLE_VALUES } from './mixed-logic.ts'
+import { mixedOf, multipleValues } from './mixed-logic.ts'
 import {
   acceptSemi,
   afterLastSeparator,
@@ -75,7 +76,7 @@ export function SemiComboField(props: FieldProps) {
     <ChipInput
       id={id}
       label={field.label}
-      placeholder={field.placeholder ?? 'Add'}
+      placeholder={field.placeholder ?? m.ui_multi_add()}
       chips={chips.map((chip, index) => {
         const shown = shownText(field, chip.value)
         return (
@@ -124,7 +125,9 @@ export function MultiComboField(props: FieldProps) {
     <ChipInput
       id={id}
       label={field.label}
-      placeholder={chips.some((chip) => chip.some) ? MULTIPLE_VALUES : (field.placeholder ?? 'Add')}
+      placeholder={
+        chips.some((chip) => chip.some) ? multipleValues() : (field.placeholder ?? m.ui_multi_add())
+      }
       chips={chips.map((chip) => (
         <Chip
           key={chip.key}
@@ -177,7 +180,9 @@ export function ManyComboField(props: FieldProps) {
     <ChipInput
       id={id}
       label={field.label}
-      placeholder={chips.some((chip) => chip.some) ? MULTIPLE_VALUES : (field.placeholder ?? 'Add')}
+      placeholder={
+        chips.some((chip) => chip.some) ? multipleValues() : (field.placeholder ?? m.ui_multi_add())
+      }
       chips={chips.map((chip) => (
         <Chip
           key={chip.key}
@@ -261,7 +266,7 @@ function Chip({
   return (
     <span
       className={`${CHIP} ${some ? SOME_CHIP : ''}`}
-      title={some ? 'On some of the selected features' : undefined}
+      title={some ? m.ui_multi_some() : undefined}
     >
       {onToggle ? (
         <button
@@ -289,8 +294,8 @@ function Chip({
       {onRemove ? (
         <button
           type="button"
-          aria-label={`Remove ${label}`}
-          title={`Remove ${label}`}
+          aria-label={m.ui_remove_named({ label })}
+          title={m.ui_remove_named({ label })}
           onClick={onRemove}
           className={CHIP_REMOVE}
         >
@@ -453,7 +458,7 @@ function ChipInput(props: ChipInputProps) {
             role="combobox"
             autoComplete="off"
             spellCheck={false}
-            aria-label={chips.length === 0 ? label : `Add to ${label}`}
+            aria-label={chips.length === 0 ? label : m.ui_multi_add_to({ label })}
             placeholder={placeholder}
             value={draft}
             aria-expanded={listVisible}

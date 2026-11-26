@@ -1,4 +1,5 @@
 import { XMarkIcon } from '@heroicons/react/20/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import {
   AnimatePresence,
   motion,
@@ -166,7 +167,7 @@ export function BottomSheet(props: {
             />
             <button
               type="button"
-              aria-label={`Close ${label}`}
+              aria-label={m.ui_close_named({ label })}
               onClick={() => onOpenChange(false)}
               onPointerDown={(event) => event.stopPropagation()}
               className="flex size-10 cursor-pointer items-center justify-center rounded-md text-zinc-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white"

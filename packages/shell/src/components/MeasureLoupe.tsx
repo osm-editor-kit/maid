@@ -1,4 +1,4 @@
-import { mapLibreLocale } from '@osm-editor-kit/maid-i18n'
+import { m, mapLibreLocale } from '@osm-editor-kit/maid-i18n'
 import * as maplibregl from 'maplibre-gl'
 import type { Map as MapLibreMap, RasterSourceSpecification, StyleSpecification } from 'maplibre-gl'
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
@@ -200,7 +200,7 @@ export function MeasureLoupe(props: {
     <div
       role="img"
       data-testid="measure-loupe"
-      aria-label="Magnifier of the measure: the background, three times larger"
+      aria-label={m.shell_magnifier()}
       className={`pointer-events-none absolute isolate z-20 h-[160px] w-[160px] overflow-hidden rounded-full bg-zinc-800 shadow-[0_0_0_3px_#fff,0_0_0_4px_#000,0_2px_10px_4px_rgb(0_0_0/0.5)] ${placed ? '' : 'invisible'}`}
       style={{ left: placed?.left ?? 0, top: placed?.top ?? 0 }}
     >

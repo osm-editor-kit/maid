@@ -52,7 +52,7 @@ function removeCopiedTags(engine: MaidEngine, copied: NonNullable<MaidEngine['dr
   if (!way) return
   const tags = { ...way.tags }
   for (const [key, value] of Object.entries(copied.tags)) if (tags[key] === value) delete tags[key]
-  engine.setTags(copied.wayId, tags, 'Removed the copied tags')
+  engine.setTags(copied.wayId, tags, m.shell_undo_removed_copied_tags())
 }
 
 /**

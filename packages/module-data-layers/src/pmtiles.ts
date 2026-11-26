@@ -7,6 +7,7 @@ import { queryOptions } from '@tanstack/react-query'
 import { addProtocol } from 'maplibre-gl'
 import { PMTiles, Protocol, TileType, type RangeResponse, type Source } from 'pmtiles'
 import { z } from 'zod'
+import { m } from './messages.ts'
 
 /** The part of an archive's metadata that is read. Other members are not checked. */
 const metadataSchema = z.object({
@@ -66,9 +67,9 @@ class EditorSource implements Source {
 async function readArchive(url: string, send: RemoteFetch, signal: AbortSignal | undefined) {
   const archive = new PMTiles(new EditorSource(url, send, signal))
   const header = await archive.getHeader()
-  if (header.tileType !== TileType.Mvt) throw new Error('it does not hold vector tiles.')
+  if (header.tileType !== TileType.Mvt) throw new Error(m.data_layers_pmtiles_not_vector())
   const names = sourceLayerNames(await archive.getMetadata())
-  if (names.length === 0) throw new Error('it lists no vector layers in its metadata.')
+  if (names.length === 0) throw new Error(m.data_layers_pmtiles_no_layers())
   return names
 }
 

@@ -1,4 +1,5 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Geometry } from '@osm-editor-kit/maid-presets'
 import type { RestoreSummary } from '../journal'
 import type { ChangeElement } from '../save/osm-change'
@@ -33,7 +34,9 @@ export function RestoreChanges({ summary }: { summary: RestoreSummary }) {
   return (
     <div className="mt-3 flex flex-col gap-3 text-xs">
       <section>
-        <h3 className="font-medium text-zinc-500 dark:text-zinc-400">Edits</h3>
+        <h3 className="font-medium text-zinc-500 dark:text-zinc-400">
+          {m.shell_restore_edits_heading()}
+        </h3>
         <ol className="mt-1 max-h-40 list-decimal overflow-y-auto rounded-lg bg-zinc-50 py-2 pr-3 pl-7 text-zinc-700 dark:bg-white/5 dark:text-zinc-200">
           {summary.steps.map((step) => (
             <li
@@ -41,13 +44,13 @@ export function RestoreChanges({ summary }: { summary: RestoreSummary }) {
               className={step.undone ? 'text-zinc-400 dark:text-zinc-500' : undefined}
             >
               {step.annotation}
-              {step.undone && ' (undone)'}
+              {step.undone && ` ${m.shell_restore_step_undone()}`}
             </li>
           ))}
         </ol>
       </section>
       <section>
-        <h3 className="font-medium text-zinc-500 dark:text-zinc-400">Features</h3>
+        <h3 className="font-medium text-zinc-500 dark:text-zinc-400">{m.shell_features()}</h3>
         {rows.length > 0 ? (
           <div className="mt-1">
             <ChangeRows
@@ -64,7 +67,7 @@ export function RestoreChanges({ summary }: { summary: RestoreSummary }) {
           </div>
         ) : (
           <p className="mt-1 rounded-lg bg-zinc-50 px-3 py-2 text-zinc-500 dark:bg-white/5 dark:text-zinc-400">
-            No feature is left changed at the point the history was saved at.
+            {m.shell_restore_none_left()}
           </p>
         )}
       </section>

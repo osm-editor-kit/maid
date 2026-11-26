@@ -80,7 +80,7 @@ export function InfoPopover(props: {
   const tag = referenceTag(reference)
   return (
     <Flyout
-      label={`Documentation of ${tag}`}
+      label={m.ui_info_documentation({ tag })}
       placement={placement}
       className="w-80"
       // the button keeps the keyboard focus; the panel is read, and its link is one Tab away
@@ -88,8 +88,8 @@ export function InfoPopover(props: {
       trigger={
         <button
           type="button"
-          aria-label={`About ${label}`}
-          title={`About ${label}`}
+          aria-label={m.ui_info_about({ label })}
+          title={m.ui_info_about({ label })}
           className={twMerge(BUTTON, buttonClassName)}
         >
           <InformationCircleIcon aria-hidden="true" className="size-4" />
@@ -149,7 +149,7 @@ function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader; hi
       <div className="grid grid-cols-2 gap-2">
         <a href={wikiUrl(title)} target="_blank" rel="noopener noreferrer" className={LINK}>
           <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-3.5 shrink-0" />
-          OSM Wiki
+          {m.ui_info_wiki()}
         </a>
         {info?.itemId ? (
           <a
@@ -159,7 +159,7 @@ function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader; hi
             className={LINK}
           >
             <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-3.5 shrink-0" />
-            Data item
+            {m.ui_info_data_item()}
           </a>
         ) : null}
       </div>

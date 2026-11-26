@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { ComponentPropsWithoutRef } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
 import { DraftInput, LengthNotice, useDraft, useLengthLimit } from './DraftInput.tsx'
@@ -13,7 +14,7 @@ export function TextField(props: FieldProps) {
   if (key === undefined) return <FallbackField {...props} />
   const type =
     field.type === 'url' || field.type === 'email' || field.type === 'tel' ? field.type : 'text'
-  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? m.ui_unknown())
   return (
     <DraftInput
       id={id}
@@ -32,7 +33,7 @@ export function TextareaField(props: FieldProps) {
   const { field, tags, id, onChange, combined } = props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
-  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? m.ui_unknown())
   return (
     <DraftTextarea
       id={id}

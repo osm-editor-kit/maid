@@ -1,10 +1,10 @@
-import { device, m } from '@osm-editor-kit/maid-i18n'
+import { device } from '@osm-editor-kit/maid-i18n'
 /**
- * The field's texts from the app's Paraglide messages (packages/i18n/messages, keys `traffic_sign_*`), made when the
- * field renders so a language change shows at once. The path is relative because this package does not declare
- * `@osm-editor-kit/maid-i18n` (see README.md).
+ * The field's texts from the module's Paraglide messages (messages/, keys `traffic_sign_*`), made when the
+ * field renders so a language change shows at once.
  */
 import type { TrafficSignTexts } from '@osm-editor-kit/osm-traffic-sign-field'
+import { m } from './messages.ts'
 
 export function trafficSignTexts(): TrafficSignTexts {
   return {

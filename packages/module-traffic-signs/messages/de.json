@@ -1,0 +1,26 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "traffic_sign_empty": "Noch keine Verkehrszeichen. Suche unten nach Name oder Zeichen-Nummer, um eins hinzuzufügen.",
+  "traffic_sign_add_placeholder": "Zeichen hinzufügen…",
+  "traffic_sign_search_label": "Verkehrszeichen suchen",
+  "traffic_sign_no_results": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Kein Zeichen passt. Tippe auf Enter, um den Text unverändert hinzuzufügen.",
+        "input=*": "Kein Zeichen passt. Drücke Enter, um den Text unverändert hinzuzufügen."
+      }
+    }
+  ],
+  "traffic_sign_more_results": "{count} weitere, tippe weiter, um einzugrenzen",
+  "traffic_sign_no_sign": "Kein Zeichen",
+  "traffic_sign_unknown": "Unbekanntes Zeichen",
+  "traffic_sign_move_up": "Nach oben",
+  "traffic_sign_move_down": "Nach unten",
+  "traffic_sign_moved": "Auf Position {position} von {total} verschoben",
+  "traffic_sign_remove": "Entfernen",
+  "traffic_sign_remove_sign": "{sign} entfernen",
+  "traffic_sign_loading": "Zeichen werden geladen…",
+  "traffic_sign_mixed": "Mehrere Werte"
+}

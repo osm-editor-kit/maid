@@ -1,4 +1,3 @@
-import { device } from '@osm-editor-kit/maid-i18n'
 import type { Geometry, Preset } from '@osm-editor-kit/maid-presets'
 
 /**
@@ -161,7 +160,7 @@ export type FavouriteEntry = { preset: Preset; number: FavouriteNumber; geometry
 
 /**
  * The texts of favourites that the editor translates (packages/i18n). `startHint` names the key and the number:
- * "Hold ⌥ and type 4 to start Building". English without them: ENGLISH_FAVOURITE_TEXTS.
+ * "Hold ⌥ and type 4 to start Building". The shell makes them from the messages (favourite-texts.ts).
  */
 export type FavouriteTexts = {
   geometries: GeometryNames
@@ -171,14 +170,4 @@ export type FavouriteTexts = {
   /** Starts the favourite's preset as another of its geometries */
   addAs: (name: string, geometry: string) => string
   remove: (name: string) => string
-}
-
-export const ENGLISH_FAVOURITE_TEXTS: FavouriteTexts = {
-  geometries: { point: 'Point', line: 'Line', area: 'Area' },
-  // a touch device has no key to hold: the same wording as the messages' touch variant (picker_favourite_start_hint)
-  startHint: (name, number) =>
-    device().input === 'touch' ? `Start ${name}` : `Hold Alt and type ${number} to start ${name}`,
-  onlyAs: (geometry) => `Only as ${geometry}`,
-  addAs: (name, geometry) => `Add ${name} as ${geometry}`,
-  remove: (name) => `Remove ${name} from favourites`,
 }

@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import {
   OsmEntity,
   OsmNode,
@@ -95,13 +96,14 @@ export function toOsmChange(changes: ChangesSummary, discarded: DiscardList = {}
 /** "3 created, 1 changed, 2 deleted", without the parts that are zero */
 export function summaryOf(change: OsmChange) {
   const parts = [
-    [change.create.length, 'created'],
-    [change.modify.length, 'changed'],
-    [change.delete.length, 'deleted'],
+    [change.create.length, m.shell_save_n_created],
+    [change.modify.length, m.shell_save_n_changed],
+    [change.delete.length, m.shell_save_n_deleted],
   ] as const
+  // a list of short counts: the comma is the same in every language
   return parts
     .filter(([count]) => count > 0)
-    .map(([count, word]) => `${count} ${word}`)
+    .map(([count, text]) => text({ count }))
     .join(', ')
 }
 

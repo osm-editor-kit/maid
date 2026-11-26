@@ -62,11 +62,16 @@ const NO_DRAFT: Draft = { comment: '' }
 
 export const LISTED = 12
 
+/** Marks where the changeset links go in the message of a successful upload */
+const CHANGESETS_HERE = '\u0000'
+
 export function describe(element: ChangeElement) {
   const tags = Object.entries(element.tags)
   const main = tags.find(([key]) => key !== 'name' && !key.includes(':'))
-  const what = element.tags.name ?? (main ? `${main[0]}=${main[1]}` : 'no tags')
-  return `${element.type} ${element.id < 0 ? 'new' : element.id} · ${what}`
+  const what = element.tags.name ?? (main ? `${main[0]}=${main[1]}` : m.shell_save_no_tags())
+  return element.id < 0
+    ? m.shell_save_element_new({ type: element.type, what })
+    : m.shell_save_element({ type: element.type, id: element.id, what })
 }
 
 /** One line of a change list: what happened ("Created", "Changed", "Deleted") and the element */
@@ -75,9 +80,9 @@ export type ChangeRow = readonly [kind: string, element: ChangeElement]
 /** The rows of an upload: created, then changed, then deleted, as the save flyout lists them */
 export function rowsOf(change: OsmChange): ChangeRow[] {
   return [
-    ...change.create.map((e) => ['Created', e] as const),
-    ...change.modify.map((e) => ['Changed', e] as const),
-    ...change.delete.map((e) => ['Deleted', e] as const),
+    ...change.create.map((e) => [m.shell_save_created(), e] as const),
+    ...change.modify.map((e) => [m.shell_save_changed(), e] as const),
+    ...change.delete.map((e) => [m.shell_save_deleted(), e] as const),
   ]
 }
 
@@ -105,7 +110,9 @@ export function ChangeRows(props: {
         </li>
       ))}
       {rows.length > limit && (
-        <li className="py-0.5 text-zinc-500 dark:text-zinc-400">and {rows.length - limit} more</li>
+        <li className="py-0.5 text-zinc-500 dark:text-zinc-400">
+          {m.shell_save_and_more({ count: rows.length - limit })}
+        </li>
       )}
     </ul>
   )
@@ -122,7 +129,7 @@ function Warnings(props: { id: string; items: readonly ChangesetWarning[] }) {
           <span>
             {warning.text}{' '}
             <a className="underline" href={COPYRIGHT_URL} target="_blank" rel="noopener noreferrer">
-              OpenStreetMap copyright
+              {m.shell_save_copyright()}
             </a>
           </span>
         </li>
@@ -190,10 +197,15 @@ function SavePanel(props: {
             onSaved()
             // the features have the ids the server gave them: the URL and the selection follow
             select(selection)
-            // the one message of a success: a toast, with the changesets linked
+            // the one message of a success: a toast, with the changesets linked. The links stand where the
+            // message has its `{changesets}`: the text before and after them is the message split there
+            const sentence = (toOsm ? m.shell_save_done_osm : m.shell_save_done_dev)({
+              count: changesets.length,
+              changesets: CHANGESETS_HERE,
+            }).split(CHANGESETS_HERE)
             notify.done(
               <>
-                Your edits are {changesets.length === 1 ? 'changeset' : 'changesets'}{' '}
+                {sentence[0]}
                 {changesets.map((id, i) => (
                   <span key={id}>
                     {i > 0 && ', '}
@@ -206,8 +218,8 @@ function SavePanel(props: {
                       {id}
                     </a>
                   </span>
-                ))}{' '}
-                {toOsm ? 'on OpenStreetMap.' : 'on the development server.'}
+                ))}
+                {sentence[1]}
                 {/* review tools read OpenStreetMap only, not the development server */}
                 {toOsm && (
                   <span className="mt-1 flex flex-wrap gap-x-3">
@@ -233,15 +245,15 @@ function SavePanel(props: {
           },
           (error: unknown) => {
             onUploading(false)
-            setFailure(error instanceof Error ? error.message : 'The upload failed.')
+            setFailure(error instanceof Error ? error.message : m.shell_save_upload_failed())
           },
         )
       }}
     >
       <div>
-        <h2 className="text-base font-semibold">Save your edits</h2>
+        <h2 className="text-base font-semibold">{m.topbar_save_edits()}</h2>
         <p className="text-zinc-500 dark:text-zinc-400">
-          {rows.length === 0 ? 'Nothing to save yet.' : summaryOf(change)}
+          {rows.length === 0 ? m.shell_save_nothing_yet() : summaryOf(change)}
         </p>
       </div>
       {rows.length > 0 && <ChangeRows rows={rows} />}
@@ -252,29 +264,31 @@ function SavePanel(props: {
         .map((item) => item.component && <item.component key={item.id} editor={editor} />)}
       <div className="flex flex-col gap-1">
         <label htmlFor={commentId} className="font-medium">
-          Changeset comment
+          {m.shell_save_comment_label()}
         </label>
         <SuggestTextarea
           id={commentId}
-          label="Your recent comments"
+          label={m.shell_save_recent_comments()}
           rows={3}
           maxLength={255}
           value={draft.comment}
           suggestions={commentSuggestions(recent.comments, draft.comment)}
           onChange={(comment) => editDraft({ comment })}
           onBlur={() => commitDraftFields(Date.now())}
-          placeholder="What did you change, and from which source?"
+          placeholder={m.shell_save_comment_placeholder()}
           className={FIELD}
           describedBy={warnings.comment.length > 0 ? `${warningsId}-comment` : undefined}
         />
         {hashtags && (
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">Hashtags: {hashtags}</span>
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            {m.shell_save_hashtags({ hashtags })}
+          </span>
         )}
         <Warnings id={`${warningsId}-comment`} items={warnings.comment} />
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor={sourceId} className="font-medium">
-          Source
+          {m.shell_save_source()}
         </label>
         <SemiComboField
           id={sourceId}
@@ -286,7 +300,11 @@ function SavePanel(props: {
           }}
         />
         {recent.sources.length > 0 && (
-          <div role="group" aria-label="Recent sources" className="flex flex-wrap gap-1.5">
+          <div
+            role="group"
+            aria-label={m.shell_save_recent_sources()}
+            className="flex flex-wrap gap-1.5"
+          >
             {sourceChips(recent.sources).map((value) => {
               const on = hasSource(draft.source, value)
               return (
@@ -317,10 +335,10 @@ function SavePanel(props: {
         className="w-full cursor-pointer rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 enabled:hover:bg-blue-500 disabled:cursor-default disabled:opacity-50"
       >
         {uploading
-          ? 'Uploading…'
+          ? m.shell_save_uploading()
           : toOsm
-            ? 'Upload to OpenStreetMap'
-            : 'Upload to the development server'}
+            ? m.shell_save_upload_osm()
+            : m.shell_save_upload_dev()}
       </button>
       {note && (
         <p id={noteId} role="status" className="text-xs text-amber-700 dark:text-amber-300">
@@ -395,7 +413,7 @@ export function SaveButton() {
             {hasChanges && (
               // on the corner, so the button keeps its width when the dot comes and goes
               <span
-                aria-label="unsaved edits"
+                aria-label={m.shell_save_unsaved_edits()}
                 className="absolute -top-1 -right-1 size-2.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-zinc-900"
               />
             )}

@@ -2,6 +2,12 @@ import { XMarkIcon } from '@heroicons/react/16/solid'
 import { m } from '@osm-editor-kit/maid-i18n'
 import type { PasteReport } from './types.ts'
 
+/** The counter reads "<length> / <max> ..." in every language: over the limit when the length is the larger number */
+function counterOver(counter: string) {
+  const [length, max] = (/^(\d+) \/ (\d+)/.exec(counter) ?? []).slice(1).map(Number)
+  return length !== undefined && max !== undefined && length > max
+}
+
 /**
  * The line under the grid: what a paste or a copy did, the lines it refused (named, with the reason), and the length
  * counter of the active cell. A live region, so a screen reader hears each message once.
@@ -21,9 +27,7 @@ export function SheetStatus(props: {
     >
       <div className="min-w-0 flex-1">
         {counter !== undefined ? (
-          <p
-            className={counter.includes('too long') ? 'text-red-600 dark:text-red-400' : undefined}
-          >
+          <p className={counterOver(counter) ? 'text-red-600 dark:text-red-400' : undefined}>
             {counter}
           </p>
         ) : null}
@@ -32,7 +36,7 @@ export function SheetStatus(props: {
           <ul className="mt-0.5 flex flex-col gap-0.5">
             {refused.map((entry, index) => (
               <li key={`${entry.line}-${index}`} className="truncate font-mono">
-                {`Line ${entry.line}: ${entry.text}`}{' '}
+                {m.ui_sheet_refused_line({ line: entry.line, text: entry.text })}{' '}
                 <span className="font-sans text-zinc-500 dark:text-zinc-400">({entry.reason})</span>
               </li>
             ))}

@@ -73,7 +73,7 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
   const optionId = (index: number) => `${listId}-${index}`
   // The host's message wins; else the column's check of what is shown (the draft while it is edited).
   const invalid = data?.invalid ?? column.validate?.(value, row)
-  const mixedTitle = mixed?.map((entry) => entry.text ?? '(no tag)').join('\n')
+  const mixedTitle = mixed?.map((entry) => entry.text ?? m.ui_sheet_no_tag()).join('\n')
   const role = column.role === 'rowheader' ? 'rowheader' : 'gridcell'
   const tone = data?.tone ?? 'default'
   const listShown = suggestions.open && anchor !== null
@@ -134,7 +134,7 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
         aria-describedby={invalid !== undefined ? messageId : undefined}
         aria-description={mixed ? m.ui_cell_mixed({ count: mixed.length }) : undefined}
         title={mixedTitle ?? (editing || value === '' ? undefined : value)}
-        placeholder={mixed ? 'Multiple values' : trailing ? column.header : undefined}
+        placeholder={mixed ? m.ui_multiple_values() : trailing ? column.header : undefined}
         // a tag is one line, as in a text input: a pasted line break becomes a space
         onChange={(event) => setDraft(event.target.value.replace(/\r?\n/g, ' '))}
         onKeyDown={onKeyDown}
@@ -171,7 +171,7 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
       {listShown && anchor !== null ? (
         <SuggestList
           id={listId}
-          label={`Suggestions for ${column.header}`}
+          label={m.ui_sheet_suggestions({ column: column.header })}
           anchor={anchor}
           items={suggestions.items}
           highlighted={suggestions.highlighted}

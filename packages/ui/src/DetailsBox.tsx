@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 /**
  * A small table beside the edit menu that says more than a row's label or tooltip: what blocks a Merge (the tags of the
  * features side by side, the conflicting ones first and marked), or which tags Copy tags copies. The tones are the way
@@ -73,7 +74,7 @@ export function DetailsBox({ details }: { details: MenuDetails }) {
                         : 'text-zinc-500 dark:text-zinc-400'
                     }`}
                   >
-                    {row.conflict && <span aria-label="differs">≠ </span>}
+                    {row.conflict && <span aria-label={m.ui_differs()}>≠ </span>}
                     {row.label}
                   </th>
                   {row.cells.map((cell, j) => (

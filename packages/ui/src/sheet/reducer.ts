@@ -2,6 +2,7 @@
  * The sheet's pure core: focus, selection, edit mode and the trailing row (sheetReducer), and the two things
  * that turn an edit or a selection into data (commitEdit, clearSelection). No React, no DOM.
  */
+import { m } from '@osm-editor-kit/maid-i18n'
 import type {
   CellRef,
   ColId,
@@ -497,7 +498,7 @@ export function commitEdit(
           mode: 'navigate',
           tabOrigin: null,
         }),
-        refused: `${col.header} "${cleaned}" is already on another row`,
+        refused: m.ui_sheet_duplicate({ column: col.header, value: cleaned }),
         focus,
         invalid,
       }

@@ -18,6 +18,7 @@ import {
 import { ListOverview } from './ListOverview.tsx'
 import { m } from './messages.ts'
 import { goToTask } from './navigate.ts'
+import { nextNearIndex, taskShape } from './next.ts'
 import { forgetList, type OpenDeps } from './open.ts'
 import { refreshKept, setBrowsing, useOverview } from './overview.ts'
 import { type Shared, useSharedEngine } from './shared.ts'
@@ -587,15 +588,25 @@ function Detail({
   const current = useTasks(store, (state) => state.current)
   const engine = useSharedEngine(shared)
   const version = useEngineVersion(engine)
+  // whether another task is open; which one is worked out on the click (next.ts), with the edits of that moment
   const next = nextOpenIndex(statuses, current)
   const go = (index: number) => goToTask({ store, select, engine: shared.engine }, index)
+  const goNext = () => {
+    const files = list?.file.features
+    const graph = editor?.history.staging.graph
+    const index = nextNearIndex(statuses, current, (at) => {
+      const each = files?.[at]
+      return each ? taskShape(each, graph) : undefined
+    })
+    if (index !== undefined) go(index)
+  }
   const nextButton = (
     <button
       type="button"
       data-testid="tasks-next"
       disabled={next === undefined}
       title={next === undefined ? m.tasks_none_open() : undefined}
-      onClick={() => next !== undefined && go(next)}
+      onClick={goNext}
       className={BUTTON}
     >
       {m.tasks_next()}
@@ -654,7 +665,7 @@ function Detail({
           select={select}
           hover={(id) => shared.engine?.setHover(id)}
           headed={false}
-          onNext={() => next !== undefined && go(next)}
+          onNext={goNext}
           hasNext={next !== undefined}
         />
       </div>

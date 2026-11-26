@@ -2,13 +2,15 @@
  * The pure helpers of the colour swatches in the "Add a layer" form: which swatch a colour is,
  * where the arrow keys go, and the plain-words name of a palette colour. No React.
  */
+import { m } from './messages.ts'
 
-const NAMES: Record<string, string> = {
-  '#d6007a': 'Magenta',
-  '#00a6c7': 'Cyan',
-  '#7bc31a': 'Lime',
-  '#ff7a00': 'Orange',
-  '#7c4dff': 'Violet',
+/** The name of each palette colour, read when it is shown (the language is set at mount) */
+const NAMES: Record<string, () => string> = {
+  '#d6007a': () => m.data_layers_colour_magenta(),
+  '#00a6c7': () => m.data_layers_colour_cyan(),
+  '#7bc31a': () => m.data_layers_colour_lime(),
+  '#ff7a00': () => m.data_layers_colour_orange(),
+  '#7c4dff': () => m.data_layers_colour_violet(),
 }
 
 /** The index of a colour in the palette (case does not matter), or -1 when it is a custom colour */
@@ -35,5 +37,5 @@ export function stepIndex(current: number, count: number, key: string) {
 /** The name of a palette colour for a screen reader; any other colour is named by its hex value */
 export function colourName(color: string) {
   const hex = color.toLowerCase()
-  return NAMES[hex] ?? hex
+  return NAMES[hex]?.() ?? hex
 }

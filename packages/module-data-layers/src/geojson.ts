@@ -2,16 +2,13 @@
 import type { MapLayerItem } from '@osm-editor-kit/maid-renderer'
 import { z } from 'zod'
 import type { Checked } from './config.ts'
+import { m } from './messages.ts'
 
 /** What the map's GeoJSON source takes: a feature collection or a single feature */
 export type GeoJsonData = MapLayerItem['source']['data']
 
 type Feature = Extract<GeoJsonData, { type: 'Feature' }>
 type Geometry = NonNullable<Feature['geometry']>
-
-const NOT_JSON = 'This is not JSON, so it is not GeoJSON.'
-const NOT_GEOJSON =
-  'This is JSON, but not GeoJSON. The top level must be a FeatureCollection or a Feature.'
 
 /**
  * The geometry's `type` is checked to be text; the coordinates are not (a large file has millions
@@ -76,9 +73,9 @@ export function parseGeoJson(text: string): Checked<GeoJsonData> {
   try {
     json = JSON.parse(text)
   } catch {
-    return { ok: false, errors: [NOT_JSON] }
+    return { ok: false, errors: [m.data_layers_error_not_json()] }
   }
   const parsed = geoJsonSchema.safeParse(json)
-  if (!parsed.success) return { ok: false, errors: [NOT_GEOJSON] }
+  if (!parsed.success) return { ok: false, errors: [m.data_layers_error_not_geojson()] }
   return { ok: true, value: parsed.data }
 }

@@ -4,6 +4,7 @@
  * dialog before it runs (`askOnTouch`). Merge of areas asks on every device, because the mapper picks values there
  * (`Operation.confirm`); an operation with only `changes` asks on touch only (Tobias, 2026-11-26).
  */
+import { m } from '@osm-editor-kit/maid-i18n'
 import type {
   Operation,
   OperationChanges,
@@ -18,8 +19,16 @@ export function changesDetails(
   if (!changes || changes.features.length === 0) return undefined
   const several = changes.features.length > 1
   const columns = changes.features.flatMap((feature) => [
-    { label: several ? `${feature.label}: before` : 'Before', id: feature.id },
-    { label: several ? `${feature.label}: after` : 'After', id: feature.id },
+    {
+      label: several
+        ? m.shell_changes_before_of({ label: feature.label })
+        : m.shell_changes_before(),
+      id: feature.id,
+    },
+    {
+      label: several ? m.shell_changes_after_of({ label: feature.label }) : m.shell_changes_after(),
+      id: feature.id,
+    },
   ])
   const keys = [
     ...new Set(

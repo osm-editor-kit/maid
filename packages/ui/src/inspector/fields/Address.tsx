@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useId, useState } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
@@ -21,7 +22,7 @@ import {
 } from './address-logic.ts'
 import { ComboField } from './Combo.tsx'
 import { LengthNotice, useDraft, useLengthLimit } from './DraftInput.tsx'
-import { mixedOf, MULTIPLE_VALUES, mixedTitle } from './mixed-logic.ts'
+import { mixedOf, multipleValues, mixedTitle } from './mixed-logic.ts'
 import type { CombinedTags, FieldProps, MixedValue } from './shared.ts'
 import { LIMITED } from './shared.ts'
 
@@ -197,11 +198,11 @@ function StreetPlaceSlot(props: SlotProps & { apply: (edits: TagEdit[]) => void 
       <button
         type="button"
         disabled={readOnly}
-        title={`Switch to ${other}`}
+        title={other === 'street' ? m.ui_address_switch_street() : m.ui_address_switch_place()}
         onClick={() => switchTo(other)}
         className={`${SWITCH} ${edges.left ? 'rounded-l-md' : 'rounded-none'}`}
       >
-        {mode === 'street' ? 'Street' : 'Place'}
+        {mode === 'street' ? m.ui_address_street() : m.ui_address_place()}
       </button>
       <div className={`-ml-px min-w-0 flex-1 ${list && list.length > 0 ? comboRadius(inner) : ''}`}>
         {list && list.length > 0 ? (
@@ -262,7 +263,7 @@ function TextSlot(props: {
         autoComplete="off"
         spellCheck={false}
         aria-label={label}
-        placeholder={mixed ? MULTIPLE_VALUES : label}
+        placeholder={mixed ? multipleValues() : label}
         title={mixed ? mixedTitle(mixed) : undefined}
         value={draft}
         readOnly={readOnly}

@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { cleanValue, fieldKeys, type TagEdit } from '../logic.ts'
 
@@ -82,17 +83,17 @@ export function commitLanguageRow(args: {
   const cleaned = cleanValue(value)
   if (text === '') {
     if (tagKey !== undefined) {
-      return { kind: 'error', message: 'Enter a language code, or remove this translation.' }
+      return { kind: 'error', message: m.ui_localized_code_missing() }
     }
     return cleaned === undefined ? { kind: 'discard' } : { kind: 'wait' }
   }
   const normalized = normalizeLanguageCode(text)
   if (normalized === undefined) {
-    return { kind: 'error', message: 'Use a language code such as de, pt-BR or zh-Hant.' }
+    return { kind: 'error', message: m.ui_localized_code_invalid() }
   }
   const newKey = `${base}:${normalized}`
   if (newKey !== tagKey && nonEmpty(tags[newKey])) {
-    return { kind: 'error', message: `${newKey} already has a value.` }
+    return { kind: 'error', message: m.ui_localized_code_taken({ key: newKey }) }
   }
   if (tagKey === undefined && cleaned === undefined) return { kind: 'wait' }
 

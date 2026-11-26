@@ -9,6 +9,7 @@ import { useUrlParam } from '@osm-editor-kit/maid-core/react'
 import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import { useImageryContext, useView } from './imagery-store.ts'
+import { m } from './messages.ts'
 import { useCannotShift } from './offset-protocol.ts'
 import {
   formatOffset,
@@ -31,30 +32,28 @@ const ICON_BUTTON =
 /** The four nudge buttons, in the cells of a 3 by 3 grid (the corners are empty, as in iD's section) */
 const NUDGE_BUTTONS: readonly {
   direction: Direction
-  label: string
   Icon: typeof ArrowUpIcon
   cell: string
 }[] = [
-  { direction: 'up', label: 'Move imagery up', Icon: ArrowUpIcon, cell: 'col-start-2 row-start-1' },
-  {
-    direction: 'left',
-    label: 'Move imagery left',
-    Icon: ArrowLeftIcon,
-    cell: 'col-start-1 row-start-2',
-  },
-  {
-    direction: 'right',
-    label: 'Move imagery right',
-    Icon: ArrowRightIcon,
-    cell: 'col-start-3 row-start-2',
-  },
-  {
-    direction: 'down',
-    label: 'Move imagery down',
-    Icon: ArrowDownIcon,
-    cell: 'col-start-2 row-start-3',
-  },
+  { direction: 'up', Icon: ArrowUpIcon, cell: 'col-start-2 row-start-1' },
+  { direction: 'left', Icon: ArrowLeftIcon, cell: 'col-start-1 row-start-2' },
+  { direction: 'right', Icon: ArrowRightIcon, cell: 'col-start-3 row-start-2' },
+  { direction: 'down', Icon: ArrowDownIcon, cell: 'col-start-2 row-start-3' },
 ]
+
+/** The label of a nudge button; read when it is shown, as the language is set at mount */
+function nudgeLabel(direction: Direction) {
+  switch (direction) {
+    case 'up':
+      return m.imagery_offset_up()
+    case 'left':
+      return m.imagery_offset_left()
+    case 'right':
+      return m.imagery_offset_right()
+    case 'down':
+      return m.imagery_offset_down()
+  }
+}
 
 /**
  * The imagery offset of the background, in the panel's "Imagery offset" disclosure (closed by default, as in iD). Four
@@ -103,35 +102,35 @@ export function OffsetSection(props: { background: string }) {
   return (
     <details className="border-t border-zinc-950/5 px-4 py-3 dark:border-white/5">
       <summary className="cursor-pointer text-sm font-medium">
-        Imagery offset{zero ? '' : `: ${formatOffset(offset)} m`}
+        {zero ? m.imagery_offset() : m.imagery_offset_with_value({ offset: formatOffset(offset) })}
       </summary>
       <div className="flex flex-col gap-3 pt-3">
-        <p className={MUTED}>
-          Use this when the imagery and the OSM data do not line up. Move the imagery in small
-          steps, or enter the offset in meters, east and north of its place.
-        </p>
+        <p className={MUTED}>{m.imagery_offset_intro()}</p>
         <div className="flex items-center gap-3">
           <div className="grid size-20 shrink-0 grid-cols-3 grid-rows-3 gap-0.5">
-            {NUDGE_BUTTONS.map(({ direction, label, Icon, cell }) => (
-              <button
-                key={direction}
-                type="button"
-                title={label}
-                aria-label={label}
-                disabled={view === null}
-                onClick={() => nudge(direction)}
-                className={`${cell} ${ICON_BUTTON} size-full`}
-              >
-                <Icon aria-hidden={true} className="size-4" />
-              </button>
-            ))}
+            {NUDGE_BUTTONS.map(({ direction, Icon, cell }) => {
+              const label = nudgeLabel(direction)
+              return (
+                <button
+                  key={direction}
+                  type="button"
+                  title={label}
+                  aria-label={label}
+                  disabled={view === null}
+                  onClick={() => nudge(direction)}
+                  className={`${cell} ${ICON_BUTTON} size-full`}
+                >
+                  <Icon aria-hidden={true} className="size-4" />
+                </button>
+              )
+            })}
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <input
               {...PLAIN_INPUT}
               type="text"
               inputMode="decimal"
-              aria-label="Imagery offset in meters, east and north"
+              aria-label={m.imagery_offset_field()}
               aria-invalid={invalid}
               value={draft ?? formatOffset(offset)}
               onChange={(event) => {
@@ -144,12 +143,12 @@ export function OffsetSection(props: { background: string }) {
               }}
               className={FIELD}
             />
-            <span className={MUTED}>meters: east, north</span>
+            <span className={MUTED}>{m.imagery_offset_unit()}</span>
           </div>
           <button
             type="button"
-            title="Reset the imagery offset"
-            aria-label="Reset the imagery offset"
+            title={m.imagery_offset_reset()}
+            aria-label={m.imagery_offset_reset()}
             disabled={zero}
             onClick={() => apply(null)}
             className={ICON_BUTTON}
@@ -157,13 +156,8 @@ export function OffsetSection(props: { background: string }) {
             <ArrowUturnLeftIcon aria-hidden={true} className="size-4" />
           </button>
         </div>
-        {invalid ? (
-          <p className={ERROR}>
-            Enter two numbers in meters, east and north, separated by a comma. An empty field resets
-            the offset.
-          </p>
-        ) : null}
-        {cannotShift ? <p className={ERROR}>This imagery cannot be shifted</p> : null}
+        {invalid ? <p className={ERROR}>{m.imagery_offset_invalid()}</p> : null}
+        {cannotShift ? <p className={ERROR}>{m.imagery_offset_cannot_shift()}</p> : null}
       </div>
     </details>
   )

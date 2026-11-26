@@ -1,5 +1,6 @@
 import { XMarkIcon } from '@heroicons/react/20/solid'
 import type { Editor } from '@osm-editor-kit/maid-core'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { CombinedTags } from '@osm-editor-kit/maid-model'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import type { EntityInfo, MaidEngine } from '@osm-editor-kit/maid-renderer'
@@ -20,6 +21,7 @@ import {
 } from '@osm-editor-kit/maid-ui'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
+import { geometryLabel } from './geometry-label'
 import {
   changesPerFeature,
   listedIds,
@@ -38,14 +40,6 @@ const MultiRelations = lazyComponent(() =>
     default: sections.MultiRelationsSection,
   })),
 )
-
-const GEOMETRY_LABEL = {
-  point: 'Point',
-  vertex: 'Vertex',
-  line: 'Line',
-  area: 'Area',
-  relation: 'Relation',
-} as const
 
 /** The types shown as icons on the type line; the rest are counted in the label (iD shows a few). */
 
@@ -93,7 +87,7 @@ function derive(engine: MaidEngine, editor: Editor, selectionKey: string): Deriv
   return {
     ids: found.map((f) => f.id),
     names: found.map(
-      (f) => f.entity.tags.name ?? f.entity.preset?.name ?? GEOMETRY_LABEL[f.entity.geometry],
+      (f) => f.entity.tags.name ?? f.entity.preset?.name ?? geometryLabel(f.entity.geometry),
     ),
     kinds: found.map((f) => f.entity.preset?.name),
     combined,
@@ -140,19 +134,18 @@ export function MultiInspector({
   const count = derived.ids.length
 
   return (
-    <Sidebar label="Selected features">
-      <SidebarHeader title={`${count} features`} onClose={() => select(null)} />
+    <Sidebar label={m.shell_inspector_selected_many()}>
+      <SidebarHeader title={m.shell_multi_title({ count })} onClose={() => select(null)} />
       <SidebarBody>
         {derived.readOnly > 0 && (
           <p className="mb-3 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">
-            {derived.readOnly} of {count} selected features are read-only: a change is refused for
-            all of them. Change the filters under “Filters” in the top bar.
+            {m.shell_multi_read_only_notice({ readOnly: derived.readOnly, count })}
           </p>
         )}
         <Operations />
         <div className="[&>*:first-child]:border-t [&>*:first-child]:pt-2.5">
-          <SidebarDisclosure title="Features" detail={count} defaultOpen={count <= 10}>
-            <ul className="flex flex-col gap-0.5" aria-label="Selected features">
+          <SidebarDisclosure title={m.shell_features()} detail={count} defaultOpen={count <= 10}>
+            <ul className="flex flex-col gap-0.5" aria-label={m.shell_inspector_selected_many()}>
               {shown.map((id) => {
                 const index = derived.ids.indexOf(id)
                 const name = derived.names[index] ?? id
@@ -162,7 +155,7 @@ export function MultiInspector({
                       type="button"
                       className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-sm hover:bg-zinc-950/5 dark:hover:bg-white/10"
                       onClick={() => select([id])}
-                      title={`Select only ${name}`}
+                      title={m.shell_multi_select_only({ name })}
                     >
                       <span className="truncate">{name}</span>
                       <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
@@ -172,7 +165,7 @@ export function MultiInspector({
                     <button
                       type="button"
                       className="rounded-md p-1 text-zinc-500 hover:bg-zinc-950/5 dark:text-zinc-400 dark:hover:bg-white/10"
-                      aria-label={`Take ${name} out of the selection`}
+                      aria-label={m.shell_multi_take_out({ name })}
                       onClick={() => select(withoutId(derived.ids, id))}
                     >
                       <XMarkIcon className="size-4" />
@@ -199,7 +192,7 @@ export function MultiInspector({
             />
           )}
           {derived.fields.length > 0 && (
-            <SidebarDisclosure title="Fields" defaultOpen remember="fields">
+            <SidebarDisclosure title={m.shell_fields()} defaultOpen remember="fields">
               <PresetFields
                 // a new selection starts with no picked fields
                 key={selectionKey}
@@ -213,7 +206,7 @@ export function MultiInspector({
             </SidebarDisclosure>
           )}
           <SidebarDisclosure
-            title="Tags"
+            title={m.shell_tags()}
             remember="tags"
             detail={Object.keys(derived.combined).length}
             defaultOpen
@@ -221,7 +214,7 @@ export function MultiInspector({
           >
             <TagSheet
               copyButton={false}
-              label="Tags"
+              label={m.shell_tags()}
               combined={derived.combined}
               featureKey={selectionKey}
               onChange={write}

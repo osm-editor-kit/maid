@@ -37,7 +37,7 @@ export function DateField(props: FieldProps) {
         if (text === '' || isValidDate(text)) return null
         return (
           <span className="min-w-0 truncate text-xs text-amber-600 dark:text-amber-400">
-            Not a YYYY, YYYY-MM or YYYY-MM-DD date. Saved as typed.
+            {m.ui_date_invalid()}
           </span>
         )
       }}
@@ -96,7 +96,7 @@ export function ColourField(props: FieldProps) {
   const key = field.key
   const pickerRef = useRef<HTMLInputElement>(null)
   if (key === undefined) return <FallbackField {...props} />
-  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? m.ui_unknown())
   return (
     <AddonInput
       id={id}

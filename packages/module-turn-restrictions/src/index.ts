@@ -1,9 +1,9 @@
 import { defineModule } from '@osm-editor-kit/maid-core'
-import { m } from '@osm-editor-kit/maid-i18n'
 import { lazyComponent } from '@osm-editor-kit/maid-ui'
 import type { Rule } from '@osm-editor-kit/maid-validation'
 import { createElement } from 'react'
 import { isJunction } from './is-junction.ts'
+import { m } from './messages.ts'
 import { turnRestrictionIncomplete } from './restriction-rule.ts'
 import type {
   TurnRestrictionsDefaults,

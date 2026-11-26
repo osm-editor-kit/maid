@@ -38,7 +38,7 @@ export function PasteTagsDialog() {
         id,
         tags: pastedTags(tagsOfFeature(engine, id), copied, paste.mode),
       })),
-      'Pasted tags',
+      m.shell_undo_pasted_tags(),
     )
     if (!result.ok) notify.failed(m.paste_tags_refused())
     close()

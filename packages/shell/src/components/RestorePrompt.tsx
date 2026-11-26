@@ -17,14 +17,18 @@ const PRIMARY = `${BUTTON} bg-blue-600 text-white hover:bg-blue-500`
 
 /** "5 unsaved edits to 3 features (1 undone)": what is stored, in the words the dialog uses */
 function editsText(summary: RestoreSummary) {
-  let text = summary.edits === 1 ? '1 unsaved edit' : `${summary.edits} unsaved edits`
-  if (summary.features > 0) {
-    text += summary.features === 1 ? ' to 1 feature' : ` to ${summary.features} features`
-  }
-  if (summary.undone > 0) {
-    text += summary.undone === summary.edits ? ' (all undone)' : ` (${summary.undone} undone)`
-  }
-  return text
+  const features = summary.features === 0 ? 'none' : summary.features === 1 ? 'one' : 'many'
+  const text = m.shell_restore_summary({
+    edits: summary.edits,
+    features: features === 'many' ? String(summary.features) : features,
+  })
+  if (summary.undone === 0) return text
+  // the note on the undone edits is a short remark after the sentence
+  return `${text} ${
+    summary.undone === summary.edits
+      ? m.shell_restore_all_undone()
+      : m.shell_restore_n_undone({ count: summary.undone })
+  }`
 }
 
 /**
@@ -77,19 +81,19 @@ export function RestorePrompt() {
           className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl ring-1 ring-zinc-950/10 dark:bg-zinc-900 dark:ring-white/10"
         >
           <h2 id="restore-title" className="text-base font-semibold text-zinc-950 dark:text-white">
-            Restore your unsaved edits?
+            {m.shell_restore_title()}
           </h2>
           <div id="restore-text" className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
             <p>
               {editsText(summary)}, <Time value={summary.savedAt} primary="relative" />
             </p>
-            {summary.name && <p>Around {summary.name}</p>}
-            <p className="mt-1">Restore them, or discard them and start fresh.</p>
+            {summary.name && <p>{m.shell_restore_around({ name: summary.name })}</p>}
+            <p className="mt-1">{m.shell_restore_choose()}</p>
           </div>
           <RestoreChanges summary={summary} />
           <div className="mt-4 flex justify-end gap-2">
             <button type="button" onClick={() => void answerRestore(false)} className={SECONDARY}>
-              Discard them
+              {m.shell_restore_discard()}
             </button>
             <button
               type="button"
@@ -97,7 +101,7 @@ export function RestorePrompt() {
               onClick={() => void answerRestore(true)}
               className={PRIMARY}
             >
-              Restore my edits
+              {m.shell_restore_restore()}
             </button>
           </div>
         </div>

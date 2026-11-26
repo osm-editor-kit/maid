@@ -2,7 +2,7 @@ export {
   checkDataLayerConfig,
   DATA_LAYER_KINDS,
   guessKind,
-  KIND_LABEL,
+  kindLabel,
   type Checked,
   type DataLayerConfig,
   type DataLayerKind,

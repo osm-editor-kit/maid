@@ -3,7 +3,7 @@ import type { Field } from '@osm-editor-kit/maid-presets'
 import {
   handlesSeveral,
   keyDisplay,
-  MULTIPLE_VALUES,
+  multipleValues,
   mixedKeysOf,
   mixedOf,
   mixedSignature,
@@ -124,7 +124,7 @@ describe('keyDisplay', () => {
   it('a mixed key: empty, "Multiple values", the values as the title', () => {
     const shown = keyDisplay('name', {}, combined, 'Name')
     expect(shown.value).toBe('')
-    expect(shown.placeholder).toBe(MULTIPLE_VALUES)
+    expect(shown.placeholder).toBe(multipleValues())
     expect(shown.title).toBe('A\nB\nC')
     expect(shown.mixed).toEqual({ kind: 'mixed', values: ['A', 'B', 'C'], missing: false })
   })

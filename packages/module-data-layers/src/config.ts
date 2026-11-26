@@ -4,34 +4,32 @@
  */
 import { z } from 'zod'
 import type { GeoJsonData } from './geojson.ts'
+import { m } from './messages.ts'
 
 export const DATA_LAYER_KINDS = ['geojson', 'gpx', 'pmtiles', 'vector'] as const
 
 export type DataLayerKind = (typeof DATA_LAYER_KINDS)[number]
 
-export const KIND_LABEL: Record<DataLayerKind, string> = {
-  geojson: 'GeoJSON',
-  gpx: 'GPX',
-  pmtiles: 'PMTiles',
-  vector: 'Vector tiles',
+/** The name of a kind: the format names stay as they are, only "Vector tiles" is a word of the language */
+export function kindLabel(kind: DataLayerKind): string {
+  switch (kind) {
+    case 'geojson':
+      return 'GeoJSON'
+    case 'gpx':
+      return 'GPX'
+    case 'pmtiles':
+      return 'PMTiles'
+    case 'vector':
+      return m.data_layers_kind_vector()
+  }
 }
 
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
-const KIND_MESSAGE = `The kind must be one of ${DATA_LAYER_KINDS.join(', ')}.`
-const OBJECT_MESSAGE = 'A data layer must be an object.'
-const ENTER_ADDRESS = 'Enter the address of the data.'
-const NOT_VALID_ADDRESS = 'The address is not valid. It must start with https://.'
-const NOT_HTTP_ADDRESS = 'The address must start with https:// (or http://).'
-const TEMPLATE_ADDRESS = 'A vector tile address needs {z}, {x} and {y} in it.'
-const LIST_MESSAGE = 'The source layers must be a list of names.'
-const NEED_SOURCE_LAYERS = 'Vector tiles need the names of their source layers.'
-const ID_MESSAGE = 'The id must be 1 to 64 letters, digits, "-" or "_".'
-const NAME_MESSAGE = 'The name must not be empty.'
-const COLOR_MESSAGE = 'The colour must be a hex value such as #d6007a.'
-const ONLY_VECTOR_AND_PMTILES = 'Source layers only apply to vector tiles and PMTiles.'
 /** KML is not read. Refused before any request, for an address that names it and for a file or response that is KML. */
-export const KML_MESSAGE = 'KML is not supported. Use a GPX or GeoJSON file instead.'
+export function kmlMessage() {
+  return m.data_layers_error_kml()
+}
 /** A GPX address or file name, with an optional query or fragment (`track.gpx?x=1`) */
 export const GPX_PATTERN = /\.gpx(?:[?#]|$)/i
 /** A KML address or file name, read as the same as GPX_PATTERN */
@@ -39,8 +37,8 @@ export const KML_PATTERN = /\.kml(?:[?#]|$)/i
 
 /** A `#rrggbb` colour in any case. Stored in lower case. */
 export const colorSchema = z
-  .string({ error: COLOR_MESSAGE })
-  .regex(COLOR_PATTERN, { error: COLOR_MESSAGE })
+  .string({ error: () => m.data_layers_error_colour_hex() })
+  .regex(COLOR_PATTERN, { error: () => m.data_layers_error_colour_hex() })
   .toLowerCase()
 
 /** A path on the same server (`/data/x.geojson`), not a protocol-relative `//host/...` */
@@ -53,24 +51,26 @@ export function isSameServerPath(url: string) {
  * is wrong with the text: empty, not a URL at all, or another scheme.
  */
 const address = z
-  .string({ error: ENTER_ADDRESS })
+  .string({ error: () => m.data_layers_error_enter_address() })
   .trim()
   .pipe(
     z.union([z.string().refine(isSameServerPath), z.url({ protocol: /^https?$/ })], {
       error: (issue) => {
         const text = String(issue.input)
-        if (text === '') return ENTER_ADDRESS
+        if (text === '') return m.data_layers_error_enter_address()
         // a readable address with another scheme (`ftp:`, `javascript:`) is named as such
-        return URL.canParse(text) && !/^https?:/i.test(text) ? NOT_HTTP_ADDRESS : NOT_VALID_ADDRESS
+        return URL.canParse(text) && !/^https?:/i.test(text)
+          ? m.data_layers_error_address_scheme()
+          : m.data_layers_error_address_invalid()
       },
     }),
   )
-  .refine((text) => !KML_PATTERN.test(text), { error: KML_MESSAGE })
+  .refine((text) => !KML_PATTERN.test(text), { error: kmlMessage })
 
 /** Vector tiles also need the `{z}`, `{x}` and `{y}` template in the address */
 const vectorAddress = address.refine(
   (text) => ['{z}', '{x}', '{y}'].every((part) => text.includes(part)),
-  { error: TEMPLATE_ADDRESS },
+  { error: () => m.data_layers_error_address_template({ z: '{z}', x: '{x}', y: '{y}' }) },
 )
 
 /** The reason an address cannot be used for a kind of layer, or `undefined` when it can */
@@ -105,14 +105,17 @@ export function parseSourceLayers(text: string) {
  * A list of source layer names. Each item must be text that is not blank; the list is then read
  * as a typed string (see `parseSourceLayers`). `missing` is said when the list is absent.
  */
-function sourceLayerList(missing: string) {
+function sourceLayerList(missing: () => string) {
   return z
     .array(
       z
-        .string({ error: LIST_MESSAGE })
-        .refine((item) => item.trim() !== '', { error: LIST_MESSAGE }),
+        .string({ error: () => m.data_layers_error_source_layers_list() })
+        .refine((item) => item.trim() !== '', {
+          error: () => m.data_layers_error_source_layers_list(),
+        }),
       {
-        error: (issue) => (issue.input === undefined ? missing : LIST_MESSAGE),
+        error: (issue) =>
+          issue.input === undefined ? missing() : m.data_layers_error_source_layers_list(),
       },
     )
     .transform((items) => parseSourceLayers(items.join(',')))
@@ -120,10 +123,15 @@ function sourceLayerList(missing: string) {
 
 /** The fields every kind of layer has */
 const layerFields = {
-  id: z.string({ error: ID_MESSAGE }).regex(ID_PATTERN, { error: ID_MESSAGE }),
-  name: z.string({ error: NAME_MESSAGE }).trim().min(1, { error: NAME_MESSAGE }),
+  id: z
+    .string({ error: () => m.data_layers_error_id() })
+    .regex(ID_PATTERN, { error: () => m.data_layers_error_id() }),
+  name: z
+    .string({ error: () => m.data_layers_error_name_empty() })
+    .trim()
+    .min(1, { error: () => m.data_layers_error_name_empty() }),
   color: colorSchema.optional(),
-  sourceLayers: sourceLayerList(LIST_MESSAGE).optional(),
+  sourceLayers: sourceLayerList(() => m.data_layers_error_source_layers_list()).optional(),
 }
 
 /**
@@ -131,39 +139,48 @@ const layerFields = {
  * three: GeoJSON and GPX layers have no source layers, vector tiles need them, PMTiles may list them.
  * Anything that is not an object (`null` and arrays too) is refused first, with its own message.
  */
-export const dataLayerSchema = z.looseObject({}, { error: OBJECT_MESSAGE }).pipe(
-  z.discriminatedUnion(
-    'kind',
-    [
-      z.object({
-        ...layerFields,
-        kind: z.literal('geojson'),
-        url: address,
-        sourceLayers: z.undefined({ error: ONLY_VECTOR_AND_PMTILES }).optional(),
-      }),
-      z.object({
-        ...layerFields,
-        kind: z.literal('gpx'),
-        url: address,
-        sourceLayers: z.undefined({ error: ONLY_VECTOR_AND_PMTILES }).optional(),
-      }),
-      z.object({
-        ...layerFields,
-        kind: z.literal('pmtiles'),
-        url: address,
-      }),
-      z.object({
-        ...layerFields,
-        kind: z.literal('vector'),
-        url: vectorAddress,
-        sourceLayers: sourceLayerList(NEED_SOURCE_LAYERS).refine((names) => names.length > 0, {
-          error: NEED_SOURCE_LAYERS,
+export const dataLayerSchema = z
+  .looseObject({}, { error: () => m.data_layers_error_object() })
+  .pipe(
+    z.discriminatedUnion(
+      'kind',
+      [
+        z.object({
+          ...layerFields,
+          kind: z.literal('geojson'),
+          url: address,
+          sourceLayers: z
+            .undefined({ error: () => m.data_layers_error_only_vector_pmtiles() })
+            .optional(),
         }),
-      }),
-    ],
-    { error: KIND_MESSAGE },
-  ),
-)
+        z.object({
+          ...layerFields,
+          kind: z.literal('gpx'),
+          url: address,
+          sourceLayers: z
+            .undefined({ error: () => m.data_layers_error_only_vector_pmtiles() })
+            .optional(),
+        }),
+        z.object({
+          ...layerFields,
+          kind: z.literal('pmtiles'),
+          url: address,
+        }),
+        z.object({
+          ...layerFields,
+          kind: z.literal('vector'),
+          url: vectorAddress,
+          sourceLayers: sourceLayerList(() => m.data_layers_error_need_source_layers()).refine(
+            (names) => names.length > 0,
+            {
+              error: () => m.data_layers_error_need_source_layers(),
+            },
+          ),
+        }),
+      ],
+      { error: () => m.data_layers_error_kind({ kinds: DATA_LAYER_KINDS.join(', ') }) },
+    ),
+  )
 
 /** A data layer as the editor's config (or a stored URL) gives it */
 export type DataLayerConfig = z.infer<typeof dataLayerSchema>

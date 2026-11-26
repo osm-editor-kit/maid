@@ -36,11 +36,13 @@ const KIND_ICON: Readonly<Record<RelatedCategory, typeof BookOpenIcon>> = {
   check_date: CalendarDaysIcon,
 }
 
-const KIND_NAME: Readonly<Record<RelatedCategory, string>> = {
-  source: 'source',
-  note: 'note',
-  check_date: 'check date',
-}
+/** The text of an add button, by category; read when the button is drawn, as the language is set at mount */
+const addText = (category: RelatedCategory, label: string) =>
+  category === 'source'
+    ? m.ui_related_add_source({ label })
+    : category === 'note'
+      ? m.ui_related_add_note({ label })
+      : m.ui_related_add_check_date({ label })
 
 const BUTTON =
   'grid size-5 touch:size-11 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
@@ -55,7 +57,7 @@ export function RelatedAddButtons({ field, related }: { field: Field; related: R
       {related.offers.map((slot) => {
         const open = related.open.includes(slot.key)
         const Icon = KIND_ICON[slot.category]
-        const text = `Add a ${KIND_NAME[slot.category]} for ${field.label}`
+        const text = addText(slot.category, field.label)
         return (
           <button
             key={slot.key}
@@ -138,9 +140,9 @@ function RelatedLine(props: {
       {onToggle ? (
         <button
           type="button"
-          aria-label={`Edit ${label}`}
+          aria-label={m.ui_related_edit({ label })}
           aria-expanded={editing}
-          title={`Edit ${label}`}
+          title={m.ui_related_edit({ label })}
           className={BUTTON}
           onClick={onToggle}
         >
@@ -183,7 +185,7 @@ function RelatedEditor(props: {
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
-            aria-label={`Close ${label}`}
+            aria-label={m.ui_close_named({ label })}
             title={m.ui_close()}
             className={BUTTON}
             onClick={onClose}
@@ -192,7 +194,7 @@ function RelatedEditor(props: {
           </button>
           <button
             type="button"
-            aria-label={`Remove ${label}`}
+            aria-label={m.ui_remove_named({ label })}
             title={m.ui_remove()}
             className={BUTTON}
             onClick={() => {

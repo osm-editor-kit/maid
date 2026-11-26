@@ -3,6 +3,7 @@
  * answer, and what a note shows. No React, no map, no network.
  */
 import { z } from 'zod'
+import { m } from './messages.ts'
 
 /** west, south, east, north in degrees: the order of the API's `bbox` parameter */
 export type Bbox = [west: number, south: number, east: number, north: number]
@@ -179,7 +180,7 @@ export function parseNoteAnswer(json: unknown): Note | null {
 /** The first line of the first comment, cut to a length that fits one line of a list */
 export function summaryLine(note: Note) {
   const first = note.comments[0]?.text.split('\n').find((line) => line.trim() !== '')
-  if (!first) return '(no text)'
+  if (!first) return m.notes_no_text()
   const line = first.trim()
   return line.length > 80 ? `${line.slice(0, 79)}…` : line
 }
@@ -235,7 +236,27 @@ export function loadsAt(osmZoom: number, minZoom: number = NOTES_MIN_ZOOM) {
 /** The one toast id of the truncated notice: a second one replaces the first, it never stacks */
 export const TRUNCATED_NOTICE_ID = 'notes-truncated'
 
-export const TRUNCATED_NOTICE_TEXT = `Only the first ${NOTES_LIMIT} notes of this area are shown. Zoom in to see all.`
+export function truncatedNoticeText() {
+  return m.notes_truncated_toast({ limit: NOTES_LIMIT })
+}
+
+/** The comment's action in words; an action the module does not know is shown as the API gave it */
+export function actionLabel(action: string) {
+  switch (action) {
+    case 'opened':
+      return m.notes_action_opened()
+    case 'commented':
+      return m.notes_action_commented()
+    case 'closed':
+      return m.notes_action_closed()
+    case 'reopened':
+      return m.notes_action_reopened()
+    case 'hidden':
+      return m.notes_action_hidden()
+    default:
+      return action
+  }
+}
 
 /**
  * Whether the truncated notice fires, given whether it fired for the view before and whether the

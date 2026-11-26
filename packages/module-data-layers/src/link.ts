@@ -12,6 +12,7 @@ import { useUrlParam } from '@osm-editor-kit/maid-core/react'
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { addDataLayer } from './add.ts'
 import { guessKind, pickColor, type DataLayerConfig, type FileLayer } from './config.ts'
+import { m } from './messages.ts'
 import { linkedLayerId, linkedLayerName } from './url.ts'
 
 /**
@@ -37,7 +38,7 @@ export async function loadLinkedLayer(
     send,
   )
   if (!result.ok) throw new Error(result.errors.join(' '))
-  if (result.value.kind !== 'url') throw new Error('A link names an address, not a file.')
+  if (result.value.kind !== 'url') throw new Error(m.data_layers_error_link_not_file())
   return { ...result.value.layer, id: linkedLayerId(url) }
 }
 

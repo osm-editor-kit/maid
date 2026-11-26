@@ -9,7 +9,7 @@ import {
   checkLayerUrl,
   colorSchema,
   GPX_PATTERN,
-  KML_MESSAGE,
+  kmlMessage,
   KML_PATTERN,
   parseSourceLayers,
   type Checked,
@@ -19,6 +19,7 @@ import {
 } from './config.ts'
 import { parseGeoJson, type GeoJsonData } from './geojson.ts'
 import { isGpxText, isKmlText, parseGpx } from './gpx.ts'
+import { m } from './messages.ts'
 import { readPmtilesLayers } from './pmtiles.ts'
 
 export type AddInput = {
@@ -37,19 +38,17 @@ export type Added = { kind: 'url'; layer: DataLayerConfig } | { kind: 'file'; la
 /** The checks of the form that need no network */
 export function checkAddInput(input: AddInput) {
   const errors: string[] = []
-  if (input.name.trim() === '') errors.push('Give the layer a name.')
+  if (input.name.trim() === '') errors.push(m.data_layers_error_name_missing())
   if (input.file) {
     if (input.kind !== 'geojson' && input.kind !== 'gpx')
-      errors.push(
-        'A file can only be GeoJSON or GPX. Choose one of them, or give an address instead.',
-      )
+      errors.push(m.data_layers_error_file_kind())
   } else {
     const urlError = checkLayerUrl(input.url, input.kind)
     if (urlError) errors.push(urlError)
   }
-  if (!colorSchema.safeParse(input.color).success) errors.push('Pick a colour.')
+  if (!colorSchema.safeParse(input.color).success) errors.push(m.data_layers_error_colour_missing())
   if (input.kind === 'vector' && !input.file && parseSourceLayers(input.sourceLayers).length === 0)
-    errors.push('Vector tiles need the names of their source layers, separated by commas.')
+    errors.push(m.data_layers_error_vector_needs_layers())
   return errors
 }
 
@@ -58,13 +57,20 @@ export function newLayerId(prefix: 'user' | 'file') {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
 }
 
-const UNREACHABLE =
-  'the address could not be reached from this page. Check the address, and that the server allows requests from this site.'
+/** What a request was for: its failure texts say it in the person's words */
+export type FailureOf = 'data' | 'pmtiles' | 'gpx'
 
 /** Says what went wrong with a request, in plain words. A network error is a `TypeError`. */
-export function describeFailure(error: unknown, what: string) {
-  if (error instanceof TypeError) return new Error(`${what}: ${UNREACHABLE}`)
-  return new Error(`${what}: ${error instanceof Error ? error.message : String(error)}`)
+export function describeFailure(error: unknown, of: FailureOf) {
+  if (error instanceof TypeError) {
+    if (of === 'pmtiles') return new Error(m.data_layers_failure_pmtiles_unreachable())
+    if (of === 'gpx') return new Error(m.data_layers_failure_gpx_unreachable())
+    return new Error(m.data_layers_failure_data_unreachable())
+  }
+  const reason = error instanceof Error ? error.message : String(error)
+  if (of === 'pmtiles') return new Error(m.data_layers_failure_pmtiles_reason({ reason }))
+  if (of === 'gpx') return new Error(m.data_layers_failure_gpx_reason({ reason }))
+  return new Error(m.data_layers_failure_data_reason({ reason }))
 }
 
 /**
@@ -79,7 +85,7 @@ async function probe(send: RemoteFetch, url: string): Promise<Response> {
     if (error instanceof HttpError || error instanceof RateLimitedError) {
       return new Response(null, { status: error.status })
     }
-    throw describeFailure(error, 'The data')
+    throw describeFailure(error, 'data')
   }
 }
 
@@ -95,7 +101,7 @@ async function readText(
   name: string,
   gpxChosen: boolean,
 ): Promise<Checked<ReadText>> {
-  if (KML_PATTERN.test(name) || isKmlText(text)) return { ok: false, errors: [KML_MESSAGE] }
+  if (KML_PATTERN.test(name) || isKmlText(text)) return { ok: false, errors: [kmlMessage()] }
   if (gpxChosen || GPX_PATTERN.test(name) || isGpxText(text)) {
     const gpx = await parseGpx(text)
     return gpx.ok ? { ok: true, value: { kind: 'gpx', data: gpx.value } } : gpx
@@ -116,7 +122,8 @@ async function checkRemote(
 ): Promise<{ kind: DataLayerKind; sourceLayers?: string[] }> {
   if (input.kind === 'geojson' || input.kind === 'gpx') {
     const response = await probe(send, url)
-    if (!response.ok) throw new Error(`The server answered ${response.status}.`)
+    if (!response.ok)
+      throw new Error(m.data_layers_error_server_status({ status: response.status }))
     const read = await readText(await response.text(), url, input.kind === 'gpx')
     if (!read.ok) throw new Error(read.errors.join(' '))
     return { kind: read.value.kind }
@@ -125,7 +132,7 @@ async function checkRemote(
     try {
       return { kind: 'pmtiles', sourceLayers: await readPmtilesLayers(url, send) }
     } catch (error) {
-      throw describeFailure(error, 'Could not read this PMTiles file')
+      throw describeFailure(error, 'pmtiles')
     }
   }
   // Any answer to the test tile counts as reachable: a server may answer an empty tile with 404.
@@ -141,7 +148,7 @@ async function checkRemote(
  */
 export async function readGpxAddress(url: string, send: RemoteFetch): Promise<GeoJsonData> {
   const response = await probe(send, url)
-  if (!response.ok) throw new Error(`The server answered ${response.status}.`)
+  if (!response.ok) throw new Error(m.data_layers_error_server_status({ status: response.status }))
   const read = await parseGpx(await response.text())
   if (!read.ok) throw new Error(read.errors.join(' '))
   return read.value
@@ -173,10 +180,16 @@ export async function addDataLayer(input: AddInput, send: RemoteFetch): Promise<
     try {
       text = await file.text()
     } catch {
-      return { ok: false, errors: [`${file.name} could not be read.`] }
+      return { ok: false, errors: [m.data_layers_error_file_unreadable({ name: file.name })] }
     }
     const read = await readText(text, file.name, input.kind === 'gpx')
-    if (!read.ok) return { ok: false, errors: [`${file.name}: ${read.errors.join(' ')}`] }
+    if (!read.ok)
+      return {
+        ok: false,
+        errors: [
+          m.data_layers_error_file_reason({ name: file.name, reason: read.errors.join(' ') }),
+        ],
+      }
     const layer: FileLayer = {
       id: newLayerId('file'),
       name,

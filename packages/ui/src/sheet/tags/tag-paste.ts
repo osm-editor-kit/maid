@@ -2,6 +2,7 @@
  * What a paste and a copy do in the Tags sheet (design section 6), as plain functions: which route a paste takes,
  * the plan of each route, and the text of a copy of some cells. No React, no DOM.
  */
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Tags } from '@osm-editor-kit/maid-presets'
 import { parseTagText, planPositionalPaste } from '../clipboard.ts'
 import type {
@@ -94,7 +95,7 @@ export function planTagsPaste(input: TagPasteInput, context: TagPasteContext): T
           added: 0,
           replaced: 0,
           unchanged: 0,
-          refused: [{ line: 1, text: firstLine, reason: 'Several lines cannot go into one value' }],
+          refused: [{ line: 1, text: firstLine, reason: m.ui_tags_several_lines() }],
         },
       }
     }

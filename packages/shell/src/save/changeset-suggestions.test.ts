@@ -6,7 +6,7 @@ import {
   hasSource,
   mergeRecent,
   SOURCE_CHIPS,
-  SOURCE_OPTIONS,
+  sourceOptions,
   sourceChips,
   sourceField,
   sourceLabel,
@@ -83,7 +83,7 @@ describe('the source as a list of toggles', () => {
 
 describe('the source field', () => {
   it('adds the recent sources that are no option yet, as iD does', () => {
-    expect(extraSourceOptions(SOURCE_OPTIONS, ['survey', 'Bing aerial imagery', 'gps'])).toEqual([
+    expect(extraSourceOptions(sourceOptions(), ['survey', 'Bing aerial imagery', 'gps'])).toEqual([
       { value: 'Bing aerial imagery', label: 'Bing aerial imagery' },
     ])
   })
@@ -97,7 +97,7 @@ describe('the source field', () => {
       snakeCase: false,
     })
     expect(field.options.map((option) => option.value)).toEqual([
-      ...SOURCE_OPTIONS.map((option) => option.value),
+      ...sourceOptions().map((option) => option.value),
       'Mapillary',
     ])
   })

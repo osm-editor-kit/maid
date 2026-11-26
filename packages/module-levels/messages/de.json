@@ -1,0 +1,89 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "levels_title": "Ebene",
+  "levels_none": "keine",
+  "levels_change_level": "Ebene {level}, ändern",
+  "levels_set_level_none": "Keine Ebene, eine festlegen",
+  "levels_from_level": "Von Ebene {level}",
+  "levels_from_level_none": "Von Ebene, keine",
+  "levels_to_level": "Bis Ebene {level}",
+  "levels_to_level_none": "Bis Ebene, keine",
+  "levels_swap_direction": "Richtung umkehren",
+  "levels_direction_unknown": "Richtung unbekannt",
+  "levels_use_pair": "{from} → {to} übernehmen",
+  "levels_set_level": "Ebene festlegen",
+  "levels_select_as_is": "So auswählen, wie es ist (schreibgeschützt)",
+  "levels_select_anyway": "Trotzdem auswählen",
+  "levels_view": "Ansicht",
+  "levels_3d": "3D",
+  "levels_flat_map": "Flache Karte",
+  "levels_in_3d": "Ebenen in 3D",
+  "levels_building_levels": "Gebäudeebenen",
+  "levels_tip": "Ebene {level}",
+  "levels_tip_edited": "Ebene {level}: wird bearbeitet",
+  "levels_tip_shown": "Ebene {level}: sichtbar, gesperrt",
+  "levels_tip_hidden": "Ebene {level}: ausgeblendet",
+  "levels_tip_selected_here": "Ebene {level}: Das ausgewählte Objekt liegt hier",
+  "levels_unleveled": "Objekte ohne Ebene",
+  "levels_unleveled_in_view": "Objekte ohne Ebene ({count} in der Ansicht)",
+  "levels_choice_hidden": "Ausgeblendet",
+  "levels_choice_shown": "Sichtbar, gesperrt",
+  "levels_choice_stop_editing": "Nicht mehr bearbeiten",
+  "levels_choice_edit_only": "Nur diese bearbeiten",
+  "levels_all_levels": "Alle Ebenen",
+  "levels_all": "Alle",
+  "levels_reason_edited": "bearbeitete Ebene",
+  "levels_reason_in_view": "in der Ansicht",
+  "levels_reason_connects": "verbindet {a} und {b}",
+  "levels_reason_inside": "darin: {name}",
+  "levels_reason_connected_corridor": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "verbunden: {count} Flur",
+        "countPlural=other": "verbunden: {count} Flure"
+      }
+    }
+  ],
+  "levels_reason_connected_step": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "verbunden: {count} Treppe",
+        "countPlural=other": "verbunden: {count} Treppen"
+      }
+    }
+  ],
+  "levels_reason_connected_path": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "verbunden: {count} Weg",
+        "countPlural=other": "verbunden: {count} Wege"
+      }
+    }
+  ],
+  "levels_reason_connected_room": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "verbunden: {count} Raum",
+        "countPlural=other": "verbunden: {count} Räume"
+      }
+    }
+  ],
+  "levels_reason_connected_feature": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "verbunden: {count} Objekt",
+        "countPlural=other": "verbunden: {count} Objekte"
+      }
+    }
+  ]
+}

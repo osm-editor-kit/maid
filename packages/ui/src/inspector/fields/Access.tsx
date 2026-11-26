@@ -1,18 +1,22 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useId } from 'react'
 import { ComboField } from './Combo.tsx'
-import { MULTIPLE_VALUES, mixedOf } from './mixed-logic.ts'
+import { multipleValues, mixedOf } from './mixed-logic.ts'
 import { accessOptions, accessPlaceholder } from './radio-logic.ts'
 import type { CombinedTags, FieldProps } from './shared.ts'
 import { LABEL } from './shared.ts'
 
-/** The row labels (iD's types.<key> translations, in English). */
-const ROW_LABELS: Record<string, string> = {
-  access: 'Access',
-  foot: 'Foot',
-  motor_vehicle: 'Motor vehicle',
-  bicycle: 'Bicycle',
-  horse: 'Horse',
+/** The row labels (iD's types.<key> translations); read when a row is drawn, as the language is set at mount. */
+const rowLabel = (key: string): string | undefined => {
+  const labels: Record<string, (() => string) | undefined> = {
+    access: m.ui_access_access,
+    foot: m.ui_access_foot,
+    motor_vehicle: m.ui_access_motor_vehicle,
+    bicycle: m.ui_access_bicycle,
+    horse: m.ui_access_horse,
+  }
+  return labels[key]?.()
 }
 
 /**
@@ -54,11 +58,11 @@ function AccessRow(props: {
 }) {
   const { rowKey, tags, combined, features, onChange } = props
   const id = useId()
-  const label = ROW_LABELS[rowKey] ?? rowKey
+  const label = rowLabel(rowKey) ?? rowKey
   // Without the features a mixed key has no implied value that can be shown: the placeholder says so
   const placeholder =
     mixedOf(combined, rowKey) !== undefined && features === undefined
-      ? MULTIPLE_VALUES
+      ? multipleValues()
       : (accessPlaceholder(rowKey, tags, features) ?? '')
   // A synthetic combo field: the row's key and its options
   const rowField: Field = {

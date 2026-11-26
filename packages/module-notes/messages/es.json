@@ -1,0 +1,42 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "notes_label": "Notas",
+  "notes_show": "Mostrar notas",
+  "notes_show_closed": "También las cerradas",
+  "notes_status_off": "Las notas están desactivadas. No se carga nada hasta que las actives.",
+  "notes_status_waiting": "Esperando al mapa.",
+  "notes_status_zoom_in": "Acerca el mapa para ver las notas (a partir del zoom {zoom}).",
+  "notes_status_loading": "Cargando notas…",
+  "notes_status_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} nota a la vista",
+        "countPlural=*": "{count} notas a la vista"
+      }
+    }
+  ],
+  "notes_status_open": "Abierta",
+  "notes_status_closed": "Cerrada",
+  "notes_truncated_panel": "Esta zona tiene más notas de las que devuelve una sola petición. Acerca el mapa para verlas todas.",
+  "notes_truncated_toast": "Solo se muestran las primeras {limit} notas de esta zona. Acerca el mapa para verlas todas.",
+  "notes_no_text": "(sin texto)",
+  "notes_failure_paused": "El servidor de OpenStreetMap pidió una pausa. Las notas se vuelven a cargar cuando termine.",
+  "notes_failure_http": "No se pudieron cargar las notas (HTTP {status}).",
+  "notes_failure": "No se pudieron cargar las notas.",
+  "notes_dock_title": "Nota {id}",
+  "notes_dock_opened": "Abierta",
+  "notes_dock_closed": "Cerrada",
+  "notes_dock_position": "Posición",
+  "notes_comment_anonymous": "anónimo",
+  "notes_action_opened": "abierta",
+  "notes_action_commented": "comentada",
+  "notes_action_closed": "cerrada",
+  "notes_action_reopened": "reabierta",
+  "notes_action_hidden": "oculta",
+  "notes_open_on_osm": "Abrir en openstreetmap.org",
+  "notes_write_later": "Escribir notas llegará con el inicio de sesión.",
+  "notes_dock_none": "Ninguna nota elegida. Elige una en el panel de notas o en el mapa.",
+  "notes_dock_not_loaded": "La nota {id} no está cargada."
+}

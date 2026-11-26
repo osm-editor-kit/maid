@@ -5,6 +5,7 @@
  */
 import { z } from 'zod'
 import type { CustomEntry } from './custom.ts'
+import { m } from './messages.ts'
 import { customValue, NONE } from './url.ts'
 
 export const BRIGHTNESS_MIN = 0.2
@@ -160,21 +161,24 @@ export type Listing = {
   licenseUrl?: string
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  photo: 'Aerial photo',
-  map: 'Map',
-  historicmap: 'Historic map',
-  historicphoto: 'Historic photo',
-  osmbasedmap: 'Map based on OSM',
-  qa: 'Quality assurance',
-  elevation: 'Elevation',
-  other: 'Other',
+/** The text of each ELI category; a function, as the language is set at mount */
+function categoryLabels(): Record<string, string> {
+  return {
+    photo: m.imagery_category_photo(),
+    map: m.imagery_category_map(),
+    historicmap: m.imagery_category_historicmap(),
+    historicphoto: m.imagery_category_historicphoto(),
+    osmbasedmap: m.imagery_category_osmbasedmap(),
+    qa: m.imagery_category_qa(),
+    elevation: m.imagery_category_elevation(),
+    other: m.imagery_category_other(),
+  }
 }
 
 /** The name of an ELI category for people; unknown categories are shown as they are */
 export function categoryLabel(category: string | undefined) {
   if (category === undefined) return undefined
-  return CATEGORY_LABELS[category] ?? category
+  return categoryLabels()[category] ?? category
 }
 
 export function clampBrightness(value: number) {

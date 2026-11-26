@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom'
 import { useMap } from 'react-map-gl/maplibre'
 import { twMerge } from 'tailwind-merge'
 import {
-  EDITED_REASON,
+  editedReason,
   isRecommended,
   type LevelSuggestion,
   pointInPolygon,
@@ -15,6 +15,7 @@ import {
   withLevelsInView,
 } from './level-suggestions.ts'
 import { buttonClass } from './look.ts'
+import { m } from './messages.ts'
 
 /** `fixing`: opened while the features without a level are edited ("none"), where the click also selected the feature */
 type Menu = {
@@ -233,16 +234,16 @@ export function SetLevelMenu({
     <div
       ref={frame}
       role="menu"
-      aria-label="Set level"
+      aria-label={m.levels_set_level()}
       className="fixed z-50"
       style={{ left: Math.max(4, at.x), top: Math.max(4, at.y - 18) }}
     >
-      <ControlGroup label="Set level" className="w-20 shadow-lg">
+      <ControlGroup label={m.levels_set_level()} className="w-20 shadow-lg">
         {suggestions.map((suggestion) => {
           const { value } = suggestion
           // a range such as "0;1" previews its first level
           const preview = Number(value.split(';')[0])
-          const current = suggestion.reasons.includes(EDITED_REASON)
+          const current = suggestion.reasons.includes(editedReason())
           return (
             <Tooltip key={value} label={suggestion.reasons.join(' · ')} placement="left">
               <button
@@ -274,11 +275,11 @@ export function SetLevelMenu({
           )
         })}
         {onSelect && (
-          <Tooltip label="Select it as it is (read-only)" placement="left">
+          <Tooltip label={m.levels_select_as_is()} placement="left">
             <button
               type="button"
               role="menuitem"
-              aria-label="Select anyway"
+              aria-label={m.levels_select_anyway()}
               onClick={() => {
                 onSelect()
                 onClose()

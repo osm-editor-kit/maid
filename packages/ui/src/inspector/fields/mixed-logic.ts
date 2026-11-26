@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { fieldKeys } from '../logic.ts'
 import type { CombinedTags, MixedValue } from './shared.ts'
@@ -9,10 +10,10 @@ import type { CombinedTags, MixedValue } from './shared.ts'
  */
 
 /** The placeholder of a control whose key is mixed (iD's inspector.multiple_values). */
-export const MULTIPLE_VALUES = 'Multiple values'
+export const multipleValues = () => m.ui_multiple_values()
 
 /** The title's last line when some feature lacks the key. */
-export const NOT_SET = 'not set'
+export const notSet = () => m.ui_not_set()
 
 /** The mixed entry of a key, or undefined when the key is one value on all features, or on none. */
 export function mixedOf(
@@ -39,7 +40,7 @@ export function mixedKeysOf(field: Field, combined: CombinedTags | undefined): s
  * The title of a mixed key: its values, one per line, and "not set" last when some feature lacks the key.
  */
 export function mixedTitle(mixed: MixedValue): string {
-  return [...mixed.values, ...(mixed.missing ? [NOT_SET] : [])].join('\n')
+  return [...mixed.values, ...(mixed.missing ? [notSet()] : [])].join('\n')
 }
 
 /** Changes whenever the mixed state of the field's keys changes. Part of a control's React key. */
@@ -71,7 +72,7 @@ export function keyDisplay(
 ): KeyDisplay {
   const mixed = mixedOf(combined, key)
   if (mixed !== undefined) {
-    return { value: '', placeholder: MULTIPLE_VALUES, title: mixedTitle(mixed), mixed }
+    return { value: '', placeholder: multipleValues(), title: mixedTitle(mixed), mixed }
   }
   return {
     value: key === undefined ? '' : (tags[key] ?? ''),

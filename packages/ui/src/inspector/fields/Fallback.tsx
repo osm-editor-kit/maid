@@ -3,7 +3,7 @@ import { useId } from 'react'
 import { keysWithValue } from '../logic.ts'
 import { ComboInput } from './ComboInput.tsx'
 import { DraftInput } from './DraftInput.tsx'
-import { keyDisplay, MULTIPLE_VALUES, mixedKeysOf, mixedOf, mixedTitle } from './mixed-logic.ts'
+import { keyDisplay, multipleValues, mixedKeysOf, mixedOf, mixedTitle } from './mixed-logic.ts'
 import type { FieldProps, MixedValue } from './shared.ts'
 
 /**
@@ -72,7 +72,7 @@ function MixedCombo(props: {
       tagKey={tagKey}
       // undefined, not '': a commit of a blank must not write over a mixed key
       value={undefined}
-      placeholder={MULTIPLE_VALUES}
+      placeholder={multipleValues()}
       title={mixedTitle(mixed)}
       onChange={onChange}
     />
