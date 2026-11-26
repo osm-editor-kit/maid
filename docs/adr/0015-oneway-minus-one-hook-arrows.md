@@ -44,7 +44,8 @@ tilda-geo turns the line of a `-1` way round when it publishes it. An editor can
 
 ## Addendum 2026-11-26: Reverse turns `-1` into `yes`
 
-Asked for by Tobias. On a way whose main direction is `-1` (`oneway`, or without it `oneway:bicycle`), the edit
+Asked for by Tobias. On a way whose main direction is `-1` (`oneway`, or when it gives no direction, as `no` or none, `oneway:bicycle`; a
+shared path with `oneway=no` + `oneway:bicycle=-1` counts), the edit
 menu's Reverse (V) keeps every riding direction on the ground after it turned the line: each oneway key's `-1` becomes
 `yes` and `yes` becomes `-1`, so the `-1` is gone, which is what Reverse is mostly used for there. Any other way keeps its
 oneway values, as in iD, so all of its directions turn together (Reverse of a `yes` way fixes a way drawn the wrong way

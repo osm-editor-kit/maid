@@ -168,6 +168,20 @@ describe('reverse', () => {
     expect(wayIn(after, 'w1').tags['oneway:bicycle']).toBe('yes')
   })
 
+  it('lets oneway:bicycle decide on a shared path whose oneway is no', () => {
+    const shared = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0),
+      way('w1', ['n1', 'n2'], { highway: 'path', oneway: 'no', 'oneway:bicycle': '-1' }),
+    )
+    const { after } = run(reverseOperation, shared, ['w1'])
+    expect(wayIn(after, 'w1').tags).toEqual({
+      highway: 'path',
+      oneway: 'no',
+      'oneway:bicycle': 'yes',
+    })
+  })
+
   it('says which tags it changes, and nothing for a line without direction tags', () => {
     const tagged = graphOf(
       node('n1', 0, 0),

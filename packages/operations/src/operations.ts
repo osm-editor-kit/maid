@@ -85,7 +85,8 @@ function sameTags(a: Readonly<Record<string, string>>, b: Readonly<Record<string
 const ONEWAY_KEY = /(^|:)oneway(:|$)/
 
 /**
- * iD's reverse, with one addition for a way whose main direction is `-1` (`oneway`, or without it `oneway:bicycle`):
+ * iD's reverse, with one addition for a way whose main direction is `-1` (`oneway`, or when that gives no direction,
+ * as `no` or none, `oneway:bicycle`):
  * there Reverse is used to get rid of the `-1`, so every riding direction stays on the ground: each oneway key's `-1`
  * becomes `yes` and `yes` becomes `-1`. Any other way keeps its oneway values as in iD, so all of its directions turn
  * together (Reverse of a `yes` way fixes a way drawn the wrong way round). Never a mix of the two. A deviation from iD
@@ -96,7 +97,10 @@ export function reverseAction(id: string): Action {
     const reversed = actionReverse(id)(graph)
     const entity = reversed.hasEntity(id)
     if (!(entity instanceof OsmWay)) return reversed
-    const main = entity.tags.oneway ?? entity.tags['oneway:bicycle']
+    // the first key that gives a direction: `oneway=no` gives none, so a shared path's `oneway:bicycle` decides
+    const main = [entity.tags.oneway, entity.tags['oneway:bicycle']].find(
+      (value) => value === 'yes' || value === '-1',
+    )
     if (main !== '-1') return reversed
     const tags = { ...entity.tags }
     for (const key of Object.keys(tags)) {

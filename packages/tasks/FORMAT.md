@@ -90,8 +90,8 @@ large, …), the option cannot be applied and its button says why; nothing is ch
 operations and tags together.
 
 `reverse` turns the way and swaps the keys and values that depend on its direction (`:left` and `:right`, `:forward`
-and `:backward`, also inside a key, `direction`, `incline`), as the editor's Reverse does. On a way whose `oneway` (or,
-without it, `oneway:bicycle`) is `-1`, it keeps every riding direction on the ground: each oneway key's `-1` becomes
+and `:backward`, also inside a key, `direction`, `incline`), as the editor's Reverse does. On a way whose `oneway` (or, when
+that gives no direction, as `no` or none, `oneway:bicycle`) is `-1`, it keeps every riding direction on the ground: each oneway key's `-1` becomes
 `yes` and `yes` becomes `-1`. Any other way keeps its oneway values, so all its directions turn. So:
 
 - a way drawn the wrong way round with `oneway=-1`: `"operations": [{ "op": "reverse" }]` draws it the right way round
