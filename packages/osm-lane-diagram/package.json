@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./fixtures": "./src/fixtures/index.ts"
+    "./fixtures": "./src/fixtures/index.ts",
+    "./street": "./src/street/index.ts"
   },
   "dependencies": {
     "@osm-editor-kit/osm-lanes": "workspace:*",

@@ -29,6 +29,11 @@ export function lanes() {
       const LanesOnMap = lazyComponent(() =>
         import('./overlay/LanesOnMap.tsx').then((part) => ({ default: part.LanesOnMap })),
       )
+      // every lane road of the loaded data as its street, below the bands of the selected road
+      const StreetOnMap = lazyComponent(() =>
+        import('./overlay/StreetOnMap.tsx').then((part) => ({ default: part.StreetOnMap })),
+      )
+      api.register('map.content', { id: 'lanes-street', component: StreetOnMap })
       api.register('map.content', { id: 'lanes-bands', component: LanesOnMap })
       // the lanes lens is the editor's standard and on at the first visit: `lenses({ editorDefault: 'lanes' })`
     },
