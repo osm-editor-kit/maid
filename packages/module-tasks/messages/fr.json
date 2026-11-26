@@ -78,5 +78,10 @@
   "tasks_reopen_to_apply": "La tâche est terminée. Rouvrez-la pour appliquer à nouveau cette option.",
   "tasks_delete_part_of_relation": "Cet objet ne peut pas être supprimé car il fait partie d'une relation plus grande. Retirez-le d'abord de la relation.",
   "tasks_delete_incomplete": "Cet objet ne peut pas être supprimé car il n'a pas été entièrement téléchargé.",
-  "tasks_delete_wikidata": "Cet objet ne peut pas être supprimé car il a une étiquette Wikidata."
+  "tasks_delete_wikidata": "Cet objet ne peut pas être supprimé car il a une étiquette Wikidata.",
+  "tasks_ignored_copy": "Copier les ignorées",
+  "tasks_ignored_copy_hint": "Copie les tâches ignorées en JSON (liste, identifiants des tâches, éléments OSM), par exemple pour les exclure de la prochaine liste",
+  "tasks_ignored_copied": "Tâches ignorées copiées",
+  "tasks_ignored_download": "Télécharger",
+  "tasks_ignored_download_hint": "Tâches ignorées en fichier JSON"
 }

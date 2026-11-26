@@ -78,5 +78,10 @@
   "tasks_reopen_to_apply": "The task is done. Reopen it to apply this option again.",
   "tasks_delete_part_of_relation": "This feature can't be deleted because it is part of a larger relation. Remove it from the relation first.",
   "tasks_delete_incomplete": "This feature can't be deleted because it hasn't been fully downloaded.",
-  "tasks_delete_wikidata": "This feature can't be deleted because it has a Wikidata tag."
+  "tasks_delete_wikidata": "This feature can't be deleted because it has a Wikidata tag.",
+  "tasks_ignored_copy": "Copy ignored",
+  "tasks_ignored_copy_hint": "Copies the ignored tasks as JSON (list, task ids, OSM features), for example to leave them out of the next list",
+  "tasks_ignored_copied": "Ignored tasks copied",
+  "tasks_ignored_download": "Download",
+  "tasks_ignored_download_hint": "ignored tasks as a JSON file"
 }

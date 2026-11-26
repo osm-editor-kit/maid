@@ -5,6 +5,7 @@ import {
   colourExpression,
   entityIdOfRef,
   entityIdsOfTask,
+  ignoredTasks,
   mapData,
   refOfEntityId,
   STATUS_COLOUR,
@@ -108,5 +109,27 @@ describe('colourExpression', () => {
       STATUS_COLOUR.skipped,
       STATUS_COLOUR.open,
     ])
+  })
+})
+
+describe('ignoredTasks', () => {
+  it('lists the ignored tasks in file order with their list, ids and features', () => {
+    const file = makeFile([
+      { id: 'a', osm: ['way/1'] },
+      { id: 'b' },
+      { id: 'c', osm: ['node/2', 'way/3'] },
+    ])
+    expect(ignoredTasks(file, ['ignored', 'done', 'ignored'])).toEqual({
+      list_id: 'test-list',
+      title: 'Test list',
+      ignored: [
+        { task_id: 'a', title: 'Task a', osm: ['way/1'] },
+        { task_id: 'c', title: 'Task c', osm: ['node/2', 'way/3'] },
+      ],
+    })
+  })
+
+  it('is empty without ignored tasks', () => {
+    expect(ignoredTasks(makeFile([{ id: 'a' }]), ['open']).ignored).toEqual([])
   })
 })

@@ -1,10 +1,11 @@
 import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
-import { type DockViewProps, TASKS_SURFACE } from '@osm-editor-kit/maid-ui'
+import { type DockViewProps, notify, TASKS_SURFACE } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import {
   FILTERS,
   countStatuses,
   entityIdsOfTask,
+  ignoredTasks,
   type TasksFilter,
   nextOpenIndex,
   visibleIndexes,
@@ -23,6 +24,31 @@ const BUTTON =
 
 function filterLabel(filter: TasksFilter): string {
   return filter === 'all' ? m.tasks_filter_all() : statusLabel(filter)
+}
+
+/** The ignored tasks as JSON text, for a chat or a script that makes the next list (`ignoredTasks`) */
+function ignoredText(
+  file: Parameters<typeof ignoredTasks>[0],
+  statuses: Parameters<typeof ignoredTasks>[1],
+) {
+  return `${JSON.stringify(ignoredTasks(file, statuses), null, 2)}\n`
+}
+
+function copyIgnored(text: string) {
+  navigator.clipboard.writeText(text).then(
+    () => notify.done(m.tasks_ignored_copied()),
+    (error: unknown) => notify.failed(error),
+  )
+}
+
+/** Saves the text as a file through a temporary link: no request, the data stays in the browser */
+function downloadText(name: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 /** The sync state as the short text the dock head shows */
@@ -206,6 +232,33 @@ function Head({
           {m.tasks_next()}
         </button>
       </div>
+      {counts.ignored > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            data-testid="tasks-ignored-copy"
+            title={m.tasks_ignored_copy_hint()}
+            onClick={() => copyIgnored(ignoredText(list.file, statuses))}
+            className={BUTTON}
+          >
+            {m.tasks_ignored_copy()}
+          </button>
+          <button
+            type="button"
+            data-testid="tasks-ignored-download"
+            title={m.tasks_ignored_download_hint()}
+            onClick={() =>
+              downloadText(
+                `${list.file.maid_tasks.list_id}-ignored.json`,
+                ignoredText(list.file, statuses),
+              )
+            }
+            className={BUTTON}
+          >
+            {m.tasks_ignored_download()}
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
         <span data-testid="tasks-sync" data-sync-kind={sync.kind} role="status">
           {syncText(sync.kind, sync.server)}

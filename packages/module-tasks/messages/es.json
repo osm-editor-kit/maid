@@ -78,5 +78,10 @@
   "tasks_reopen_to_apply": "La tarea está hecha. Vuelve a abrirla para aplicar esta opción otra vez.",
   "tasks_delete_part_of_relation": "Este elemento no se puede eliminar porque forma parte de una relación mayor. Quítalo primero de la relación.",
   "tasks_delete_incomplete": "Este elemento no se puede eliminar porque no se ha descargado por completo.",
-  "tasks_delete_wikidata": "Este elemento no se puede eliminar porque tiene una etiqueta de Wikidata."
+  "tasks_delete_wikidata": "Este elemento no se puede eliminar porque tiene una etiqueta de Wikidata.",
+  "tasks_ignored_copy": "Copiar ignoradas",
+  "tasks_ignored_copy_hint": "Copia las tareas ignoradas como JSON (lista, ids de tareas, elementos OSM), por ejemplo para dejarlas fuera de la próxima lista",
+  "tasks_ignored_copied": "Tareas ignoradas copiadas",
+  "tasks_ignored_download": "Descargar",
+  "tasks_ignored_download_hint": "Tareas ignoradas como archivo JSON"
 }

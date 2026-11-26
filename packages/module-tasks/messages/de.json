@@ -78,5 +78,10 @@
   "tasks_reopen_to_apply": "Die Aufgabe ist erledigt. Öffne sie wieder, um diese Option noch einmal anzuwenden.",
   "tasks_delete_part_of_relation": "Dieses Objekt kann nicht gelöscht werden, weil es Teil einer größeren Relation ist. Entferne es zuerst aus der Relation.",
   "tasks_delete_incomplete": "Dieses Objekt kann nicht gelöscht werden, weil es nicht vollständig geladen ist.",
-  "tasks_delete_wikidata": "Dieses Objekt kann nicht gelöscht werden, weil es ein Wikidata-Tag hat."
+  "tasks_delete_wikidata": "Dieses Objekt kann nicht gelöscht werden, weil es ein Wikidata-Tag hat.",
+  "tasks_ignored_copy": "Ignorierte kopieren",
+  "tasks_ignored_copy_hint": "Kopiert die ignorierten Aufgaben als JSON (Liste, Aufgaben-IDs, OSM-Elemente), etwa um sie in der nächsten Liste wegzulassen",
+  "tasks_ignored_copied": "Ignorierte Aufgaben kopiert",
+  "tasks_ignored_download": "Herunterladen",
+  "tasks_ignored_download_hint": "Ignorierte Aufgaben als JSON-Datei"
 }
