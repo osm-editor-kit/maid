@@ -153,8 +153,8 @@
   "search_group_places": "Lugares",
   "search_go_to": "Ir a {lat}, {lon}",
   "search_go_to_zoom": "Ir a {lat}, {lon} con zoom {zoom}",
-  "search_object_not_loaded": "{id} no está cargado",
-  "search_object_not_loaded_hint": "Mueve antes el mapa hasta él",
+  "search_object_not_loaded": "{id} no está cargado: cargarlo",
+  "search_object_not_loaded_hint": "Lo carga del servidor y va hasta él",
   "search_places_action": "Buscar lugares",
   "search_places_off": "Desactivado en ejecuciones automáticas",
   "search_places_enter_hint": [
