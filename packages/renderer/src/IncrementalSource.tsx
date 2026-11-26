@@ -26,23 +26,31 @@ function withId(feature: Feature): Feature {
 
 type Pending = { add: Map<Feature['id'], Feature>; remove: Set<Feature['id']> }
 
-/** The updates of one source, one at a time; what arrives meanwhile goes out together next */
 /** After this long without an update the whole collection goes out once (see `reconcile`) */
 const RECONCILE_MS = 800
+
+/** The updates of one source, one at a time; what arrives meanwhile goes out together next */
 
 function updater(map: MapLibreMap, sourceId: string, latest: () => FeatureCollection) {
   let busy = false
   let pending: Pending = { add: new Map(), remove: new Set() }
   let reconcileTimer: ReturnType<typeof setTimeout> | undefined
+  /** Whether a removal went out since the last reconcile: only removals left stale features */
+  let removedSince = false
+  let disposed = false
   /**
    * The whole collection once the updates have stopped for a moment: now and then a feature that `updateData` removed
    * stayed in a tile that was not built again (seen in check-lanes, about one run in three). The renderer's sender
-   * does the same for the OSM data (its compaction). A drag stays incremental; its end is exact.
+   * does the same for the OSM data (its compaction). A drag stays incremental; its end is exact. Only after removals,
+   * since a whole collection costs MapLibre a rebuild of its index of features at the next update.
    */
   const reconcile = () => {
     clearTimeout(reconcileTimer)
+    if (disposed || !removedSince) return
     reconcileTimer = setTimeout(() => {
+      if (disposed) return
       if (busy || pending.add.size > 0 || pending.remove.size > 0) return reconcile()
+      removedSince = false
       void map.getSource<GeoJSONSource>(sourceId)?.setData(latest())
     }, RECONCILE_MS)
   }
@@ -63,11 +71,12 @@ function updater(map: MapLibreMap, sourceId: string, latest: () => FeatureCollec
           map.on('sourcedata', check)
         })
   const flush = async () => {
-    if (busy) return
+    if (busy || disposed) return
     const source = map.getSource<GeoJSONSource>(sourceId)
     if (!source || (pending.add.size === 0 && pending.remove.size === 0)) return
     busy = true
     const { add, remove } = pending
+    if (remove.size > 0) removedSince = true
     pending = { add: new Map(), remove: new Set() }
     try {
       await source.updateData({
@@ -84,8 +93,9 @@ function updater(map: MapLibreMap, sourceId: string, latest: () => FeatureCollec
   return {
     send(added: readonly Feature[], removed: readonly Feature[]) {
       for (const feature of removed) {
-        // added and removed before it went out: nothing to send
-        if (pending.add.delete(feature.id)) continue
+        // also when an add of it is pending: an earlier version may be in the source already, and removing an id the
+        // source does not have does no harm
+        pending.add.delete(feature.id)
         pending.remove.add(feature.id)
       }
       for (const feature of added) {
@@ -93,6 +103,11 @@ function updater(map: MapLibreMap, sourceId: string, latest: () => FeatureCollec
         pending.add.set(feature.id, feature)
       }
       void flush()
+    },
+    /** Nothing more goes out: the component left, a new one may take the source id */
+    dispose() {
+      disposed = true
+      clearTimeout(reconcileTimer)
     },
   }
 }
@@ -123,6 +138,11 @@ class Holder {
     this.updates ??= updater(map, sourceId, () => this.collection)
     this.updates.send(added, removed)
   }
+
+  dispose() {
+    this.updates?.dispose()
+    this.updates = undefined
+  }
 }
 
 export function IncrementalSource({
@@ -143,6 +163,12 @@ export function IncrementalSource({
       if (map) holder.apply(map, id, data.features)
     },
     [data, mapRef, id, holder],
+  )
+  useEffect(
+    function stopOnLeave() {
+      return () => holder.dispose()
+    },
+    [holder],
   )
 
   return (

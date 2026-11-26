@@ -86,15 +86,35 @@ export function assumedLanes(wayId: string, tags: Tags): StreetLane[] {
   ]
 }
 
-/** Cross-sections per tags object: a way's tags are a new object only when they change */
-const sections = new WeakMap<object, { lanes: StreetLane[]; assumed: boolean }>()
+type Section = { lanes: StreetLane[]; assumed: boolean }
+/**
+ * Cross-sections per tags object and way: a way's tags are a new object only when they change, and a split gives both
+ * halves the same object, while the lane ids carry the way's id
+ */
+const sections = new WeakMap<object, Map<string, Section>>()
 
-export function crossSection(wayId: string, tags: Tags): { lanes: StreetLane[]; assumed: boolean } {
-  const known = sections.get(tags)
+/**
+ * More lanes or a wider road than this is a tagging mistake, drawn as an assumed carriageway: `lanes=20000` alone took
+ * seconds to draw, on every edit
+ */
+const MAX_LANES = 24
+const MAX_WIDTH = 60
+
+export function crossSection(wayId: string, tags: Tags): Section {
+  let byWay = sections.get(tags)
+  if (!byWay) {
+    byWay = new Map()
+    sections.set(tags, byWay)
+  }
+  const known = byWay.get(wayId)
   if (known) return known
-  const bands = sceneBands(osmNumber(wayId), tags)
+  const plausible =
+    ['lanes', 'lanes:forward', 'lanes:backward', 'lanes:both_ways'].every(
+      (key) => !(Number(tags[key]) > MAX_LANES),
+    ) && !((parseMetres(tags.width) ?? 0) > MAX_WIDTH)
+  const bands = plausible ? sceneBands(osmNumber(wayId), tags) : []
   const section =
-    bands.length > 0
+    bands.length > 0 && bands.length <= MAX_LANES * 2
       ? {
           lanes: bands.map((band) => ({
             id: band.slotId,
@@ -106,8 +126,8 @@ export function crossSection(wayId: string, tags: Tags): { lanes: StreetLane[]; 
           })),
           assumed: false,
         }
-      : { lanes: assumedLanes(wayId, tags), assumed: true }
-  sections.set(tags, section)
+      : { lanes: assumedLanes(wayId, plausible ? tags : { ...tags, width: '' }), assumed: true }
+  byWay.set(wayId, section)
   return section
 }
 

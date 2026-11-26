@@ -80,16 +80,19 @@ export function streetCollector() {
     return at
   }
 
-  function full(graph: StreetGraph, ways: Map<string, StreetEntity>) {
-    if (!origin) {
-      for (const way of ways.values()) {
-        const loc = graph.hasEntity(way.nodes?.[0] ?? '')?.loc
-        if (loc && loc.length >= 2) {
-          origin = [loc[0]!, loc[1]!]
-          break
-        }
+  /** The frame's origin, fixed at the first lane road seen, so that every drawing, full or partial, uses the same */
+  function fixOrigin(graph: StreetGraph, ways: Map<string, StreetEntity>) {
+    if (origin) return
+    for (const way of ways.values()) {
+      const loc = graph.hasEntity(way.nodes?.[0] ?? '')?.loc
+      if (loc && loc.length >= 2) {
+        origin = [loc[0]!, loc[1]!]
+        return
       }
     }
+  }
+
+  function full(graph: StreetGraph, ways: Map<string, StreetEntity>) {
     const { geometry, assumed } = streetOf(ways.values(), (id) => graph.hasEntity(id), origin)
     const parts = streetParts(geometry, assumed)
     byWay = parts.byWay
@@ -106,6 +109,7 @@ export function streetCollector() {
      */
     update(graph: StreetGraph, _version?: number): StreetCollections {
       const ways = laneWays(graph)
+      fixOrigin(graph, ways)
       const now = new Map<string, Kept>()
       const dirty = new Set<string>()
       for (const [id, entity] of ways) {
