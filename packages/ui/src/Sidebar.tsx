@@ -324,7 +324,11 @@ export function SidebarDisclosure(props: {
         >
           {props.icon?.(open)}
           <span
-            className="min-w-0 truncate"
+            // the title keeps its room before a word detail does (the detail is cut first), up to most of the width
+            className={twMerge(
+              'min-w-0 truncate',
+              wordDetail && hasDetail && 'max-w-[75%] shrink-0',
+            )}
             // a long title is cut: the whole one as a tooltip (a rough count, no measuring)
             title={props.title.length > LONG_TITLE ? props.title : undefined}
           >
