@@ -1,6 +1,7 @@
 import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
+import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
 import { type DockViewProps, notify, TASKS_SURFACE } from '@osm-editor-kit/maid-ui'
-import { useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
   FILTERS,
   countStatuses,
@@ -14,13 +15,17 @@ import { m } from './messages.ts'
 import { goToTask } from './navigate.ts'
 import type { Shared } from './shared.ts'
 import { type SyncKind, type TasksStore, useTasks } from './store.ts'
-import { StatusBadge, TaskContent, statusLabel } from './TaskContent.tsx'
+import { StatusBadge, TaskContent, TaskLinks, statusLabel } from './TaskContent.tsx'
 
 /** Rows drawn at first and added by "Show more" (a list can hold 20 000 tasks) */
 export const ROW_LIMIT = 200
 
 const BUTTON =
   'cursor-pointer rounded-lg border border-zinc-950/10 px-2.5 py-1 text-sm hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-50 dark:border-white/15 dark:hover:bg-white/5'
+
+/** A button in the list's head: small, the head stays short */
+const SMALL_BUTTON =
+  'cursor-pointer rounded-md border border-zinc-950/10 px-1.5 py-0.5 text-xs hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/15 dark:hover:bg-white/5'
 
 function filterLabel(filter: TasksFilter): string {
   return filter === 'all' ? m.tasks_filter_all() : statusLabel(filter)
@@ -97,21 +102,47 @@ export function createTasksView(store: TasksStore, shared: Shared) {
       )
     }
     return (
+      // two columns from md up: the list with its head on the left, the current task on the right, each scrolling on
+      // its own, so the task stays in view while the map is clicked elsewhere (Tobias, 2026-11-26). Narrower, one
+      // column that scrolls as a whole.
       <div
         data-testid="tasks-view"
-        className={`flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-4 text-sm ${TASKS_SURFACE}`}
+        className={`flex h-full min-h-0 flex-col overflow-y-auto text-sm md:overflow-hidden ${TASKS_SURFACE}`}
       >
-        {error && <ErrorBanner store={store} />}
-        <Head store={store} shared={shared} select={select} />
-        <Rows store={store} shared={shared} select={select} />
-        <Current
-          store={store}
-          editor={editor}
-          selected={selected}
-          readOnly={readOnly}
-          select={select}
-          hover={(id) => shared.engine?.setHover(id)}
-        />
+        {error && (
+          <div className="shrink-0 p-4 pb-0">
+            <ErrorBanner store={store} />
+          </div>
+        )}
+        <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:grid-rows-[minmax(0,1fr)]">
+          <section
+            aria-label={m.tasks_list_label()}
+            data-testid="tasks-list"
+            className="flex min-h-0 flex-col border-zinc-950/10 md:border-r dark:border-white/15"
+          >
+            {/* the head stays while the rows scroll under it */}
+            <div className="shrink-0 border-b border-zinc-950/10 px-4 py-2.5 dark:border-white/15">
+              <Head store={store} shared={shared} />
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 md:px-3">
+              <Rows store={store} shared={shared} select={select} />
+            </div>
+          </section>
+          <section
+            aria-label={m.tasks_detail_label()}
+            data-testid="tasks-detail"
+            className="flex min-h-0 flex-col border-t border-zinc-950/10 md:border-t-0 dark:border-white/15"
+          >
+            <Detail
+              store={store}
+              shared={shared}
+              editor={editor}
+              selected={selected}
+              readOnly={readOnly}
+              select={select}
+            />
+          </section>
+        </div>
       </div>
     )
   }
@@ -151,29 +182,29 @@ function ErrorBanner({ store }: { store: TasksStore }) {
   )
 }
 
-function Head({
-  store,
-  shared,
-  select,
-}: {
-  store: TasksStore
-  shared: Shared
-  select: DockViewProps['select']
-}) {
+function Head({ store, shared }: { store: TasksStore; shared: Shared }) {
   const list = useTasks(store, (state) => state.list)
   const statuses = useTasks(store, (state) => state.statuses)
   const filter = useTasks(store, (state) => state.filter)
-  const current = useTasks(store, (state) => state.current)
   const sync = useTasks(store, (state) => state.sync)
   if (!list) return null
   const counts = countStatuses(statuses)
   const handled = counts.total - counts.open
-  const next = nextOpenIndex(statuses, current)
+  // compact: the head stays above the rows in a low dock, so it takes as few lines as it can
   return (
-    <header data-testid="tasks-head" className="flex flex-col gap-2">
-      <h2 data-testid="tasks-title" className="text-base/6 font-semibold break-words">
-        {list.file.maid_tasks.title}
-      </h2>
+    <header data-testid="tasks-head" className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2
+          data-testid="tasks-title"
+          className="min-w-0 truncate text-sm/5 font-semibold"
+          title={list.file.maid_tasks.title}
+        >
+          {list.file.maid_tasks.title}
+        </h2>
+        <span className="shrink-0 text-xs text-zinc-500 tabular-nums dark:text-zinc-400">
+          {m.tasks_progress({ done: handled, total: counts.total })}
+        </span>
+      </div>
       <div
         role="progressbar"
         aria-valuemin={0}
@@ -181,28 +212,25 @@ function Head({
         aria-valuenow={handled}
         aria-label={m.tasks_progress({ done: handled, total: counts.total })}
         data-testid="tasks-progress"
-        className="h-2 overflow-hidden rounded-full bg-zinc-950/10 dark:bg-white/15"
+        className="h-1.5 overflow-hidden rounded-full bg-zinc-950/10 dark:bg-white/15"
       >
         <div
           className="h-full bg-emerald-500"
           style={{ width: `${counts.total === 0 ? 0 : (handled / counts.total) * 100}%` }}
         />
       </div>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-        {m.tasks_progress({ done: handled, total: counts.total })}
-      </p>
-      <ul data-testid="tasks-counts" className="flex flex-wrap gap-x-4 gap-y-1">
-        {(['open', 'done', 'ignored', 'skipped'] as const).map((status) => (
-          <li key={status}>
-            <span data-testid={`tasks-count-${status}`} className="font-semibold tabular-nums">
-              {counts[status]}
-            </span>{' '}
-            <span className="text-zinc-500 dark:text-zinc-400">{statusLabel(status)}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <ul data-testid="tasks-counts" className="flex flex-wrap gap-x-3">
+          {(['open', 'done', 'ignored', 'skipped'] as const).map((status) => (
+            <li key={status}>
+              <span data-testid={`tasks-count-${status}`} className="font-semibold tabular-nums">
+                {counts[status]}
+              </span>{' '}
+              <span className="text-zinc-500 dark:text-zinc-400">{statusLabel(status)}</span>
+            </li>
+          ))}
+        </ul>
+        <label className="ml-auto flex items-center gap-1.5">
           <span className="text-zinc-500 dark:text-zinc-400">{m.tasks_filter_label()}</span>
           <select
             data-testid="tasks-filter"
@@ -210,7 +238,7 @@ function Head({
             onChange={(event) =>
               store.getState().actions.setFilter(event.target.value as TasksFilter)
             }
-            className="rounded-lg border border-zinc-950/10 bg-transparent px-2 py-1 dark:border-white/15 dark:bg-zinc-800"
+            className="rounded-md border border-zinc-950/10 bg-transparent px-1.5 py-0.5 dark:border-white/15 dark:bg-zinc-800"
           >
             {FILTERS.map((option) => (
               <option key={option} value={option}>
@@ -219,46 +247,7 @@ function Head({
             ))}
           </select>
         </label>
-        <button
-          type="button"
-          data-testid="tasks-next"
-          disabled={next === undefined}
-          title={next === undefined ? m.tasks_none_open() : undefined}
-          onClick={() =>
-            next !== undefined && goToTask({ store, select, engine: shared.engine }, next)
-          }
-          className={BUTTON}
-        >
-          {m.tasks_next()}
-        </button>
       </div>
-      {counts.ignored > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            data-testid="tasks-ignored-copy"
-            title={m.tasks_ignored_copy_hint()}
-            onClick={() => copyIgnored(ignoredText(list.file, statuses))}
-            className={BUTTON}
-          >
-            {m.tasks_ignored_copy()}
-          </button>
-          <button
-            type="button"
-            data-testid="tasks-ignored-download"
-            title={m.tasks_ignored_download_hint()}
-            onClick={() =>
-              downloadText(
-                `${list.file.maid_tasks.list_id}-ignored.json`,
-                ignoredText(list.file, statuses),
-              )
-            }
-            className={BUTTON}
-          >
-            {m.tasks_ignored_download()}
-          </button>
-        </div>
-      )}
       <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
         <span data-testid="tasks-sync" data-sync-kind={sync.kind} role="status">
           {syncText(sync.kind, sync.server)}
@@ -268,7 +257,7 @@ function Head({
             type="button"
             data-testid="tasks-sync-retry"
             onClick={() => shared.retry?.()}
-            className={BUTTON}
+            className={SMALL_BUTTON}
           >
             {m.tasks_sync_retry()}
           </button>
@@ -278,10 +267,37 @@ function Head({
             type="button"
             data-testid="tasks-sync-decide"
             onClick={() => store.getState().actions.setConflictOpen(true)}
-            className={BUTTON}
+            className={SMALL_BUTTON}
           >
             {m.tasks_sync_decide()}
           </button>
+        )}
+        {counts.ignored > 0 && (
+          <span className="ml-auto flex items-center gap-1.5">
+            <button
+              type="button"
+              data-testid="tasks-ignored-copy"
+              title={m.tasks_ignored_copy_hint()}
+              onClick={() => copyIgnored(ignoredText(list.file, statuses))}
+              className={SMALL_BUTTON}
+            >
+              {m.tasks_ignored_copy()}
+            </button>
+            <button
+              type="button"
+              data-testid="tasks-ignored-download"
+              title={m.tasks_ignored_download_hint()}
+              onClick={() =>
+                downloadText(
+                  `${list.file.maid_tasks.list_id}-ignored.json`,
+                  ignoredText(list.file, statuses),
+                )
+              }
+              className={SMALL_BUTTON}
+            >
+              {m.tasks_ignored_download()}
+            </button>
+          </span>
         )}
       </div>
     </header>
@@ -302,6 +318,14 @@ function Rows({
   const filter = useTasks(store, (state) => state.filter)
   const current = useTasks(store, (state) => state.current)
   const [limit, setLimit] = useState({ key: '', rows: ROW_LIMIT })
+  const currentRow = useRef<HTMLButtonElement>(null)
+  // the current task's row stays in view in the scrolling list: a pick on the map or "Next open task" moves it there
+  useEffect(
+    function showTheCurrentRow() {
+      currentRow.current?.scrollIntoView({ block: 'nearest' })
+    },
+    [current],
+  )
   if (!list) return null
   // a new list or filter starts with the first rows again
   const key = `${list.listKey}:${filter}`
@@ -326,6 +350,7 @@ function Rows({
                 data-testid={`tasks-row-${id}`}
                 data-status={status}
                 aria-current={current === index ? 'true' : undefined}
+                ref={current === index ? currentRow : undefined}
                 onClick={() => goToTask({ store, select, engine: shared.engine }, index)}
                 className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1 text-left hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:bg-white/5 ${current === index ? 'bg-blue-50 dark:bg-blue-950/30' : ''}`}
               >
@@ -352,48 +377,128 @@ function Rows({
   )
 }
 
+const NO_SUBSCRIPTION = () => () => {}
+const NO_VERSION = () => 0
+
 /**
- * The current task in the dock, when the inspector does not show it: the task names no OSM element, or none of its
- * elements is selected.
+ * The engine's version, as an external store: it moves on every edit and when data loads, so the task's feature and
+ * the option diffs follow Apply, undo, a change in the inspector and a way that arrives after the task was picked.
  */
-function Current({
+function useEngineVersion(engine: Shared['engine']): number {
+  return useSyncExternalStore(
+    engine?.subscribe ?? NO_SUBSCRIPTION,
+    engine?.getVersion ?? NO_VERSION,
+    engine?.getVersion ?? NO_VERSION,
+  )
+}
+
+/**
+ * The feature a task's options apply to in the dock: the task's feature that is selected, or else its first one that
+ * is loaded. So Apply works while something else is selected on the map.
+ */
+function taskTarget(
+  engine: Shared['engine'],
+  ids: readonly string[],
+  selected: readonly string[],
+  // the engine's version it is read at: passed so that a new version reads it again (React Compiler memoizes on it)
+  version: number,
+): EntityInfo | undefined {
+  if (!engine || version < 0) return undefined
+  const id = ids.find((each) => selected.includes(each)) ?? ids.find((each) => engine.entity(each))
+  return id === undefined ? undefined : engine.entity(id)
+}
+
+/**
+ * The current task, beside the list: its heading with "Show on map" and "Next open task" stays, the description, the
+ * actions and the closing buttons scroll under it. All the work on a task happens here, whatever is selected on the
+ * map; the inspector only points here (TaskSection). Without a current task it offers the next open one.
+ */
+function Detail({
   store,
+  shared,
   editor,
   selected,
   readOnly,
   select,
-  hover,
 }: {
   store: TasksStore
+  shared: Shared
   editor: DockViewProps['editor']
   selected: readonly string[]
   readOnly: DockViewProps['readOnly']
   select: DockViewProps['select']
-  hover: (id: string | null) => void
 }) {
   const list = useTasks(store, (state) => state.list)
+  const statuses = useTasks(store, (state) => state.statuses)
   const current = useTasks(store, (state) => state.current)
-  const task = current === null ? undefined : list?.file.features[current]
-  if (current === null || !task) return null
-  const ids = entityIdsOfTask(task)
-  if (ids.some((id) => selected.includes(id))) return null
-  return (
-    <div
-      data-testid="tasks-current"
-      className="flex flex-col gap-2 border-t border-zinc-950/10 pt-3 dark:border-white/15"
+  const version = useEngineVersion(shared.engine)
+  const next = nextOpenIndex(statuses, current)
+  const go = (index: number) => goToTask({ store, select, engine: shared.engine }, index)
+  const nextButton = (
+    <button
+      type="button"
+      data-testid="tasks-next"
+      disabled={next === undefined}
+      title={next === undefined ? m.tasks_none_open() : undefined}
+      onClick={() => next !== undefined && go(next)}
+      className={BUTTON}
     >
-      <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{m.tasks_current()}</h3>
-      <TaskContent
-        // a new task starts without the message of the last one
-        key={current}
-        store={store}
-        index={current}
-        editor={editor}
-        readOnly={readOnly}
-        hasRefs={ids.length > 0}
-        select={select}
-        hover={hover}
-      />
+      {m.tasks_next()}
+    </button>
+  )
+  const task = current === null ? undefined : list?.file.features[current]
+  const status = current === null ? undefined : statuses[current]
+  if (current === null || !task || status === undefined) {
+    return (
+      <div data-testid="tasks-current-none" className="flex flex-col items-start gap-3 p-4">
+        <p className="text-zinc-500 dark:text-zinc-400">{m.tasks_detail_empty()}</p>
+        {nextButton}
+      </div>
+    )
+  }
+  const ids = entityIdsOfTask(task)
+  const target = taskTarget(shared.engine, ids, selected, version)
+  const onTask = ids.length > 0 && ids.every((id) => selected.includes(id))
+  return (
+    <div data-testid="tasks-current" className="flex min-h-0 flex-1 flex-col">
+      {/* the heading stays while the task scrolls under it */}
+      <header className="flex shrink-0 flex-col gap-1.5 border-b border-zinc-950/10 px-4 py-2.5 dark:border-white/15">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-sm/5 font-semibold break-words">{task.properties.title}</h3>
+          <span className="flex shrink-0 items-center gap-1">
+            <TaskLinks task={task} />
+            <StatusBadge status={status} />
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            data-testid="tasks-show"
+            // selects the task's feature again and moves the map to it, after clicks elsewhere on the map
+            onClick={() => go(current)}
+            className={BUTTON}
+            aria-pressed={onTask}
+          >
+            {ids.length > 0 ? m.tasks_select_task_feature() : m.tasks_show_task()}
+          </button>
+          {nextButton}
+        </div>
+      </header>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        <TaskContent
+          // a new task starts without the message of the last one
+          key={current}
+          store={store}
+          index={current}
+          entity={target}
+          editor={editor}
+          readOnly={readOnly}
+          hasRefs={ids.length > 0}
+          select={select}
+          hover={(id) => shared.engine?.setHover(id)}
+          headed={false}
+        />
+      </div>
     </div>
   )
 }

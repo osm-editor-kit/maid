@@ -83,5 +83,12 @@
   "tasks_ignored_copy_hint": "Copies the ignored tasks as JSON (list, task ids, OSM features), for example to leave them out of the next list",
   "tasks_ignored_copied": "Ignored tasks copied",
   "tasks_ignored_download": "Download",
-  "tasks_ignored_download_hint": "ignored tasks as a JSON file"
+  "tasks_ignored_download_hint": "ignored tasks as a JSON file",
+  "tasks_list_label": "Task list",
+  "tasks_detail_label": "Current task",
+  "tasks_detail_empty": "No task picked. Pick one in the list, or go to the next open one.",
+  "tasks_select_task_feature": "Select its feature",
+  "tasks_show_task": "Show on the map",
+  "tasks_hint": "There is a task for this feature.",
+  "tasks_hint_open": "Open in the task list"
 }

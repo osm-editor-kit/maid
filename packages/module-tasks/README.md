@@ -1,7 +1,7 @@
 # @osm-editor-kit/maid-module-tasks
 
 Private task lists in Maid: the person loads a task file (format: [packages/tasks/FORMAT.md](../tasks/FORMAT.md)), works
-through it in the dock, sees each task and its options in the inspector, and the progress stays in this browser and in
+through it in the dock, where the list and the current task with its options stand side by side, and the progress stays in this browser and in
 their OSM preferences ([packages/osm-prefs](../osm-prefs/README.md)).
 
 `tasks()` returns the module. Setup sends no request.
@@ -11,8 +11,8 @@ their OSM preferences ([packages/osm-prefs](../osm-prefs/README.md)).
 | Point | Id | What |
 | --- | --- | --- |
 | `account.item` | `tasks` | "Load task list…": a file picker |
-| `dock.view` | `tasks` | The tab "Tasks": head (title, progress, counts, filter, sync), rows (200, then "Show more"), "Next open task", the current task when the inspector does not show it |
-| `inspector.section` | `tasks` | At the top, for a feature named by a task: description, links, Mapillary links, options with tag diff and "Apply" (one undo step), status buttons |
+| `dock.view` | `tasks` | The tab "Tasks", two columns: the list (a compact head with title, progress, counts, filter, sync and the ignored export that stays while the rows scroll; rows, 200 then "Show more", the current one kept in view) and the current task (a heading with "Select its feature" and "Next open task" that stays; description, links, options with tag diff and "Apply" on the task's feature even while something else is selected, one undo step; status buttons). Without a current task: "Next open task" |
+| `inspector.section` | `tasks` | At the top, for a feature named by a task: a hint with each task's title and status and "Open in the task list", which makes it the current task in the dock (Tobias, 2026-11-26) |
 | `map.content` | `tasks` | Task geometries by status colour, the current task with a halo |
 | `map.content` | `tasks-controller` | Opens the last list, fetches `tasks=<url>` (with `editor.fetch`), syncs with the account, shows the conflict and cleanup dialogs |
 

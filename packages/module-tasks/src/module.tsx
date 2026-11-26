@@ -14,7 +14,7 @@ import { parseAsTasksUrl, TASKS_PARAM } from './url.ts'
 
 /**
  * Private task lists (packages/tasks/FORMAT.md): "Load task list…" in the account menu or `tasks=<address>` in the link,
- * the dock tab "Tasks" with the rows and the progress, the task and its options in the inspector, the geometries on the
+ * the dock tab "Tasks" with the list and, beside it, the current task and its options; a hint in the inspector; the geometries on the
  * map. The statuses stay in this browser and, while someone is logged in, in their OSM preferences (packages/osm-prefs).
  *
  * Setup sends no request: a file is fetched after the map is up, by the controller (`map.content`), and the account is

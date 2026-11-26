@@ -83,5 +83,12 @@
   "tasks_ignored_copy_hint": "Kopiert die ignorierten Aufgaben als JSON (Liste, Aufgaben-IDs, OSM-Elemente), etwa um sie in der nächsten Liste wegzulassen",
   "tasks_ignored_copied": "Ignorierte Aufgaben kopiert",
   "tasks_ignored_download": "Herunterladen",
-  "tasks_ignored_download_hint": "Ignorierte Aufgaben als JSON-Datei"
+  "tasks_ignored_download_hint": "Ignorierte Aufgaben als JSON-Datei",
+  "tasks_list_label": "Aufgabenliste",
+  "tasks_detail_label": "Aktuelle Aufgabe",
+  "tasks_detail_empty": "Keine Aufgabe ausgewählt. Wähle eine in der Liste oder gehe zur nächsten offenen.",
+  "tasks_select_task_feature": "Element auswählen",
+  "tasks_show_task": "Auf der Karte zeigen",
+  "tasks_hint": "Zu diesem Element gibt es eine Aufgabe.",
+  "tasks_hint_open": "In der Aufgabenliste öffnen"
 }

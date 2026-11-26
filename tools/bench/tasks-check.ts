@@ -116,8 +116,35 @@ const code = await runCheck(
     await settle()
     const selected = await page.evaluate(() => new URL(location.href).searchParams.get('id'))
     report('a row selects the way of its task', true, JSON.stringify(selected).includes(wayId))
+    // the inspector only points to the task; the task itself is in the dock beside the list
     await byId('tasks-section').waitFor({ timeout: 5_000 })
-    report('the inspector shows the task', 1, await byId(`tasks-content-${first.task_id}`).count())
+    report(
+      'the inspector points to the task, the dock shows it',
+      [1, 0, 1],
+      [
+        await byId(`tasks-hint-${first.task_id}`).count(),
+        await byId('tasks-section')
+          .locator(`[data-testid="tasks-content-${first.task_id}"]`)
+          .count(),
+        await byId('tasks-detail')
+          .locator(`[data-testid="tasks-content-${first.task_id}"]`)
+          .count(),
+      ],
+    )
+    // a click elsewhere on the map: the task stays, and "Select its feature" brings its way back
+    await page.evaluate(() => window.__maid.engine.setSelected([]))
+    await settle()
+    const kept = await byId('tasks-detail')
+      .locator(`[data-testid="tasks-content-${first.task_id}"]`)
+      .count()
+    await byId('tasks-show').click()
+    await settle()
+    const back = await page.evaluate(() => new URL(location.href).searchParams.get('id'))
+    report(
+      'the task stays without a selection, and its button selects the way again',
+      [1, true],
+      [kept, JSON.stringify(back).includes(wayId)],
+    )
 
     const before = await tags(wayId)
     const option = first.options!.find(

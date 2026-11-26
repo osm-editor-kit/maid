@@ -83,5 +83,12 @@
   "tasks_ignored_copy_hint": "Copia las tareas ignoradas como JSON (lista, ids de tareas, elementos OSM), por ejemplo para dejarlas fuera de la próxima lista",
   "tasks_ignored_copied": "Tareas ignoradas copiadas",
   "tasks_ignored_download": "Descargar",
-  "tasks_ignored_download_hint": "Tareas ignoradas como archivo JSON"
+  "tasks_ignored_download_hint": "Tareas ignoradas como archivo JSON",
+  "tasks_list_label": "Lista de tareas",
+  "tasks_detail_label": "Tarea actual",
+  "tasks_detail_empty": "Ninguna tarea elegida. Elige una en la lista o ve a la siguiente abierta.",
+  "tasks_select_task_feature": "Seleccionar su elemento",
+  "tasks_show_task": "Mostrar en el mapa",
+  "tasks_hint": "Hay una tarea para este elemento.",
+  "tasks_hint_open": "Abrir en la lista de tareas"
 }
