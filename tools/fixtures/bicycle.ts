@@ -357,7 +357,7 @@ export const DIRECTIONS: Case[] = [
       traffic_sign: 'DE:244.1',
     },
     expect: ['self:bicycleRoad'],
-    dirs: ['self:-'],
+    dirs: ['self:2'],
   },
   {
     name: 'D two-way road, lanes both',

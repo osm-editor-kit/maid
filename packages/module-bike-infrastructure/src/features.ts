@@ -60,13 +60,17 @@ const HIGHWAY = 'highway'
 /** TILDA's `oneway` values of a part that bicycles ride in one direction only */
 const ONE_DIRECTION = new Set(['yes', 'implicit_yes'])
 
+/** TILDA's `oneway` values of a part that bicycles ride both ways (`assumed_no`: nothing tagged, TILDA's default) */
+const BOTH_DIRECTIONS = new Set(['no', 'car_not_bike', 'assumed_no'])
+
 /**
  * The riding direction of a part (BikeProperties.dir), from TILDA's result alone: `oneway` says whether it is one
  * direction, `_lineReversed` whether that direction is against the way (tilda-geo `line_direction.lua`: a road side
- * follows its side rule, the way itself runs against its line on `oneway=-1` or `oneway:bicycle=-1`). TILDA's
- * `implicit_yes` gives no arrows on the way itself: a sidepath mapped as a way of its own has no direction of its own
- * to guess from (its drawing direction says nothing), unlike a road side, whose direction comes from the road. Both
- * ways are marked on a road side only.
+ * follows its side rule, the way itself runs against its line on `oneway=-1` or `oneway:bicycle=-1`). Every part
+ * with a direction gets arrows, both ways included, so no stretch of bicycle infrastructure is without them
+ * (Tobias, 2026-11-26). TILDA's `implicit_yes` gives no arrows on the way itself: a sidepath mapped as a way of its
+ * own has no direction of its own to guess from (its drawing direction says nothing), unlike a road side, whose
+ * direction comes from the road.
  */
 export function ridingDirection(result: {
   _side: Side
@@ -74,10 +78,11 @@ export function ridingDirection(result: {
   _lineReversed?: boolean
 }): BikeProperties['dir'] {
   const { oneway } = result
+  if (oneway === undefined) return undefined
   const self = result._side === 'self'
-  const oneDirection = self ? oneway === 'yes' : oneway !== undefined && ONE_DIRECTION.has(oneway)
+  const oneDirection = self ? oneway === 'yes' : ONE_DIRECTION.has(oneway)
   if (oneDirection) return result._lineReversed ? -1 : 1
-  return !self && oneway === 'no' ? 2 : undefined
+  return BOTH_DIRECTIONS.has(oneway) ? 2 : undefined
 }
 
 const SIDEPATH: Record<string, BikeProperties['sidepath']> = {
