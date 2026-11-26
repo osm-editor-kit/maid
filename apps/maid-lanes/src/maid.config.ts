@@ -35,6 +35,7 @@ import {
 } from '@osm-editor-kit/maid-shell'
 import { defaultRules } from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
+import lanesScene from '../../../fixtures/lanes.meta.json'
 import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
 import { mapillaryToken } from '../../mapillary-token.ts'
@@ -50,6 +51,7 @@ const BBOX: Record<string, Bbox> = {
   small: small.bbox as Bbox,
   medium: medium.bbox as Bbox,
   dense: dense.bbox as Bbox,
+  lanes: lanesScene.bbox as Bbox,
 }
 
 // the imagery module, made once
