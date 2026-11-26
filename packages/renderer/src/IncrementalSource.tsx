@@ -70,7 +70,10 @@ function updater(map: MapLibreMap, sourceId: string, latest: () => FeatureCollec
     const { add, remove } = pending
     pending = { add: new Map(), remove: new Set() }
     try {
-      await source.updateData({ add: [...add.values()], remove: [...remove] as (string | number)[] })
+      await source.updateData({
+        add: [...add.values()],
+        remove: [...remove] as (string | number)[],
+      })
       await tilesBuilt()
     } finally {
       busy = false

@@ -163,23 +163,31 @@ export function streetParts(
   const byNode = new Map<string, StreetParts>()
   for (const junction of geometry.junctions) {
     const parts = partsOf(byNode, junction.nodeId)
-    parts.areas.push({
-      type: 'Feature',
-      geometry: {
-        type: 'Polygon',
-        // a junction of several nodes round a block or an island has it as a hole
-        coordinates: [
-          [...junction.ring, junction.ring[0]!],
-          ...(junction.holes ?? []).map((hole) => [...hole, hole[0]!]),
-        ],
-      },
-      properties: { part: 'junction', nodeId: junction.nodeId },
-    })
+    if (junction.ring.length >= 3)
+      parts.areas.push({
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          // a junction of several nodes round a block or an island has it as a hole
+          coordinates: [
+            [...junction.ring, junction.ring[0]!],
+            ...(junction.holes ?? []).map((hole) => [...hole, hole[0]!]),
+          ],
+        },
+        properties: { part: 'junction', nodeId: junction.nodeId },
+      })
     for (const kerb of junction.kerbs) {
       parts.lines.push({
         type: 'Feature',
         geometry: { type: 'LineString', coordinates: kerb },
         properties: { kind: 'kerb', nodeId: junction.nodeId },
+      })
+    }
+    for (const guide of junction.guides ?? []) {
+      parts.lines.push({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: guide },
+        properties: { kind: 'guide', nodeId: junction.nodeId },
       })
     }
   }

@@ -296,7 +296,12 @@ const failed = await runCheck(
         const features = window.__maid.map.querySourceFeatures('maid-street-areas') as any[]
         return new Set(
           features
-            .filter((f) => f.properties?.part === 'lane' && f.properties?.wayId === `w${number}` && !f.properties?.taper)
+            .filter(
+              (f) =>
+                f.properties?.part === 'lane' &&
+                f.properties?.wayId === `w${number}` &&
+                !f.properties?.taper,
+            )
             .map((f) => String(f.properties?.laneId)),
         ).size
       }, wayNumber)

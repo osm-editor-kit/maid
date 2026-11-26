@@ -63,11 +63,17 @@ Also ported (2026-11-26):
   Studio's `splitAt`, `alignFork`, `alignBranches`, `alignMerges`, in one rule); the wedge between them is the fork's
   junction. A slip road with no lane of its own peels off the outer lane.
 
-Left out so far (Lane Studio has them): guide lines through junctions, connectivity relations, carriageway areas,
+- **Guide lines.** Dashed curves through a junction from the end of each lane coming in to the lane it leads to, by its
+  turn arrows (Lane Studio's guide lines in `junctionConnections`, without connectivity relations).
+- **Sharp corners.** Two roads meeting at a sharp angle end where their inner kerbs meet, with a small junction round
+  the outside; a bend sharper than 100° inside a way has its corner cut. No spike past the corner (case L03).
+- **Mouths.** Where roads join a main road from one side only, the junction surface is the mouth outside its kerb.
+
+Left out so far (Lane Studio has them): guide lines in junctions of several nodes, connectivity relations, carriageway areas,
 painted islands, turning heads, hard shoulders, forks of four arms or inside a junction of several nodes, left-hand
 traffic. Tests: `src/street/street.test.ts` (made-up roads after Lane Studio's test cases), and in module-lanes
-`lane-cases.test.ts` over the 22 made-up cases of `fixtures/lanes`. On the dense fixture 9 of 762 junction outlines and
-27 of about 5,000 lane outlines cross themselves (collinear points at mouths, very short pieces at sharp angles).
+`lane-cases.test.ts` over the 22 made-up cases of `fixtures/lanes`. On the dense fixture 6 of 763 junction outlines and
+26 of about 5,000 lane outlines cross themselves (collinear points at mouths, very short pieces at sharp angles).
 
 ## Where it comes from
 

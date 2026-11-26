@@ -138,12 +138,31 @@ const LAYERS = [
     type: 'line',
     source: LINES_SOURCE,
     minzoom: 17,
-    filter: ['all', ['!=', ['get', 'kind'], 'kerb'], ['!', ['get', 'assumed']]],
+    filter: [
+      'all',
+      ['match', ['get', 'kind'], ['lane', 'centre'], true, false],
+      ['!', ['get', 'assumed']],
+    ],
     layout: { 'line-join': 'round' },
     paint: {
       'line-color': '#ffffff',
       'line-width': ['interpolate', ['linear'], ['zoom'], 17, 0.75, 20, 2],
       'line-dasharray': [3, 3],
+    },
+  },
+  {
+    // where each lane leads through a junction, by its turn arrows: fine dashes, as guide markings are painted
+    id: 'maid-street-guides',
+    type: 'line',
+    source: LINES_SOURCE,
+    minzoom: 18,
+    filter: ['==', ['get', 'kind'], 'guide'],
+    layout: { 'line-join': 'round' },
+    paint: {
+      'line-color': '#ffffff',
+      'line-opacity': 0.6,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 18, 0.5, 20, 1.2],
+      'line-dasharray': [1, 2],
     },
   },
   {

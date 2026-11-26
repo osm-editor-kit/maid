@@ -13,6 +13,7 @@ Used by the apps (their `maid.config.ts` through the shell) and by the modules t
 - **Points** are dots, with pins where they fit (ADR 0004). Below OSM zoom 18 the map shows only the lines and areas, and small hint dots (ADR 0014). Presets that arrive late are waited for, and icons are filled in afterwards (`presets-hold.ts`).
 - **Pointer.** `pick.ts` picks by iD's layer priority. Drawing and dragging snap to what is under the pointer (`snap.ts`, `snap-aim.ts`), with the constraints of `constraint.ts`.
 - **React.** `OsmLayers.tsx` and `ModuleLayers.tsx` render the layers. A module's own source is named by its id.
+- **`IncrementalSource`** for a `map.content` component with a large GeoJSON source that changes a little at a time: it takes the whole collection like react-map-gl's `<Source data>`, but sends MapLibre only the features that changed (`updateData`, one update at a time per source) and the whole collection once after the updates stop. Features that did not change must be the same objects. Used by the street drawing of module-lanes.
 
 ## Extension points it owns
 

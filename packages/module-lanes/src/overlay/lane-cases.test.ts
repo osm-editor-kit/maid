@@ -88,8 +88,8 @@ describe('what each case is about', () => {
     const shared = data.ways[0]!.nodes.find((n) => data.ways[1]!.nodes.includes(n))!
     const corner = metres(data.nodes[shared]!.loc)
     const reach = Math.max(
-      ...[...geometry.lanes.map((l) => l.ring), ...geometry.junctions.map((j) => j.ring)].flatMap((ring) =>
-        ring.map((p) => metres(p)[0] - corner[0]),
+      ...[...geometry.lanes.map((l) => l.ring), ...geometry.junctions.map((j) => j.ring)].flatMap(
+        (ring) => ring.map((p) => metres(p)[0] - corner[0]),
       ),
     )
     expect(reach).toBeLessThan(3.5)
@@ -153,12 +153,19 @@ describe('what each case is about', () => {
   })
 
   test('L13 a roundabout: every arm stops outside the ring (radius 30 m, lanes 3 m either side)', () => {
-    const { geometry, metres, wayNamed } = draw('L13')
+    const { geometry, metres, wayNamed, data } = draw('L13')
     const arms = new Set(['L13 Arm 1', 'L13 Arm 2', 'L13 Arm 3', 'L13 Arm 4'].flatMap(wayNamed))
+    // the ring's middle: the mean of its nodes (the case's middle is a node on the ring)
+    const ring = data.ways
+      .find((w) => w.tags.junction === 'roundabout')!
+      .nodes.slice(1)
+      .map((n) => metres(data.nodes[n]!.loc))
+    const mx = ring.reduce((a, p) => a + p[0], 0) / ring.length
+    const my = ring.reduce((a, p) => a + p[1], 0) / ring.length
     const nearest = Math.min(
       ...geometry.lanes
         .filter((l) => arms.has(l.wayId))
-        .flatMap((l) => l.ring.map((p) => Math.hypot(...metres(p)))),
+        .flatMap((l) => l.ring.map((p) => Math.hypot(metres(p)[0] - mx, metres(p)[1] - my))),
     )
     expect(nearest).toBeGreaterThan(33)
   })

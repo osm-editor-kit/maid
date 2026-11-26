@@ -7,6 +7,7 @@ import { join } from 'node:path'
  * To compare with another lane editor, draw the same case files there.
  *
  * Usage: bun run lanes-sheet [L08 L13 P02 ...]   (all made-up cases without arguments; `P` for all real places)
+ * SHEET_HALF=25 bun run lanes-sheet L09        (closer: half the side of each drawing in metres)
  */
 import { chromium } from '@playwright/test'
 import { streetOf, type StreetEntity } from '../../packages/module-lanes/src/overlay/street.ts'
@@ -29,7 +30,8 @@ const entries = wanted.length
 
 const SIZE = 420
 /** Half the side of a drawing in metres: a made-up case, a real place */
-const halfOf = (entry: Entry) => (entry.id.startsWith('P') ? 130 : 75)
+const halfOf = (entry: Entry) =>
+  Number(process.env.SHEET_HALF) || (entry.id.startsWith('P') ? 130 : 75)
 const COLOURS: Record<string, string> = {
   car: '#71717a',
   bus: '#b91c1c',
@@ -65,7 +67,8 @@ function drawCase(entry: Entry): string {
       .join('L')}${close ? 'Z' : ''}`
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">`
   svg += `<rect width="${SIZE}" height="${SIZE}" fill="#e7e5e4"/>`
-  for (const j of geometry.junctions) svg += `<path d="${path(j.ring, true)}" fill="#71717a"/>`
+  for (const j of geometry.junctions)
+    if (j.ring.length >= 3) svg += `<path d="${path(j.ring, true)}" fill="#71717a"/>`
   for (const lane of geometry.lanes) {
     const opacity = assumed.has(lane.wayId) ? 0.6 : 1
     svg += `<path d="${path(lane.ring, true)}" fill="${COLOURS[lane.kind] ?? '#71717a'}" fill-opacity="${opacity}"/>`
@@ -73,6 +76,10 @@ function drawCase(entry: Entry): string {
   for (const line of geometry.lines) {
     const kerb = line.kind === 'kerb'
     svg += `<path d="${path(line.line, false)}" fill="none" stroke="${kerb ? '#fafafa' : line.kind === 'centre' ? '#fde047' : '#ffffff'}" stroke-width="${kerb ? 1.6 : 1}"${kerb ? '' : ' stroke-dasharray="5 5"'}/>`
+  }
+  for (const j of geometry.junctions) {
+    for (const guide of j.guides ?? [])
+      svg += `<path d="${path(guide, false)}" fill="none" stroke="#ffffff" stroke-opacity="0.8" stroke-width="0.9" stroke-dasharray="2 2"/>`
   }
   for (const j of geometry.junctions) {
     for (const kerb of j.kerbs)

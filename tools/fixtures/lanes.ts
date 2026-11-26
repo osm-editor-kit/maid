@@ -976,10 +976,20 @@ if (import.meta.main) {
     const own = perCase.get(laneCase.id)!
     const lats = [...own.nodes.values()].map((n) => n.lat)
     const lons = [...own.nodes.values()].map((n) => n.lon)
-    const centre = [
-      round((Math.min(...lons) + Math.max(...lons)) / 2),
-      round((Math.min(...lats) + Math.max(...lats)) / 2),
-    ]
+    // the case's middle: the node the most ways use (its junction), else the middle of its extent
+    const uses = new Map<number, number>()
+    for (const w of own.ways) for (const n of new Set(w.nodes)) uses.set(n, (uses.get(n) ?? 0) + 1)
+    const [hub, count] = [...uses].reduce(
+      (best, entry) => (entry[1] > best[1] ? entry : best),
+      [0, 0],
+    )
+    const node = count > 1 ? own.nodes.get(hub) : undefined
+    const centre = node
+      ? [node.lon, node.lat]
+      : [
+          round((Math.min(...lons) + Math.max(...lons)) / 2),
+          round((Math.min(...lats) + Math.max(...lats)) / 2),
+        ]
     const file = {
       nodes: Object.fromEntries(
         [...own.nodes.values()].map((n) => [

@@ -647,7 +647,8 @@ function junctionAt(
 ) {
   // two roads meeting at a sharp angle (a hairpin between two ways) are not cut on the bisector: their mitre would throw
   // a spike far past the node. They end where their inner kerbs meet, and a small junction joins them round the outside
-  const sharp = arms.length === 2 && angleBetween(arms[0]!.direction, arms[1]!.direction) < SHARP_CORNER
+  const sharp =
+    arms.length === 2 && angleBetween(arms[0]!.direction, arms[1]!.direction) < SHARP_CORNER
   if (arms.length === 2 && !sharp) {
     partnerUp(arms[0]!, arms[1]!, result)
     return
@@ -739,6 +740,14 @@ function junctionAt(
           ends[i]![`${side}Direction`] = directionAt(arm, square)
         }
       }
+      // roads joining on one side only (a T-junction): the surface is only the mouth outside the main road's kerb on that
+      // side, not a wedge across the main road's lanes (Lane Studio's `mouthOnly`, here for two-way roads too)
+      if (!grouped && onMain(next) !== onMain(previous)) {
+        const facing = onMain(next) ? 'right' : 'left'
+        const other = facing === 'left' ? 'right' : 'left'
+        ends[i]![other] = ends[i]![facing]
+        ends[i]![`${other}Direction`] = ends[i]![`${facing}Direction`]
+      }
       const lanes = Math.max(reach.left, reach.right)
       // in the way's frame an arm against the way has its sides swapped
       result.marks.set(
@@ -785,11 +794,140 @@ function junctionAt(
     points.push(end.right, end.left, ...corner.slice(1, -1))
     if (!(onMain(i) && onMain(j)) && len(sub(next.right, end.left)) > 0.5) kerbs.push(corner)
   })
+  const guides = guidesAt(arms, result, through)
+  const outline = unlooped(cleaned(points))
   result.junctions.push({
     nodeId,
-    ring: unlooped(cleaned(points)).map((p) => frame.toLoc(p)),
+    // a mouth with no width (a side road ending right at the main road's kerb) has no surface, only its kerbs
+    ring: Math.abs(signedArea2(outline)) / 2 < 0.5 ? [] : outline.map((p) => frame.toLoc(p)),
     kerbs: kerbs.map((kerb) => kerb.map((p) => frame.toLoc(p))),
+    ...(guides.length ? { guides: guides.map((line) => line.map((p) => frame.toLoc(p))) } : {}),
   })
+}
+
+/* ---------- guide lines: where each lane leads through a junction ---------- */
+
+/** The ranges of turn tokens, in degrees from straight on, left positive (Lane Studio's `turnMatches`, simplified) */
+const TURN_RANGES: Record<string, [number, number]> = {
+  through: [-35, 35],
+  slight_left: [10, 70],
+  left: [45, 140],
+  sharp_left: [100, 175],
+  slight_right: [-70, -10],
+  right: [-140, -45],
+  sharp_right: [-175, -100],
+}
+const TURN_TARGET: Record<string, number> = {
+  through: 0,
+  slight_left: 40,
+  left: 90,
+  sharp_left: 135,
+  slight_right: -40,
+  right: -90,
+  sharp_right: -135,
+}
+
+/** A curve from `a` along `ta` to `b` along `tb` (both unit), as Lane Studio's `curve` */
+function guideCurve(a: Vec2, ta: Vec2, b: Vec2, tb: Vec2): Vec2[] {
+  const k = len(sub(b, a)) / 3
+  const c1 = add(a, scale(ta, k))
+  const c2 = sub(b, scale(tb, k))
+  return Array.from({ length: 13 }, (_, i) => {
+    const t = i / 12
+    const u = 1 - t
+    return [
+      u * u * u * a[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * b[0],
+      u * u * u * a[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * b[1],
+    ] as Vec2
+  })
+}
+
+/**
+ * Dashed lines through a junction from the end of each lane coming in to the start of the lane it leads to, after Lane
+ * Studio's guide lines (`junctionConnections`): by the lane's turn arrows (no arrows: straight on), to the road whose
+ * angle fits the arrow, onto its leftmost lane for a left turn, its rightmost for a right turn, the same lane counted
+ * from the left straight on. Cycle lanes lead to cycle lanes. The main road's lanes running straight through need none.
+ * Traffic keeps right.
+ */
+function guidesAt(
+  arms: readonly Arm[],
+  result: Junctions,
+  through: [number, number] | null,
+): Vec2[][] {
+  const onMain = (i: number) => through !== null && (through[0] === i || through[1] === i)
+  /** Where an arm's lanes end at the junction: its trim, or on the main road where its lane lines stop */
+  const endOf = (arm: Arm) => {
+    const key = armKey(arm.line.way.id, arm.index, arm.alongWay)
+    const t = Math.max(result.trims.get(key) ?? 0, result.marks.get(key)?.lanes ?? 0)
+    return Math.min(t, polylineLength(arm.points))
+  }
+  /** The lanes of an arm in its own frame (right of looking away from the node positive), coming in or going out */
+  const lanesOf = (arm: Arm, coming: boolean) => {
+    const wanted = coming === arm.alongWay ? 'backward' : 'forward'
+    return (
+      arm.line.lanes
+        // a lane used both ways (a street without lane markings) is both coming in and going out
+        .filter((lane) => lane.direction === wanted || lane.direction === 'both_ways')
+        .map((lane) => ({
+          lane,
+          x: arm.alongWay ? (lane.left + lane.right) / 2 : -(lane.left + lane.right) / 2,
+        }))
+    )
+  }
+  const placeOn = (arm: Arm, x: number) => {
+    const at = pointAlong(arm.points, endOf(arm))
+    return { point: add(at.point, scale(rightNormal(at.direction), x)), direction: at.direction }
+  }
+  const lines: Vec2[][] = []
+  arms.forEach((from, i) => {
+    // coming in, in the driver's order from the left: looking towards the node, the arm frame's right is the driver's left
+    const coming = lanesOf(from, true).sort((p, q) => q.x - p.x)
+    if (!coming.length) return
+    const heading = scale(from.direction, -1)
+    const angleTo = (arm: Arm) =>
+      (Math.atan2(cross(heading, arm.direction), dot(heading, arm.direction)) * 180) / Math.PI
+    coming.forEach(({ lane, x }, order) => {
+      const tokens = (lane.turn ?? '')
+        .split(';')
+        .map((t) => t.trim())
+        .filter((t) => t in TURN_RANGES)
+      for (const token of tokens.length ? tokens : ['through']) {
+        const [lo, hi] = TURN_RANGES[token]!
+        let best: { j: number; off: number } | undefined
+        arms.forEach((to, j) => {
+          if (j === i) return
+          const angle = angleTo(to)
+          if (angle < lo || angle > hi) return
+          const off = Math.abs(angle - TURN_TARGET[token]!)
+          if (!best || off < best.off) best = { j, off }
+        })
+        if (!best) continue
+        // the main road straight through is drawn through the junction
+        if (token === 'through' && onMain(i) && onMain(best.j)) continue
+        const to = arms[best.j]!
+        const cycle = lane.kind === 'bicycle'
+        // going out, in the driver's order from the left: the arm frame's left is the driver's left
+        const going = lanesOf(to, false)
+          .filter((g) => (g.lane.kind === 'bicycle') === cycle)
+          .sort((p, q) => p.x - q.x)
+        if (!going.length) continue
+        const throughOrder = coming
+          .filter((c) => (c.lane.kind === 'bicycle') === cycle)
+          .indexOf(coming[order]!)
+        const target =
+          TURN_TARGET[token]! > 20
+            ? going[0]!
+            : TURN_TARGET[token]! < -20
+              ? going[going.length - 1]!
+              : going[Math.min(Math.max(throughOrder, 0), going.length - 1)]!
+        const start = placeOn(from, x)
+        const end = placeOn(to, target.x)
+        if (len(sub(end.point, start.point)) < 1) continue
+        lines.push(guideCurve(start.point, scale(start.direction, -1), end.point, end.direction))
+      }
+    })
+  })
+  return lines
 }
 
 /* ---------- forks: slip roads, merges, a road parting into its carriageways ---------- */
@@ -870,7 +1008,8 @@ function forkAt(arms: readonly Arm[], cutNodes: ReadonlySet<string>): Fork | nul
       // the stem's lanes that way, across its end from left to right
       const wanted = arriving === stem.alongWay ? 'backward' : 'forward'
       const stemLanes = stem.line.lanes
-        .filter((lane) => lane.direction === wanted)
+        // a lane used both ways (a street without lane markings) is both coming in and going out
+        .filter((lane) => lane.direction === wanted || lane.direction === 'both_ways')
         .map((lane) => ({
           lane,
           across: (stem.alongWay ? [-lane.right, -lane.left] : [lane.left, lane.right]) as [

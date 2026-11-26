@@ -60,7 +60,10 @@ export type StreetJunction = {
   nodeId: string
   /** Every node of a junction of several nodes close together (joined by pieces shorter than 25 m), sorted */
   nodeIds?: string[]
-  /** The junction's surface between the ends of its roads, closed ring, first point not repeated */
+  /**
+   * The junction's surface between the ends of its roads, closed ring, first point not repeated; empty where the
+   * junction has no surface of its own (a side road ending right at the main road's kerb)
+   */
   ring: LonLat[]
   /**
    * Gaps in the surface of a junction of several nodes that its short pieces enclose (an island, a block), each a
@@ -69,6 +72,8 @@ export type StreetJunction = {
   holes?: LonLat[][]
   /** The kerbs of its corners between neighbouring roads */
   kerbs: LonLat[][]
+  /** Lines through the junction from the end of each lane coming in to the lane it leads to (by its turn arrows) */
+  guides?: LonLat[][]
 }
 
 export type StreetLineKind = 'lane' | 'centre' | 'kerb'
