@@ -7,6 +7,7 @@ import {
   OsmNode,
   OsmRelation,
   OsmWay,
+  actionChangeTags,
   actionCircularize,
   actionDeleteMultiple,
   actionDisconnect,
@@ -80,6 +81,29 @@ function sameTags(a: Readonly<Record<string, string>>, b: Readonly<Record<string
   return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key])
 }
 
+/** Keys whose `-1` Reverse turns into `yes`: `oneway`, `oneway:bicycle`, `cycleway:right:oneway`, … */
+const ONEWAY_KEY = /(^|:)oneway(:|$)/
+
+/**
+ * iD's reverse, and a `-1` of a oneway key becomes `yes`: the line runs the other way now, so `yes` keeps the riding
+ * direction on the ground and the `-1` is gone, which is what Reverse is mostly used for. `yes` stays `yes`, as in iD
+ * (Reverse of a `yes` way fixes a way drawn the wrong way round). A deviation from iD (Tobias, 2026-11-26, ADR 0015).
+ */
+export function reverseAction(id: string): Action {
+  return (graph) => {
+    const reversed = actionReverse(id)(graph)
+    const entity = reversed.hasEntity(id)
+    if (!(entity instanceof OsmWay)) return reversed
+    const keys = Object.keys(entity.tags).filter(
+      (key) => ONEWAY_KEY.test(key) && entity.tags[key] === '-1',
+    )
+    if (keys.length === 0) return reversed
+    const tags = { ...entity.tags }
+    for (const key of keys) tags[key] = 'yes'
+    return actionChangeTags(id, tags)(reversed)
+  }
+}
+
 /** Lines (not areas) and nodes whose direction tags would change. iD offers nothing else. */
 function reverseTargets(context: OperationContext) {
   const graph = context.graph
@@ -106,7 +130,7 @@ export const reverseOperation: Operation = {
     const before = context.graph
     // an action may change the graph it gets (the editor passes a head graph): run it on a copy
     let after = new Graph(before)
-    for (const entity of reverseTargets(context)) after = actionReverse(entity.id)(after)
+    for (const entity of reverseTargets(context)) after = reverseAction(entity.id)(after)
     // the targets and the nodes of the lines: what reverse can touch
     const ids = reverseTargets(context).flatMap((entity) =>
       entity instanceof OsmWay ? [...new Set(entity.nodes), entity.id] : [entity.id],
@@ -131,7 +155,7 @@ export const reverseOperation: Operation = {
     } else {
       annotation = n === 1 ? 'Reversed a feature' : `Reversed ${n} features`
     }
-    return { actions: targets.map((entity) => actionReverse(entity.id)), annotation }
+    return { actions: targets.map((entity) => reverseAction(entity.id)), annotation }
   },
 }
 

@@ -28,7 +28,8 @@ MultiPolygon; `[lon, lat]`) and `properties` with `task_id`, `title`, `descripti
 | `delete` | optional `osm` (a subset of the task's) | deletes the task's nodes and ways as iD's Delete does |
 | `none` | nothing else | records the answer ("the direction is right") and marks the task done |
 
-`reverse` keeps `oneway` as it is: to keep the riding direction of a `oneway=-1` way, add `"set": {"oneway": "yes"}`.
+`reverse` turns a `-1` of a oneway key into `yes` (same riding direction, line turned) and keeps a `yes` (riding
+direction turned, for a way drawn against the traffic).
 Moving features is not offered.
 
 ## Markdown

@@ -116,6 +116,28 @@ describe('reverse', () => {
     expect(result.annotation).toBe('Reversed a line')
   })
 
+  it('turns a -1 of a oneway key into yes, keeps yes, and says so', () => {
+    const minus = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0),
+      way('w1', ['n1', 'n2'], {
+        highway: 'cycleway',
+        oneway: '-1',
+        'cycleway:left:oneway': '-1',
+        'oneway:bicycle': 'yes',
+      }),
+    )
+    const { after } = run(reverseOperation, minus, ['w1'])
+    expect(wayIn(after, 'w1').tags).toEqual({
+      highway: 'cycleway',
+      oneway: 'yes',
+      'cycleway:right:oneway': 'yes',
+      'oneway:bicycle': 'yes',
+    })
+    const changes = reverseOperation.changes?.(at(['w1'], new Graph(minus)))
+    expect(changes?.features[0]?.after.oneway).toBe('yes')
+  })
+
   it('says which tags it changes, and nothing for a line without direction tags', () => {
     const tagged = graphOf(
       node('n1', 0, 0),
