@@ -107,7 +107,8 @@ function editorConfig(config: Config) {
 /**
  * The filters of the lanes editor: roads and paths editable, the rest locked or hidden, so the map stays on the street
  * (Tobias, 2026-11-12). Points and shops hidden, but the points about the road (signs, stops, signals, crossings,
- * traffic calming, barriers: `streetPoints`, read-only) stay (Tobias, 2026-11-26). The person can change them in the
+ * traffic calming, barriers: `streetPoints`, read-only) stay; buildings hidden too, their entrances crowd the kerbs and
+ * the aerial image shows the frontage (Tobias, 2026-11-26). The person can change them in the
  * filter panel as in any Maid.
  */
 const LANES_FILTER_STATES: Record<string, FilterState> = {
@@ -119,7 +120,7 @@ const LANES_FILTER_STATES: Record<string, FilterState> = {
   aerialways: 'readonly',
   power: 'readonly',
   water: 'readonly',
-  buildings: 'readonly',
+  buildings: 'hidden',
   boundaries: 'hidden',
   landuse: 'readonly',
   shops: 'hidden',
