@@ -247,7 +247,13 @@ running on out of the other's with tapers, side roads pulled back to the main ro
 kerb curves, roundabout joins. It is a separate, pure module (`osm-lane-diagram/street`) that takes each way's
 cross-section as input, and Maid draws its output as MapLibre polygons, redrawing only the ways around an edit.
 Lane Studio's test examples (Boston roundabout, Holdingham, Luton, the M5 diverge) were drawn with it to compare;
-the details and what is still missing are in the package's README.
+the details and what is still missing are in the package's README. It later took over two more of Lane Studio's
+ideas: junctions of several close nodes drawn as one, and slip roads, merges and splits lined up with their lanes.
+
+To compare the two drawings case by case, Maid wrote 22 small made-up cases (`fixtures/lanes/cases/l01.json` …
+`l22.json`, in the fixture format of Lane Studio's geometry tests, free to use) and cut eight real places of
+Neukölln from its fixture (`fixtures/lanes/places/`, ODbL, with links to open each place in Lane Studio). The
+catalogue and what each case shows: `fixtures/lanes/README.md`.
 
 ## 11. Sources and method
 

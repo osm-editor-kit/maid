@@ -53,11 +53,21 @@ The approach is Lane Studio's road geometry (<https://github.com/MarcelMarzec/La
   the junction's surface joins all ends with kerb curves; a road splitting into two one-way roads has no main road;
 - each way is cut at its junction nodes, each piece offset per lane with mitre joins.
 
-Left out so far (Lane Studio has them): junctions of several nodes close together as one, slip roads and forks lined
-up with the lanes they carry on from, guide lines through junctions, connectivity relations, carriageway areas,
-painted islands, turning heads, left-hand traffic. Tests: `src/street/street.test.ts` (made-up roads after Lane
-Studio's test cases). On the dense fixture about 4 % of the junction outlines cross themselves (collinear points at
-mouths, very short pieces at sharp angles).
+Also ported (2026-11-26):
+
+- **Junctions of several nodes.** Junction nodes joined by a piece shorter than 25 m are one junction (Lane Studio's
+  `junctionClusters`): one outline round all roads leaving it, the inner pieces part of its surface, a block or island
+  inside as a hole (`StreetJunction.nodeIds`, `holes`). A main road that runs through keeps its lanes.
+- **Forks.** At a node of three arms where two roads carry on from a stem within 35° (a slip road, a merge, a road
+  parting into its carriageways), each road beyond starts on its share of the stem's lanes and runs to its own (Lane
+  Studio's `splitAt`, `alignFork`, `alignBranches`, `alignMerges`, in one rule); the wedge between them is the fork's
+  junction. A slip road with no lane of its own peels off the outer lane.
+
+Left out so far (Lane Studio has them): guide lines through junctions, connectivity relations, carriageway areas,
+painted islands, turning heads, hard shoulders, forks of four arms or inside a junction of several nodes, left-hand
+traffic. Tests: `src/street/street.test.ts` (made-up roads after Lane Studio's test cases), and in module-lanes
+`lane-cases.test.ts` over the 22 made-up cases of `fixtures/lanes`. On the dense fixture 9 of 762 junction outlines and
+27 of about 5,000 lane outlines cross themselves (collinear points at mouths, very short pieces at sharp angles).
 
 ## Where it comes from
 
