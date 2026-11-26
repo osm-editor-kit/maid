@@ -39,6 +39,12 @@ const linkParams = {
   source: stateParams.source,
 }
 
+/** Where to look at an uploaded changeset again, beside its page on OpenStreetMap (Tobias, 2026-11-26) */
+const REVIEW_LINKS: readonly { label: string; url: (id: number | string) => string }[] = [
+  { label: 'OSMCha', url: (id) => `https://osmcha.org/changesets/${id}` },
+  { label: 'OSMCha2', url: (id) => `https://tordans.github.io/osmcha2/changesets/${id}` },
+]
+
 /** The look of the changeset's text fields */
 const FIELD =
   'w-full rounded-md border border-zinc-950/10 bg-white px-2 py-1.5 text-sm placeholder:text-zinc-400 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:placeholder:text-zinc-500'
@@ -202,6 +208,24 @@ function SavePanel(props: {
                   </span>
                 ))}{' '}
                 {toOsm ? 'on OpenStreetMap.' : 'on the development server.'}
+                {/* review tools read OpenStreetMap only, not the development server */}
+                {toOsm && (
+                  <span className="mt-1 flex flex-wrap gap-x-3">
+                    {changesets.flatMap((id) =>
+                      REVIEW_LINKS.map(({ label, url }) => (
+                        <a
+                          key={`${label}-${id}`}
+                          className="font-medium underline"
+                          href={url(id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {changesets.length === 1 ? label : `${label} ${id}`}
+                        </a>
+                      )),
+                    )}
+                  </span>
+                )}
               </>,
               // the changeset link is worth opening later: it stays, and closes with its ×
               { lasting: true },
