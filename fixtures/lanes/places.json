@@ -1,0 +1,130 @@
+[
+  {
+    "id": "P01",
+    "title": "Karl-Marx-Straße at Rathaus Neukölln",
+    "shows": "Turn lanes, a cycle lane between the lanes (German pattern), placement, side streets and a dual carriageway nearby.",
+    "file": "places/p01.json",
+    "centre": [
+      13.43568,
+      52.48057
+    ],
+    "attribution": "© OpenStreetMap contributors, ODbL 1.0 (fixtures/dense, extract of 2026-08-06)",
+    "links": {
+      "maid": "?scene=dense#map=19/52.48057/13.43568",
+      "openStreetMap": "https://www.openstreetmap.org/#map=19/52.48057/13.43568",
+      "laneStudio": "https://lanestudio.marcelmarzec.com/editor/#map=19/52.48057/13.43568"
+    }
+  },
+  {
+    "id": "P02",
+    "title": "Hermannplatz",
+    "shows": "A large junction of many nodes, bus lanes running into it, roads splitting into one-way carriageways.",
+    "file": "places/p02.json",
+    "centre": [
+      13.4248,
+      52.4868
+    ],
+    "attribution": "© OpenStreetMap contributors, ODbL 1.0 (fixtures/dense, extract of 2026-08-06)",
+    "links": {
+      "maid": "?scene=dense#map=19/52.4868/13.4248",
+      "openStreetMap": "https://www.openstreetmap.org/#map=19/52.4868/13.4248",
+      "laneStudio": "https://lanestudio.marcelmarzec.com/editor/#map=19/52.4868/13.4248"
+    }
+  },
+  {
+    "id": "P03",
+    "title": "Karl-Marx-Straße at Werbellinstraße",
+    "shows": "Turn lanes in both directions, a two-way road splitting into two one-way roads, cycle lanes.",
+    "file": "places/p03.json",
+    "centre": [
+      13.4365,
+      52.48
+    ],
+    "attribution": "© OpenStreetMap contributors, ODbL 1.0 (fixtures/dense, extract of 2026-08-06)",
+    "links": {
+      "maid": "?scene=dense#map=19/52.48/13.4365",
+      "openStreetMap": "https://www.openstreetmap.org/#map=19/52.48/13.4365",
+      "laneStudio": "https://lanestudio.marcelmarzec.com/editor/#map=19/52.48/13.4365"
+    }
+  },
+  {
+    "id": "P04",
+    "title": "Sonnenallee with bus lanes",
+    "shows": "psv:lanes on a main road, side streets without lane tags.",
+    "file": "places/p04.json",
+    "centre": [
+      13.4429,
+      52.4803
+    ],
+    "attribution": "© OpenStreetMap contributors, ODbL 1.0 (fixtures/dense, extract of 2026-08-06)",
+    "links": {
+      "maid": "?scene=dense#map=19/52.4803/13.4429",
+      "openStreetMap": "https://www.openstreetmap.org/#map=19/52.4803/13.4429",
+      "laneStudio": "https://lanestudio.marcelmarzec.com/editor/#map=19/52.4803/13.4429"
+    }
+  },
+  {
+    "id": "P05",
+    "title": "Hasenheide slip roads",
+    "shows": "secondary_link slip roads leaving and joining a main road.",
+    "file": "places/p05.json",
+    "centre": [
+      13.42154,
+      52.48718
+    ],
+    "attribution": "© OpenStreetMap contributors, ODbL 1.0 (fixtures/dense, extract of 2026-08-06)",
+    "links": {
+      "maid": "?scene=dense#map=19/52.48718/13.42154",
+      "openStreetMap": "https://www.openstreetmap.org/#map=19/52.48718/13.42154",
+      "laneStudio": "https://lanestudio.marcelmarzec.com/editor/#map=19/52.48718/13.42154"
+    }
+  },
+  {
+    "id": "P06",
+    "title": "Werbellinstraße links",
+    "shows": "tertiary_link ways at a junction of three roads.",
+    "file": "places/p06.json",
+    "centre": [
+      13.4285,
+      52.4778
+    ],
+    "attribution": "© OpenStreetMap contributors, ODbL 1.0 (fixtures/dense, extract of 2026-08-06)",
+    "links": {
+      "maid": "?scene=dense#map=19/52.4778/13.4285",
+      "openStreetMap": "https://www.openstreetmap.org/#map=19/52.4778/13.4285",
+      "laneStudio": "https://lanestudio.marcelmarzec.com/editor/#map=19/52.4778/13.4285"
+    }
+  },
+  {
+    "id": "P07",
+    "title": "A wide unmarked street meets a marked one",
+    "shows": "A residential carriageway tagged with its width goes on as a road with lanes and a cycle lane.",
+    "file": "places/p07.json",
+    "centre": [
+      13.43738,
+      52.48148
+    ],
+    "attribution": "© OpenStreetMap contributors, ODbL 1.0 (fixtures/dense, extract of 2026-08-06)",
+    "links": {
+      "maid": "?scene=dense#map=19/52.48148/13.43738",
+      "openStreetMap": "https://www.openstreetmap.org/#map=19/52.48148/13.43738",
+      "laneStudio": "https://lanestudio.marcelmarzec.com/editor/#map=19/52.48148/13.43738"
+    }
+  },
+  {
+    "id": "P08",
+    "title": "Flughafenstraße and Columbiadamm",
+    "shows": "Ways mapped off the middle of the road (placement), a junction of main roads.",
+    "file": "places/p08.json",
+    "centre": [
+      13.4215,
+      52.4804
+    ],
+    "attribution": "© OpenStreetMap contributors, ODbL 1.0 (fixtures/dense, extract of 2026-08-06)",
+    "links": {
+      "maid": "?scene=dense#map=19/52.4804/13.4215",
+      "openStreetMap": "https://www.openstreetmap.org/#map=19/52.4804/13.4215",
+      "laneStudio": "https://lanestudio.marcelmarzec.com/editor/#map=19/52.4804/13.4215"
+    }
+  }
+]

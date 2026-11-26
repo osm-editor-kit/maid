@@ -1,0 +1,2363 @@
+{
+ "nodes": {
+  "n26848451": {
+   "loc": [
+    13.4426655,
+    52.4803543
+   ],
+   "tags": {}
+  },
+  "n31259852": {
+   "loc": [
+    13.4427711,
+    52.4804385
+   ],
+   "tags": {}
+  },
+  "n6018034660": {
+   "loc": [
+    13.4426216,
+    52.4805114
+   ],
+   "tags": {
+    "button_operated": "no",
+    "check_date:traffic_signals:sound": "2026-05-02",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n9070888705": {
+   "loc": [
+    13.442591,
+    52.4805266
+   ],
+   "tags": {}
+  },
+  "n10967602296": {
+   "loc": [
+    13.4415783,
+    52.4810295
+   ],
+   "tags": {}
+  },
+  "n6346599275": {
+   "loc": [
+    13.4415319,
+    52.4810526
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n31261016": {
+   "loc": [
+    13.4414439,
+    52.4810961
+   ],
+   "tags": {}
+  },
+  "n10461614239": {
+   "loc": [
+    13.4395987,
+    52.4805155
+   ],
+   "tags": {}
+  },
+  "n5433785286": {
+   "loc": [
+    13.4400872,
+    52.4805959
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:buffer_marking": "both",
+    "crossing:buffer_protection": "right",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10967602292": {
+   "loc": [
+    13.4414358,
+    52.4808174
+   ],
+   "tags": {}
+  },
+  "n8949388140": {
+   "loc": [
+    13.4415085,
+    52.4808293
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n8325923784": {
+   "loc": [
+    13.4415276,
+    52.4808329
+   ],
+   "tags": {
+    "direction": "forward",
+    "highway": "give_way"
+   }
+  },
+  "n31258792": {
+   "loc": [
+    13.4415934,
+    52.4808811
+   ],
+   "tags": {}
+  },
+  "n31260397": {
+   "loc": [
+    13.443906,
+    52.479747
+   ],
+   "tags": {}
+  },
+  "n8108469616": {
+   "loc": [
+    13.4438509,
+    52.4797062
+   ],
+   "tags": {
+    "barrier": "kerb",
+    "kerb": "lowered"
+   }
+  },
+  "n6346643361": {
+   "loc": [
+    13.443816,
+    52.4796804
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:continuous": "yes",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "kerb": "flush",
+    "mapillary": "569622524711087",
+    "tactile_paving": "no"
+   }
+  },
+  "n6346643354": {
+   "loc": [
+    13.4437777,
+    52.479652
+   ],
+   "tags": {
+    "barrier": "kerb",
+    "kerb": "flush"
+   }
+  },
+  "n31259840": {
+   "loc": [
+    13.4411082,
+    52.4792157
+   ],
+   "tags": {}
+  },
+  "n7343167890": {
+   "loc": [
+    13.441189,
+    52.4792478
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:buffer_marking": "both",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n7343167887": {
+   "loc": [
+    13.4412585,
+    52.4792862
+   ],
+   "tags": {}
+  },
+  "n7926264626": {
+   "loc": [
+    13.4416355,
+    52.4795724
+   ],
+   "tags": {}
+  },
+  "n7993164857": {
+   "loc": [
+    13.4418545,
+    52.4797387
+   ],
+   "tags": {}
+  },
+  "n7340470675": {
+   "loc": [
+    13.4424045,
+    52.4801562
+   ],
+   "tags": {}
+  },
+  "n31357365": {
+   "loc": [
+    13.4452748,
+    52.4792162
+   ],
+   "tags": {}
+  },
+  "n6018099038": {
+   "loc": [
+    13.4451575,
+    52.4792641
+   ],
+   "tags": {
+    "button_operated": "no",
+    "check_date:traffic_signals:sound": "2026-06-16",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "kerb": "lowered",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n9071753234": {
+   "loc": [
+    13.4451272,
+    52.4792764
+   ],
+   "tags": {}
+  },
+  "n8089314748": {
+   "loc": [
+    13.444751,
+    52.4794621
+   ],
+   "tags": {}
+  },
+  "n8089314750": {
+   "loc": [
+    13.4442955,
+    52.479687
+   ],
+   "tags": {}
+  },
+  "n13130742269": {
+   "loc": [
+    13.4441448,
+    52.4797613
+   ],
+   "tags": {}
+  },
+  "n31259853": {
+   "loc": [
+    13.4436036,
+    52.4810917
+   ],
+   "tags": {}
+  },
+  "n9231245352": {
+   "loc": [
+    13.4437152,
+    52.4810371
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n11068697631": {
+   "loc": [
+    13.4437382,
+    52.4810259
+   ],
+   "tags": {}
+  },
+  "n7279582691": {
+   "loc": [
+    13.4445883,
+    52.4806111
+   ],
+   "tags": {}
+  },
+  "n7475845700": {
+   "loc": [
+    13.4456748,
+    52.4800815
+   ],
+   "tags": {}
+  },
+  "n11068697724": {
+   "loc": [
+    13.4460155,
+    52.4799148
+   ],
+   "tags": {}
+  },
+  "n9232992674": {
+   "loc": [
+    13.4460428,
+    52.4799014
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n2281046415": {
+   "loc": [
+    13.4461342,
+    52.4798567
+   ],
+   "tags": {}
+  },
+  "n7940022771": {
+   "loc": [
+    13.443102,
+    52.4807114
+   ],
+   "tags": {}
+  },
+  "n11068697623": {
+   "loc": [
+    13.4435188,
+    52.4810274
+   ],
+   "tags": {}
+  },
+  "n9232941575": {
+   "loc": [
+    13.4435492,
+    52.4810504
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n6343385386": {
+   "loc": [
+    13.4435694,
+    52.4810657
+   ],
+   "tags": {}
+  },
+  "n9232941578": {
+   "loc": [
+    13.4436753,
+    52.4811461
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n11068697620": {
+   "loc": [
+    13.443696,
+    52.4811617
+   ],
+   "tags": {}
+  },
+  "n6343392943": {
+   "loc": [
+    13.4439457,
+    52.4813511
+   ],
+   "tags": {}
+  },
+  "n11068697615": {
+   "loc": [
+    13.4442619,
+    52.4815908
+   ],
+   "tags": {}
+  },
+  "n7680586795": {
+   "loc": [
+    13.4442862,
+    52.4816092
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:kerb_extension": "right",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "partial"
+   }
+  },
+  "n7475281403": {
+   "loc": [
+    13.4443175,
+    52.481633
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing"
+   }
+  },
+  "n31259854": {
+   "loc": [
+    13.4443588,
+    52.4816643
+   ],
+   "tags": {}
+  },
+  "n7680586797": {
+   "loc": [
+    13.4444003,
+    52.4816958
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing"
+   }
+  },
+  "n7680520282": {
+   "loc": [
+    13.4444334,
+    52.4817209
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:kerb_extension": "right",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "partial"
+   }
+  },
+  "n11068697607": {
+   "loc": [
+    13.4444513,
+    52.4817344
+   ],
+   "tags": {}
+  },
+  "n11068648797": {
+   "loc": [
+    13.4450907,
+    52.4822192
+   ],
+   "tags": {}
+  },
+  "n68416988": {
+   "loc": [
+    13.4451732,
+    52.4822818
+   ],
+   "tags": {}
+  },
+  "n11068648792": {
+   "loc": [
+    13.4452518,
+    52.4823414
+   ],
+   "tags": {}
+  },
+  "n11068648804": {
+   "loc": [
+    13.4455862,
+    52.4825949
+   ],
+   "tags": {}
+  },
+  "n9231245390": {
+   "loc": [
+    13.4456034,
+    52.4826062
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n31259856": {
+   "loc": [
+    13.445676,
+    52.4826539
+   ],
+   "tags": {}
+  },
+  "n8010852505": {
+   "loc": [
+    13.4434149,
+    52.4795603
+   ],
+   "tags": {}
+  },
+  "n2276216298": {
+   "loc": [
+    13.4432718,
+    52.4796329
+   ],
+   "tags": {}
+  },
+  "n5396230736": {
+   "loc": [
+    13.443227,
+    52.4796418
+   ],
+   "tags": {}
+  },
+  "n5396230737": {
+   "loc": [
+    13.4431809,
+    52.4796395
+   ],
+   "tags": {}
+  },
+  "n5396230738": {
+   "loc": [
+    13.4431495,
+    52.4796299
+   ],
+   "tags": {}
+  },
+  "n5864772134": {
+   "loc": [
+    13.4430815,
+    52.4795763
+   ],
+   "tags": {}
+  },
+  "n5864772136": {
+   "loc": [
+    13.4429812,
+    52.4794989
+   ],
+   "tags": {}
+  },
+  "n5396230739": {
+   "loc": [
+    13.4429238,
+    52.4794546
+   ],
+   "tags": {}
+  },
+  "n5396230735": {
+   "loc": [
+    13.4429119,
+    52.4794295
+   ],
+   "tags": {}
+  },
+  "n5396230734": {
+   "loc": [
+    13.442916,
+    52.4794056
+   ],
+   "tags": {}
+  },
+  "n2276216173": {
+   "loc": [
+    13.4429353,
+    52.4793846
+   ],
+   "tags": {}
+  },
+  "n8010852525": {
+   "loc": [
+    13.4430787,
+    52.479312
+   ],
+   "tags": {}
+  },
+  "n9002246350": {
+   "loc": [
+    13.4431464,
+    52.4792771
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes"
+   }
+  },
+  "n5396230744": {
+   "loc": [
+    13.4431784,
+    52.4792606
+   ],
+   "tags": {}
+  },
+  "n2276216118": {
+   "loc": [
+    13.4432257,
+    52.4792363
+   ],
+   "tags": {}
+  },
+  "n12875867509": {
+   "loc": [
+    13.440892,
+    52.4812362
+   ],
+   "tags": {}
+  },
+  "n10967602298": {
+   "loc": [
+    13.4412083,
+    52.481074
+   ],
+   "tags": {}
+  },
+  "n6346599273": {
+   "loc": [
+    13.4412354,
+    52.48106
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:buffer_marking": "right",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n31261014": {
+   "loc": [
+    13.441335,
+    52.4810112
+   ],
+   "tags": {}
+  },
+  "n6346599276": {
+   "loc": [
+    13.4414216,
+    52.4809678
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10967602294": {
+   "loc": [
+    13.4414444,
+    52.4809562
+   ],
+   "tags": {}
+  },
+  "n9070926356": {
+   "loc": [
+    13.4423806,
+    52.4804869
+   ],
+   "tags": {}
+  },
+  "n6018034656": {
+   "loc": [
+    13.4424668,
+    52.4804439
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal",
+    "traffic_signals:direction": "forward"
+   }
+  },
+  "n6018034659": {
+   "loc": [
+    13.4425065,
+    52.480426
+   ],
+   "tags": {
+    "button_operated": "no",
+    "check_date:traffic_signals:sound": "2026-05-02",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n9232941574": {
+   "loc": [
+    13.443521,
+    52.481089
+   ],
+   "tags": {
+    "barrier": "kerb",
+    "kerb": "lowered"
+   }
+  },
+  "n9231245347": {
+   "loc": [
+    13.4434947,
+    52.4811016
+   ],
+   "tags": {}
+  },
+  "n6343385385": {
+   "loc": [
+    13.4434756,
+    52.4811107
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n2276216207": {
+   "loc": [
+    13.4435566,
+    52.4794884
+   ],
+   "tags": {}
+  },
+  "n2276216068": {
+   "loc": [
+    13.4430564,
+    52.4791229
+   ],
+   "tags": {}
+  },
+  "n10972153632": {
+   "loc": [
+    13.4422301,
+    52.4786262
+   ],
+   "tags": {}
+  },
+  "n8951129513": {
+   "loc": [
+    13.4422076,
+    52.4786127
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n1680040104": {
+   "loc": [
+    13.4421261,
+    52.4785638
+   ],
+   "tags": {}
+  },
+  "n7279582696": {
+   "loc": [
+    13.4444962,
+    52.480541
+   ],
+   "tags": {
+    "barrier": "gate",
+    "check_date": "2026-06-18",
+    "locked": "yes"
+   }
+  },
+  "n9232941582": {
+   "loc": [
+    13.4445136,
+    52.4805543
+   ],
+   "tags": {}
+  },
+  "n11068697633": {
+   "loc": [
+    13.4445315,
+    52.4805679
+   ],
+   "tags": {}
+  },
+  "n7282498309": {
+   "loc": [
+    13.4443832,
+    52.4804468
+   ],
+   "tags": {}
+  },
+  "n7282498312": {
+   "loc": [
+    13.4439857,
+    52.4801204
+   ],
+   "tags": {}
+  },
+  "n7282498311": {
+   "loc": [
+    13.4442514,
+    52.4803091
+   ],
+   "tags": {}
+  },
+  "n7282498315": {
+   "loc": [
+    13.444276,
+    52.4803518
+   ],
+   "tags": {}
+  },
+  "n7282498310": {
+   "loc": [
+    13.4442832,
+    52.4803643
+   ],
+   "tags": {}
+  },
+  "n1508797856": {
+   "loc": [
+    13.443859,
+    52.4800305
+   ],
+   "tags": {
+    "barrier": "gate",
+    "check_date": "2026-06-18",
+    "locked": "yes"
+   }
+  },
+  "n7282498313": {
+   "loc": [
+    13.4437536,
+    52.4799545
+   ],
+   "tags": {}
+  },
+  "n9070888675": {
+   "loc": [
+    13.4438082,
+    52.4799938
+   ],
+   "tags": {}
+  },
+  "n9232941569": {
+   "loc": [
+    13.4438414,
+    52.4800178
+   ],
+   "tags": {}
+  },
+  "n6018034658": {
+   "loc": [
+    13.4425348,
+    52.4802551
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal",
+    "traffic_signals:direction": "forward"
+   }
+  },
+  "n6018034664": {
+   "loc": [
+    13.4425658,
+    52.4802789
+   ],
+   "tags": {
+    "button_operated": "no",
+    "check_date:traffic_signals:sound": "2026-05-02",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n7926264625": {
+   "loc": [
+    13.4417387,
+    52.4795209
+   ],
+   "tags": {}
+  },
+  "n8951129495": {
+   "loc": [
+    13.441725,
+    52.4795277
+   ],
+   "tags": {}
+  },
+  "n10967602283": {
+   "loc": [
+    13.441691,
+    52.4795447
+   ],
+   "tags": {}
+  },
+  "n7926264627": {
+   "loc": [
+    13.4418875,
+    52.4794466
+   ],
+   "tags": {}
+  },
+  "n6018034663": {
+   "loc": [
+    13.4428689,
+    52.4805145
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "mapillary": "1794051597419318",
+    "survey:date": "2020-07-03",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no",
+    "wheelchair": "limited"
+   }
+  },
+  "n6018034657": {
+   "loc": [
+    13.44291,
+    52.4805464
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal",
+    "traffic_signals:direction": "backward"
+   }
+  },
+  "n11068697629": {
+   "loc": [
+    13.4430534,
+    52.4806594
+   ],
+   "tags": {}
+  },
+  "n7993164856": {
+   "loc": [
+    13.4419588,
+    52.4796876
+   ],
+   "tags": {}
+  },
+  "n8951129496": {
+   "loc": [
+    13.4419473,
+    52.4796932
+   ],
+   "tags": {}
+  },
+  "n10840047215": {
+   "loc": [
+    13.4419109,
+    52.4797111
+   ],
+   "tags": {
+    "amenity": "loading_ramp",
+    "description": "Überweg für den Transport von Mülltonnen, aber auch zur Nutzung für Eltern mit Kindern und Menschen im Rollstuhl",
+    "operator": "Berliner Stadtreinigung"
+   }
+  },
+  "n7993164855": {
+   "loc": [
+    13.4420962,
+    52.4796203
+   ],
+   "tags": {}
+  },
+  "n7993164858": {
+   "loc": [
+    13.4421508,
+    52.4795936
+   ],
+   "tags": {}
+  },
+  "n8010310893": {
+   "loc": [
+    13.4425697,
+    52.4792732
+   ],
+   "tags": {}
+  },
+  "n8010310899": {
+   "loc": [
+    13.4424336,
+    52.4791908
+   ],
+   "tags": {}
+  },
+  "n8010310894": {
+   "loc": [
+    13.4426248,
+    52.4793065
+   ],
+   "tags": {}
+  },
+  "n6018034662": {
+   "loc": [
+    13.4427867,
+    52.4802995
+   ],
+   "tags": {
+    "button_operated": "no",
+    "check_date:traffic_signals:sound": "2026-05-02",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n9070888687": {
+   "loc": [
+    13.4428178,
+    52.4802855
+   ],
+   "tags": {}
+  },
+  "n13130742270": {
+   "loc": [
+    13.4434528,
+    52.4799713
+   ],
+   "tags": {}
+  },
+  "n8089314751": {
+   "loc": [
+    13.4443967,
+    52.4797667
+   ],
+   "tags": {}
+  },
+  "n9232941570": {
+   "loc": [
+    13.4443815,
+    52.4797547
+   ],
+   "tags": {}
+  },
+  "n9070888677": {
+   "loc": [
+    13.444347,
+    52.4797275
+   ],
+   "tags": {}
+  },
+  "n8108477736": {
+   "loc": [
+    13.443221,
+    52.4802173
+   ],
+   "tags": {}
+  },
+  "n6018034655": {
+   "loc": [
+    13.4429292,
+    52.4803614
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal",
+    "traffic_signals:direction": "forward"
+   }
+  },
+  "n6018034661": {
+   "loc": [
+    13.44289,
+    52.4803805
+   ],
+   "tags": {
+    "button_operated": "no",
+    "check_date": "2026-05-02",
+    "check_date:traffic_signals:sound": "2026-05-02",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "image": "https://storage13.openstreetcam.org/files/photo/2020/7/29/lth/2829978_d6416_5f211935b74dc.jpg",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no",
+    "wheelchair": "yes"
+   }
+  },
+  "n8108477764": {
+   "loc": [
+    13.4421502,
+    52.4804842
+   ],
+   "tags": {}
+  },
+  "n8949388132": {
+   "loc": [
+    13.4421685,
+    52.4804984
+   ],
+   "tags": {}
+  },
+  "n10967602284": {
+   "loc": [
+    13.4422008,
+    52.4805233
+   ],
+   "tags": {}
+  },
+  "n8108477763": {
+   "loc": [
+    13.4422426,
+    52.4805557
+   ],
+   "tags": {}
+  },
+  "n9070888686": {
+   "loc": [
+    13.4434032,
+    52.4801274
+   ],
+   "tags": {}
+  },
+  "n5863290168": {
+   "loc": [
+    13.4439792,
+    52.4797107
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:buffer_marking": "right",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "kerb": "lowered",
+    "tactile_paving": "no"
+   }
+  },
+  "n8089314746": {
+   "loc": [
+    13.444454,
+    52.4794758
+   ],
+   "tags": {}
+  },
+  "n8063133010": {
+   "loc": [
+    13.4446914,
+    52.4793583
+   ],
+   "tags": {}
+  },
+  "n13130742271": {
+   "loc": [
+    13.4437139,
+    52.479842
+   ],
+   "tags": {}
+  },
+  "n10967602288": {
+   "loc": [
+    13.4417238,
+    52.4808145
+   ],
+   "tags": {}
+  },
+  "n5396230742": {
+   "loc": [
+    13.4435098,
+    52.4795121
+   ],
+   "tags": {}
+  },
+  "n9002246351": {
+   "loc": [
+    13.4434854,
+    52.4795245
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes"
+   }
+  },
+  "n10972153624": {
+   "loc": [
+    13.4434544,
+    52.4795402
+   ],
+   "tags": {}
+  },
+  "n6343385387": {
+   "loc": [
+    13.4432587,
+    52.4812149
+   ],
+   "tags": {}
+  },
+  "n13130742268": {
+   "loc": [
+    13.4438075,
+    52.4799278
+   ],
+   "tags": {}
+  },
+  "n5863290171": {
+   "loc": [
+    13.4440855,
+    52.4797906
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:kerb_extension": "right",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "kerb": "lowered",
+    "tactile_paving": "no"
+   }
+  },
+  "n268728321": {
+   "loc": [
+    13.4438922,
+    52.479886
+   ],
+   "tags": {
+    "bus": "yes",
+    "name": "Geygerstraße",
+    "public_transport": "stop_position",
+    "ref:BVG": "102113",
+    "website": "https://qr.bvg.de/h102113"
+   }
+  },
+  "n268728265": {
+   "loc": [
+    13.4436782,
+    52.4798597
+   ],
+   "tags": {
+    "bus": "yes",
+    "name": "Geygerstraße",
+    "public_transport": "stop_position",
+    "ref:BVG": "102094",
+    "website": "https://qr.bvg.de/h102094"
+   }
+  }
+ },
+ "ways": [
+  {
+   "id": "w36738530",
+   "nodes": [
+    "n26848451",
+    "n31259852"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Innstraße",
+    "name:etymology:wikidata": "Q14369",
+    "name:etymology:wikipedia": "de:Inn",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12045",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "13"
+   }
+  },
+  {
+   "id": "w36738535",
+   "nodes": [
+    "n31259852",
+    "n6018034660",
+    "n9070888705",
+    "n10967602296",
+    "n6346599275",
+    "n31261016"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "share_busway",
+    "cycleway:right:oneway": "yes",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lanes:psv": "1",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12045",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w71827680",
+   "nodes": [
+    "n10461614239",
+    "n5433785286",
+    "n10967602292",
+    "n8949388140",
+    "n8325923784",
+    "n31258792"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Anzengruberstraße",
+    "name:etymology:wikidata": "Q93718",
+    "name:etymology:wikipedia": "de:Ludwig Anzengruber",
+    "oneway": "yes",
+    "oneway:bicycle": "no",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:both:orientation": "parallel",
+    "parking:both:restriction:conditional": "no_stopping @ (May 15-Sep 15: Su 14:00-18:00)",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "vehicle:conditional": "no @ (May 15-Sep 15: Su 14:00-18:00)",
+    "width": "10"
+   }
+  },
+  {
+   "id": "w155605288",
+   "nodes": [
+    "n31260397",
+    "n8108469616",
+    "n6346643361",
+    "n6346643354"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Geygerstraße",
+    "name:etymology:wikidata": "Q878433",
+    "name:etymology:wikipedia": "de:Ernst Moritz Geyger",
+    "oneway": "yes",
+    "oneway:bicycle": "no",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "intermediate",
+    "source:width": "ALKIS",
+    "surface": "sett",
+    "width": "4.4"
+   }
+  },
+  {
+   "id": "w155605310",
+   "nodes": [
+    "n31259840",
+    "n7343167890",
+    "n7343167887",
+    "n7926264626",
+    "n7993164857",
+    "n7340470675"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Innstraße",
+    "name:etymology:wikidata": "Q14369",
+    "name:etymology:wikipedia": "de:Inn",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:left:access": "no",
+    "parking:left:motorcar": "designated",
+    "parking:left:orientation": "diagonal",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11"
+   }
+  },
+  {
+   "id": "w155605342",
+   "nodes": [
+    "n31357365",
+    "n6018099038",
+    "n9071753234",
+    "n8089314748",
+    "n8089314750",
+    "n13130742269"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "share_busway",
+    "cycleway:right:oneway": "yes",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lanes:psv": "1",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12059",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w168978745",
+   "nodes": [
+    "n31259853",
+    "n9231245352",
+    "n11068697631",
+    "n7279582691",
+    "n7475845700",
+    "n11068697724",
+    "n9232992674",
+    "n2281046415"
+   ],
+   "tags": {
+    "check_date": "2026-06-18",
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lane_markings": "no",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Stuttgarter Straße",
+    "name:etymology:wikidata": "Q1022",
+    "name:etymology:wikipedia": "de:Stuttgart",
+    "oneway": "no",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:left:orientation": "parallel",
+    "parking:right:orientation": "diagonal",
+    "postal_code": "12059",
+    "sidewalk:both": "separate",
+    "source:width": "ALKIS",
+    "surface": "sett",
+    "width": "11"
+   }
+  },
+  {
+   "id": "w182693863",
+   "nodes": [
+    "n7940022771",
+    "n11068697623",
+    "n9232941575",
+    "n6343385386",
+    "n31259853",
+    "n9232941578",
+    "n11068697620",
+    "n6343392943",
+    "n11068697615",
+    "n7680586795",
+    "n7475281403",
+    "n31259854",
+    "n7680586797",
+    "n7680520282",
+    "n11068697607",
+    "n11068648797",
+    "n68416988",
+    "n11068648792",
+    "n11068648804",
+    "n9231245390",
+    "n31259856"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Innstraße",
+    "name:etymology:wikidata": "Q14369",
+    "name:etymology:wikipedia": "de:Inn",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:left:orientation": "parallel",
+    "parking:right:orientation": "diagonal",
+    "parking:right:surface": "sett",
+    "postal_code": "12045",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:maxspeed": "DE:zone:30",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "surface:bicycle:forward": "sett",
+    "width": "11"
+   }
+  },
+  {
+   "id": "w218388490",
+   "nodes": [
+    "n8010852505",
+    "n2276216298",
+    "n5396230736",
+    "n5396230737",
+    "n5396230738",
+    "n5864772134",
+    "n5864772136",
+    "n5396230739",
+    "n5396230735",
+    "n5396230734",
+    "n2276216173",
+    "n8010852525",
+    "n9002246350",
+    "n5396230744",
+    "n2276216118"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "service",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Geygerstraße",
+    "name:etymology:wikidata": "Q878433",
+    "name:etymology:wikipedia": "de:Ernst Moritz Geyger",
+    "oneway": "yes",
+    "oneway:bicycle": "no",
+    "operator:type": "government",
+    "parking:left": "no",
+    "parking:left:restriction": "no_parking",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "intermediate",
+    "source:width": "aerial imagery",
+    "surface": "sett",
+    "width": "4.5"
+   }
+  },
+  {
+   "id": "w296102502",
+   "nodes": [
+    "n12875867509",
+    "n10967602298",
+    "n6346599273",
+    "n31261014",
+    "n6346599276",
+    "n10967602294",
+    "n31258792"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "no",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12045",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w495949636",
+   "nodes": [
+    "n9070926356",
+    "n6018034656",
+    "n6018034659",
+    "n26848451"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "placement": "right_of:2",
+    "postal_code": "12045",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "turn:lanes": "left|none|none",
+    "width": "11.5",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w677465949",
+   "nodes": [
+    "n6343385386",
+    "n9232941574",
+    "n9231245347",
+    "n6343385385"
+   ],
+   "tags": {
+    "emergency": "designated",
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w677809119",
+   "nodes": [
+    "n6346643354",
+    "n2276216207",
+    "n2276216118",
+    "n2276216068",
+    "n10972153632",
+    "n8951129513",
+    "n1680040104"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Geygerstraße",
+    "name:etymology:wikidata": "Q878433",
+    "name:etymology:wikipedia": "de:Ernst Moritz Geyger",
+    "oneway": "yes",
+    "oneway:bicycle": "no",
+    "parking:left": "separate",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "6.5"
+   }
+  },
+  {
+   "id": "w779561193",
+   "nodes": [
+    "n7279582696",
+    "n9232941582",
+    "n11068697633",
+    "n7279582691"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w779926439",
+   "nodes": [
+    "n7282498309",
+    "n7279582696"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "maxweight": "16",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w779926440",
+   "nodes": [
+    "n7282498312",
+    "n7282498311",
+    "n7282498315",
+    "n7282498310",
+    "n7282498309"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "maxweight": "16",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w779926441",
+   "nodes": [
+    "n1508797856",
+    "n7282498312"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "maxweight": "16",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w779926442",
+   "nodes": [
+    "n7282498313",
+    "n9070888675",
+    "n9232941569",
+    "n1508797856"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w785350791",
+   "nodes": [
+    "n7340470675",
+    "n6018034658",
+    "n6018034664",
+    "n26848451"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Innstraße",
+    "name:etymology:wikidata": "Q14369",
+    "name:etymology:wikipedia": "de:Inn",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:both:orientation": "parallel",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11"
+   }
+  },
+  {
+   "id": "w849586666",
+   "nodes": [
+    "n7926264625",
+    "n8951129495",
+    "n10967602283",
+    "n7926264626"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w849586667",
+   "nodes": [
+    "n7926264627",
+    "n7926264625"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w851293903",
+   "nodes": [
+    "n31259852",
+    "n6018034663",
+    "n6018034657",
+    "n11068697629",
+    "n7940022771"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Innstraße",
+    "name:etymology:wikidata": "Q14369",
+    "name:etymology:wikipedia": "de:Inn",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:both:orientation": "parallel",
+    "postal_code": "12045",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:maxspeed": "DE:zone:30",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11"
+   }
+  },
+  {
+   "id": "w857323610",
+   "nodes": [
+    "n7993164856",
+    "n8951129496",
+    "n10840047215",
+    "n7993164857"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w857323611",
+   "nodes": [
+    "n7993164855",
+    "n7993164856"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w857323612",
+   "nodes": [
+    "n7993164858",
+    "n7993164855"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w859345123",
+   "nodes": [
+    "n8010310893",
+    "n8010310899"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w859345124",
+   "nodes": [
+    "n8010310894",
+    "n8010310893"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w865069705",
+   "nodes": [
+    "n26848451",
+    "n6018034662",
+    "n9070888687",
+    "n13130742270"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:authentication:disc:conditional": "yes @ (Mo-Fr 09:00-18:00; Sa 09:00-14:00)",
+    "parking:right:fee": "no",
+    "parking:right:maxstay:conditional": "2 hours @ (Mo-Fr 09:00-18:00; Sa 09:00-14:00)",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12059",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w867854445",
+   "nodes": [
+    "n8089314751",
+    "n9232941570",
+    "n9070888677",
+    "n8089314750"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w870399667",
+   "nodes": [
+    "n8108477736",
+    "n6018034655",
+    "n6018034661",
+    "n31259852"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "share_busway",
+    "cycleway:right:oneway": "yes",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "4",
+    "lanes:psv": "1",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "placement": "right_of:2",
+    "postal_code": "12059",
+    "psv:lanes": "yes|yes|designated|yes",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "turn:lanes": "left|through|none|right",
+    "width": "11.5",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w870399683",
+   "nodes": [
+    "n8108477764",
+    "n8949388132",
+    "n10967602284",
+    "n8108477763"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w980614301",
+   "nodes": [
+    "n9070888686",
+    "n8108477736"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "share_busway",
+    "cycleway:right:oneway": "yes",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:psv": "1",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "placement": "right_of:1",
+    "postal_code": "12059",
+    "psv:lanes": "yes|designated|yes",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w980614302",
+   "nodes": [
+    "n31260397",
+    "n5863290168",
+    "n8089314746",
+    "n8063133010"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:authentication:disc:conditional": "yes @ (Mo-Fr 09:00-18:00; Sa 09:00-14:00)",
+    "parking:right:fee": "no",
+    "parking:right:maxstay:conditional": "2 hours @ (Mo-Fr 09:00-18:00; Sa 09:00-14:00)",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12059",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w980614303",
+   "nodes": [
+    "n13130742271",
+    "n31260397"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "parking:right:restriction:conditional": "no_parking @ (Mo-Fr 09:00-18:00; Sa 09:00-14:00)",
+    "postal_code": "12059",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w980614320",
+   "nodes": [
+    "n31258792",
+    "n10967602288",
+    "n8108477763",
+    "n9070926356"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "no",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12045",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "7.5",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w1024880607",
+   "nodes": [
+    "n2276216207",
+    "n5396230742",
+    "n9002246351",
+    "n10972153624",
+    "n8010852505"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "service",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Geygerstraße",
+    "name:etymology:wikidata": "Q878433",
+    "name:etymology:wikipedia": "de:Ernst Moritz Geyger",
+    "oneway": "yes",
+    "oneway:bicycle": "no",
+    "operator:type": "government",
+    "parking:left": "no",
+    "parking:left:restriction": "no_parking",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "parking:right:restriction:conditional": "no_parking @ (We 07:00-17:00)",
+    "sidewalk:right": "separate",
+    "smoothness": "intermediate",
+    "source:width": "aerial imagery",
+    "surface": "sett",
+    "width": "4.5"
+   }
+  },
+  {
+   "id": "w1024884232",
+   "nodes": [
+    "n6343385385",
+    "n6343385387"
+   ],
+   "tags": {
+    "access": "private",
+    "emergency": "designated",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w1428270126",
+   "nodes": [
+    "n13130742268",
+    "n7282498313",
+    "n9070888686"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "share_busway",
+    "cycleway:right:oneway": "yes",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lanes:psv": "1",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12059",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w1428270127",
+   "nodes": [
+    "n13130742269",
+    "n5863290171",
+    "n268728321",
+    "n13130742268"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "share_busway",
+    "cycleway:right:oneway": "yes",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lanes:psv": "1",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "bus_stop",
+    "postal_code": "12059",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w1428270128",
+   "nodes": [
+    "n13130742270",
+    "n268728265",
+    "n13130742271"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "bus_stop",
+    "postal_code": "12059",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  }
+ ]
+}

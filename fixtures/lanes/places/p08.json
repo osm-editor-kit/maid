@@ -1,0 +1,2383 @@
+{
+ "nodes": {
+  "n8089332871": {
+   "loc": [
+    13.4221519,
+    52.4804303
+   ],
+   "tags": {}
+  },
+  "n3357557587": {
+   "loc": [
+    13.4218828,
+    52.4804001
+   ],
+   "tags": {
+    "bench": "no",
+    "bin": "yes",
+    "bus": "yes",
+    "disused:highway": "bus_stop",
+    "disused:public_transport": "stop_position",
+    "disused:ref:BVG": "102389",
+    "lit": "yes",
+    "name": "Fontanestraße/Flughafenstraße",
+    "shelter": "no",
+    "tactile_paving": "no",
+    "website": "https://qr.bvg.de/h102389"
+   }
+  },
+  "n5721749160": {
+   "loc": [
+    13.4217601,
+    52.4803863
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n28095233": {
+   "loc": [
+    13.4211244,
+    52.4803149
+   ],
+   "tags": {}
+  },
+  "n5403899661": {
+   "loc": [
+    13.4209306,
+    52.4802916
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n8920464485": {
+   "loc": [
+    13.420893,
+    52.4802873
+   ],
+   "tags": {}
+  },
+  "n3357557586": {
+   "loc": [
+    13.4204379,
+    52.4802327
+   ],
+   "tags": {
+    "bench": "yes",
+    "bin": "yes",
+    "bus": "yes",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "name": "Fontanestraße/Flughafenstraße",
+    "public_transport": "stop_position",
+    "ref:BVG": "100232",
+    "shelter": "yes",
+    "tactile_paving": "yes",
+    "website": "https://qr.bvg.de/h100232"
+   }
+  },
+  "n331527049": {
+   "loc": [
+    13.4201875,
+    52.4802003
+   ],
+   "tags": {}
+  },
+  "n28095228": {
+   "loc": [
+    13.4211625,
+    52.4802001
+   ],
+   "tags": {}
+  },
+  "n5403899664": {
+   "loc": [
+    13.4212939,
+    52.4802121
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n10827050434": {
+   "loc": [
+    13.4213317,
+    52.4802164
+   ],
+   "tags": {}
+  },
+  "n3357557585": {
+   "loc": [
+    13.4216257,
+    52.4802495
+   ],
+   "tags": {
+    "bench": "yes",
+    "bin": "yes",
+    "bus": "yes",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "name": "Fontanestraße/Flughafenstraße",
+    "public_transport": "stop_position",
+    "ref:BVG": "100954",
+    "shelter": "yes",
+    "tactile_paving": "yes",
+    "website": "https://qr.bvg.de/h100954"
+   }
+  },
+  "n1918390886": {
+   "loc": [
+    13.4216505,
+    52.4802522
+   ],
+   "tags": {}
+  },
+  "n821551878": {
+   "loc": [
+    13.4216142,
+    52.4803699
+   ],
+   "tags": {}
+  },
+  "n10827050427": {
+   "loc": [
+    13.4215184,
+    52.4803591
+   ],
+   "tags": {}
+  },
+  "n5721749159": {
+   "loc": [
+    13.4213233,
+    52.4803372
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n5403899662": {
+   "loc": [
+    13.4212608,
+    52.4803302
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n821551864": {
+   "loc": [
+    13.4229077,
+    52.4803938
+   ],
+   "tags": {
+    "bench": "yes",
+    "bin": "yes",
+    "bus": "yes",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "name": "Weisestraße",
+    "note": "Endhaltestelle 166",
+    "public_transport": "stop_position",
+    "ref:BVG": "101500",
+    "shelter": "yes",
+    "tactile_paving": "yes",
+    "website": "https://qr.bvg.de/h101500"
+   }
+  },
+  "n10827050419": {
+   "loc": [
+    13.423035,
+    52.4804081
+   ],
+   "tags": {}
+  },
+  "n3357557588": {
+   "loc": [
+    13.4231279,
+    52.4804186
+   ],
+   "tags": {
+    "bench": "yes",
+    "bin": "yes",
+    "bus": "yes",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "name": "Weisestraße",
+    "note": "Start 166",
+    "public_transport": "stop_position",
+    "ref:BVG": "102391",
+    "shelter": "yes",
+    "tactile_paving": "yes",
+    "website": "https://qr.bvg.de/h102391"
+   }
+  },
+  "n28095223": {
+   "loc": [
+    13.4213124,
+    52.4796158
+   ],
+   "tags": {}
+  },
+  "n7036605043": {
+   "loc": [
+    13.4213311,
+    52.4795541
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:buffer_marking": "left",
+    "crossing:buffer_protection": "both",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10827050492": {
+   "loc": [
+    13.4213375,
+    52.4795334
+   ],
+   "tags": {}
+  },
+  "n8565029946": {
+   "loc": [
+    13.4214202,
+    52.4792645
+   ],
+   "tags": {}
+  },
+  "n7717153234": {
+   "loc": [
+    13.4214644,
+    52.4791209
+   ],
+   "tags": {}
+  },
+  "n7717153232": {
+   "loc": [
+    13.4214817,
+    52.4790648
+   ],
+   "tags": {}
+  },
+  "n10827050538": {
+   "loc": [
+    13.4215343,
+    52.4788934
+   ],
+   "tags": {}
+  },
+  "n7729221638": {
+   "loc": [
+    13.4215422,
+    52.4788675
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:buffer_marking": "both",
+    "crossing:buffer_protection": "both",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10827050536": {
+   "loc": [
+    13.4215451,
+    52.4788582
+   ],
+   "tags": {}
+  },
+  "n28097073": {
+   "loc": [
+    13.4215837,
+    52.4787324
+   ],
+   "tags": {}
+  },
+  "n28095671": {
+   "loc": [
+    13.4210644,
+    52.4818761
+   ],
+   "tags": {}
+  },
+  "n5141514846": {
+   "loc": [
+    13.4210264,
+    52.481814
+   ],
+   "tags": {}
+  },
+  "n7604848118": {
+   "loc": [
+    13.421037,
+    52.4813362
+   ],
+   "tags": {}
+  },
+  "n8883386256": {
+   "loc": [
+    13.421045,
+    52.4809775
+   ],
+   "tags": {}
+  },
+  "n7147231643": {
+   "loc": [
+    13.4210633,
+    52.480921
+   ],
+   "tags": {}
+  },
+  "n28095248": {
+   "loc": [
+    13.4196644,
+    52.4794287
+   ],
+   "tags": {}
+  },
+  "n7729221943": {
+   "loc": [
+    13.4197723,
+    52.4794409
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:buffer_marking": "left",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10827050493": {
+   "loc": [
+    13.4211533,
+    52.4795967
+   ],
+   "tags": {}
+  },
+  "n7036605044": {
+   "loc": [
+    13.421175,
+    52.4795991
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:buffer_marking": "both",
+    "crossing:buffer_protection": "both",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10827050489": {
+   "loc": [
+    13.4212219,
+    52.4796048
+   ],
+   "tags": {}
+  },
+  "n5214782112": {
+   "loc": [
+    13.4197843,
+    52.4801409
+   ],
+   "tags": {}
+  },
+  "n28095511": {
+   "loc": [
+    13.4193387,
+    52.4800614
+   ],
+   "tags": {}
+  },
+  "n10827050433": {
+   "loc": [
+    13.4216365,
+    52.4802977
+   ],
+   "tags": {}
+  },
+  "n3357557589": {
+   "loc": [
+    13.423598,
+    52.4804701
+   ],
+   "tags": {}
+  },
+  "n7036605042": {
+   "loc": [
+    13.4214427,
+    52.4796304
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:buffer_marking": "both",
+    "crossing:buffer_protection": "both",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10827050470": {
+   "loc": [
+    13.4214705,
+    52.4796335
+   ],
+   "tags": {}
+  },
+  "n10560277496": {
+   "loc": [
+    13.422147,
+    52.479709
+   ],
+   "tags": {}
+  },
+  "n28095188": {
+   "loc": [
+    13.4231917,
+    52.4798392
+   ],
+   "tags": {}
+  },
+  "n10827050458": {
+   "loc": [
+    13.4231771,
+    52.4798858
+   ],
+   "tags": {}
+  },
+  "n7729221962": {
+   "loc": [
+    13.4231694,
+    52.4799102
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10827050466": {
+   "loc": [
+    13.423166,
+    52.4799213
+   ],
+   "tags": {}
+  },
+  "n10560281263": {
+   "loc": [
+    13.4231148,
+    52.4800892
+   ],
+   "tags": {}
+  },
+  "n10560281262": {
+   "loc": [
+    13.4231063,
+    52.4801171
+   ],
+   "tags": {}
+  },
+  "n6409811627": {
+   "loc": [
+    13.4206499,
+    52.4801468
+   ],
+   "tags": {}
+  },
+  "n5721749158": {
+   "loc": [
+    13.4208999,
+    52.4801748
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n5403899663": {
+   "loc": [
+    13.4209638,
+    52.480182
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n5214782111": {
+   "loc": [
+    13.4198097,
+    52.4800554
+   ],
+   "tags": {}
+  },
+  "n11272130627": {
+   "loc": [
+    13.419984,
+    52.4800708
+   ],
+   "tags": {}
+  },
+  "n2850710344": {
+   "loc": [
+    13.4202449,
+    52.4801
+   ],
+   "tags": {}
+  },
+  "n7727250463": {
+   "loc": [
+    13.4220603,
+    52.4802984
+   ],
+   "tags": {}
+  },
+  "n7147231655": {
+   "loc": [
+    13.4208425,
+    52.4809727
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate",
+    "emergency": "designated"
+   }
+  },
+  "n8883359321": {
+   "loc": [
+    13.4208637,
+    52.4809732
+   ],
+   "tags": {}
+  },
+  "n8089307815": {
+   "loc": [
+    13.4209132,
+    52.4809744
+   ],
+   "tags": {}
+  },
+  "n7247796877": {
+   "loc": [
+    13.4225751,
+    52.4804778
+   ],
+   "tags": {}
+  },
+  "n7247796878": {
+   "loc": [
+    13.422391,
+    52.4804571
+   ],
+   "tags": {}
+  },
+  "n7247796879": {
+   "loc": [
+    13.4233841,
+    52.4805686
+   ],
+   "tags": {}
+  },
+  "n10827050416": {
+   "loc": [
+    13.4230002,
+    52.4805255
+   ],
+   "tags": {}
+  },
+  "n7466844960": {
+   "loc": [
+    13.422321,
+    52.479653
+   ],
+   "tags": {}
+  },
+  "n7729221660": {
+   "loc": [
+    13.4223176,
+    52.4796644
+   ],
+   "tags": {}
+  },
+  "n7737284412": {
+   "loc": [
+    13.4223106,
+    52.4796881
+   ],
+   "tags": {}
+  },
+  "n7466844967": {
+   "loc": [
+    13.4222994,
+    52.479726
+   ],
+   "tags": {}
+  },
+  "n7466844961": {
+   "loc": [
+    13.4223541,
+    52.4795412
+   ],
+   "tags": {}
+  },
+  "n7466844965": {
+   "loc": [
+    13.4219966,
+    52.4793798
+   ],
+   "tags": {}
+  },
+  "n7466844964": {
+   "loc": [
+    13.4222122,
+    52.4794049
+   ],
+   "tags": {}
+  },
+  "n7466844968": {
+   "loc": [
+    13.422387,
+    52.4794253
+   ],
+   "tags": {}
+  },
+  "n7466844951": {
+   "loc": [
+    13.4223586,
+    52.4795253
+   ],
+   "tags": {}
+  },
+  "n7604848117": {
+   "loc": [
+    13.4212209,
+    52.4813395
+   ],
+   "tags": {}
+  },
+  "n8883359288": {
+   "loc": [
+    13.4211661,
+    52.4813385
+   ],
+   "tags": {}
+  },
+  "n8891985247": {
+   "loc": [
+    13.4211191,
+    52.4813376
+   ],
+   "tags": {}
+  },
+  "n7604848116": {
+   "loc": [
+    13.4214565,
+    52.481369
+   ],
+   "tags": {}
+  },
+  "n7626235428": {
+   "loc": [
+    13.4238029,
+    52.481733
+   ],
+   "tags": {}
+  },
+  "n7626235421": {
+   "loc": [
+    13.4233261,
+    52.4816785
+   ],
+   "tags": {}
+  },
+  "n7626235423": {
+   "loc": [
+    13.4230493,
+    52.4816468
+   ],
+   "tags": {}
+  },
+  "n7626235424": {
+   "loc": [
+    13.4229301,
+    52.4816107
+   ],
+   "tags": {}
+  },
+  "n7626235425": {
+   "loc": [
+    13.4227302,
+    52.4815874
+   ],
+   "tags": {}
+  },
+  "n7626235426": {
+   "loc": [
+    13.4225595,
+    52.4815444
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n7604848119": {
+   "loc": [
+    13.4217315,
+    52.4814459
+   ],
+   "tags": {}
+  },
+  "n7727250464": {
+   "loc": [
+    13.4220946,
+    52.4801761
+   ],
+   "tags": {
+    "barrier": "gate"
+   }
+  },
+  "n7729222053": {
+   "loc": [
+    13.4220901,
+    52.4801922
+   ],
+   "tags": {}
+  },
+  "n7729222052": {
+   "loc": [
+    13.4220835,
+    52.4802156
+   ],
+   "tags": {}
+  },
+  "n8832418661": {
+   "loc": [
+    13.4220727,
+    52.4802542
+   ],
+   "tags": {}
+  },
+  "n9321942226": {
+   "loc": [
+    13.4210706,
+    52.4805671
+   ],
+   "tags": {
+    "direction": "181",
+    "hazard:backward": "children",
+    "road_marking:backward": "traffic_sign",
+    "traffic_sign": "DE:136-10"
+   }
+  },
+  "n5721749161": {
+   "loc": [
+    13.4210726,
+    52.4804711
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals:direction": "forward"
+   }
+  },
+  "n5403899660": {
+   "loc": [
+    13.4210853,
+    52.4804329
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n7729222120": {
+   "loc": [
+    13.4211005,
+    52.4803868
+   ],
+   "tags": {}
+  },
+  "n7727250462": {
+   "loc": [
+    13.4221181,
+    52.4800998
+   ],
+   "tags": {}
+  },
+  "n8089332835": {
+   "loc": [
+    13.4215742,
+    52.4805066
+   ],
+   "tags": {}
+  },
+  "n8880490579": {
+   "loc": [
+    13.4215794,
+    52.480489
+   ],
+   "tags": {}
+  },
+  "n8089307802": {
+   "loc": [
+    13.4215903,
+    52.4804516
+   ],
+   "tags": {}
+  },
+  "n8883359272": {
+   "loc": [
+    13.4215965,
+    52.4804302
+   ],
+   "tags": {}
+  },
+  "n8089332834": {
+   "loc": [
+    13.421548,
+    52.4805966
+   ],
+   "tags": {}
+  },
+  "n8089332836": {
+   "loc": [
+    13.4217072,
+    52.4806924
+   ],
+   "tags": {}
+  },
+  "n8089332837": {
+   "loc": [
+    13.4215255,
+    52.4806724
+   ],
+   "tags": {}
+  },
+  "n8089332869": {
+   "loc": [
+    13.4220885,
+    52.4806644
+   ],
+   "tags": {}
+  },
+  "n8089332872": {
+   "loc": [
+    13.4221118,
+    52.4805669
+   ],
+   "tags": {}
+  },
+  "n8089332873": {
+   "loc": [
+    13.4220666,
+    52.4807559
+   ],
+   "tags": {}
+  },
+  "n8880490580": {
+   "loc": [
+    13.4221168,
+    52.4805499
+   ],
+   "tags": {}
+  },
+  "n8089332870": {
+   "loc": [
+    13.4221279,
+    52.4805119
+   ],
+   "tags": {}
+  },
+  "n8883359271": {
+   "loc": [
+    13.4221341,
+    52.4804906
+   ],
+   "tags": {}
+  },
+  "n8565029945": {
+   "loc": [
+    13.4218579,
+    52.4794313
+   ],
+   "tags": {}
+  },
+  "n8565029947": {
+   "loc": [
+    13.4217286,
+    52.4792967
+   ],
+   "tags": {}
+  },
+  "n7717585560": {
+   "loc": [
+    13.4215788,
+    52.479281
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n8614775286": {
+   "loc": [
+    13.4206695,
+    52.480955
+   ],
+   "tags": {}
+  },
+  "n8614775284": {
+   "loc": [
+    13.420584,
+    52.4811472
+   ],
+   "tags": {}
+  },
+  "n8614775285": {
+   "loc": [
+    13.4205741,
+    52.4807806
+   ],
+   "tags": {}
+  },
+  "n8614775287": {
+   "loc": [
+    13.4207536,
+    52.4809706
+   ],
+   "tags": {}
+  },
+  "n9288256572": {
+   "loc": [
+    13.421195,
+    52.4799906
+   ],
+   "tags": {}
+  },
+  "n14017302934": {
+   "loc": [
+    13.4212156,
+    52.4800397
+   ],
+   "tags": {}
+  },
+  "n5721749157": {
+   "loc": [
+    13.4212088,
+    52.4800603
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals:direction": "forward"
+   }
+  },
+  "n5214782088": {
+   "loc": [
+    13.4211972,
+    52.4800952
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n7729222108": {
+   "loc": [
+    13.4211815,
+    52.4801425
+   ],
+   "tags": {}
+  },
+  "n9288256579": {
+   "loc": [
+    13.4213708,
+    52.4799557
+   ],
+   "tags": {}
+  },
+  "n9288256576": {
+   "loc": [
+    13.4213417,
+    52.4799525
+   ],
+   "tags": {}
+  },
+  "n9288256577": {
+   "loc": [
+    13.4212979,
+    52.4799477
+   ],
+   "tags": {}
+  },
+  "n9288256578": {
+   "loc": [
+    13.4212116,
+    52.4799382
+   ],
+   "tags": {}
+  },
+  "n28095411": {
+   "loc": [
+    13.4230753,
+    52.4802182
+   ],
+   "tags": {
+    "highway": "turning_circle"
+   }
+  },
+  "n10560281264": {
+   "loc": [
+    13.4232525,
+    52.4801053
+   ],
+   "tags": {}
+  },
+  "n10560281261": {
+   "loc": [
+    13.4232329,
+    52.480103
+   ],
+   "tags": {}
+  },
+  "n10827050457": {
+   "loc": [
+    13.4231939,
+    52.4800984
+   ],
+   "tags": {}
+  },
+  "n10560277497": {
+   "loc": [
+    13.4223782,
+    52.4797348
+   ],
+   "tags": {}
+  },
+  "n10827050478": {
+   "loc": [
+    13.4230414,
+    52.4798089
+   ],
+   "tags": {}
+  },
+  "n4442805413": {
+   "loc": [
+    13.4230787,
+    52.4798131
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n11272130628": {
+   "loc": [
+    13.420021,
+    52.4799411
+   ],
+   "tags": {}
+  },
+  "n11272130623": {
+   "loc": [
+    13.4200115,
+    52.4799745
+   ],
+   "tags": {}
+  },
+  "n11272130626": {
+   "loc": [
+    13.419995,
+    52.4800323
+   ],
+   "tags": {}
+  },
+  "n7036605045": {
+   "loc": [
+    13.4212873,
+    52.4796986
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:buffer_marking": "left",
+    "crossing:buffer_protection": "left",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10827050435": {
+   "loc": [
+    13.4212809,
+    52.479719
+   ],
+   "tags": {}
+  }
+ },
+ "ways": [
+  {
+   "id": "w4579853",
+   "nodes": [
+    "n8089332871",
+    "n3357557587",
+    "n5721749160"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "change:lanes": "yes|not_right|no",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:bus": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "name": "Flughafenstraße",
+    "name:etymology:wikidata": "Q9686",
+    "name:etymology:wikipedia": "de:Flughafen Berlin-Tempelhof",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "placement": "left_of:2",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10",
+    "wikidata": "Q66545505"
+   }
+  },
+  {
+   "id": "w10996029",
+   "nodes": [
+    "n28095233",
+    "n5403899661",
+    "n8920464485",
+    "n3357557586",
+    "n331527049"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Columbiadamm",
+    "name:etymology:wikidata": "Q815800",
+    "name:etymology:wikipedia": "de:Wright-Bellanca WB-2",
+    "oneway": "yes",
+    "parking:left": "separate",
+    "parking:right": "no",
+    "parking:right:restriction": "no_stopping",
+    "placement": "right_of:1",
+    "postal_code": "10965",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1112613",
+    "wikipedia": "de:Columbiadamm"
+   }
+  },
+  {
+   "id": "w10996053",
+   "nodes": [
+    "n28095228",
+    "n5403899664",
+    "n10827050434",
+    "n3357557585",
+    "n1918390886"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "name": "Flughafenstraße",
+    "name:etymology:wikidata": "Q9686",
+    "name:etymology:wikipedia": "de:Flughafen Berlin-Tempelhof",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10",
+    "wikidata": "Q66545505"
+   }
+  },
+  {
+   "id": "w68189544",
+   "nodes": [
+    "n5721749160",
+    "n821551878",
+    "n10827050427",
+    "n5721749159",
+    "n5403899662",
+    "n28095233"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "name": "Flughafenstraße",
+    "name:etymology:wikidata": "Q9686",
+    "name:etymology:wikipedia": "de:Flughafen Berlin-Tempelhof",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "placement": "right_of:1",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10",
+    "wikidata": "Q66545505"
+   }
+  },
+  {
+   "id": "w68189545",
+   "nodes": [
+    "n821551864",
+    "n10827050419",
+    "n3357557588"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "name": "Flughafenstraße",
+    "name:etymology:wikidata": "Q9686",
+    "name:etymology:wikipedia": "de:Flughafen Berlin-Tempelhof",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10",
+    "wikidata": "Q66545505"
+   }
+  },
+  {
+   "id": "w155605282",
+   "nodes": [
+    "n28095223",
+    "n7036605043",
+    "n10827050492",
+    "n8565029946",
+    "n7717153234",
+    "n7717153232",
+    "n10827050538",
+    "n7729221638",
+    "n10827050536",
+    "n28097073"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Fontanestraße",
+    "name:etymology:wikidata": "Q76632",
+    "name:etymology:wikipedia": "de:Theodor Fontane",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:both:orientation": "parallel",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "12",
+    "wikidata": "Q105971151"
+   }
+  },
+  {
+   "id": "w155605283",
+   "nodes": [
+    "n28095671",
+    "n5141514846",
+    "n7604848118",
+    "n8883386256",
+    "n7147231643"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "motor_vehicle": "destination",
+    "name": "Fontanestraße",
+    "name:etymology:wikidata": "Q76632",
+    "name:etymology:wikipedia": "de:Theodor Fontane",
+    "parking:left": "lane",
+    "parking:left:fee": "yes",
+    "parking:left:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:left:orientation": "parallel",
+    "parking:left:zone": "100",
+    "parking:right": "separate",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q105971151"
+   }
+  },
+  {
+   "id": "w155605328",
+   "nodes": [
+    "n28095248",
+    "n7729221943",
+    "n10827050493",
+    "n7036605044",
+    "n10827050489",
+    "n28095223"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Mahlower Straße",
+    "name:etymology:wikidata": "Q574128",
+    "name:etymology:wikipedia": "de:Blankenfelde-Mahlow",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:left:orientation": "diagonal",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "bad",
+    "source:width": "ALKIS",
+    "surface": "sett",
+    "width": "11",
+    "wikidata": "Q105971172"
+   }
+  },
+  {
+   "id": "w181407585",
+   "nodes": [
+    "n331527049",
+    "n5214782112",
+    "n28095511"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Columbiadamm",
+    "name:etymology:wikidata": "Q815800",
+    "name:etymology:wikipedia": "de:Wright-Bellanca WB-2",
+    "oneway": "yes",
+    "parking:both": "separate",
+    "postal_code": "10965",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1112613",
+    "wikipedia": "de:Columbiadamm"
+   }
+  },
+  {
+   "id": "w181407587",
+   "nodes": [
+    "n821551878",
+    "n10827050433",
+    "n1918390886"
+   ],
+   "tags": {
+    "cycleway:right": "no",
+    "foot": "no",
+    "highway": "secondary_link",
+    "lane_markings": "no",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "name": "Flughafenstraße",
+    "name:etymology:wikidata": "Q9686",
+    "name:etymology:wikipedia": "de:Flughafen Berlin-Tempelhof",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "sidewalk": "no",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10.4",
+    "wikidata": "Q66545505"
+   }
+  },
+  {
+   "id": "w281053466",
+   "nodes": [
+    "n28095233",
+    "n28095228"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lane_markings": "no",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Fontanestraße",
+    "name:etymology:wikidata": "Q76632",
+    "name:etymology:wikipedia": "de:Theodor Fontane",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "12",
+    "wikidata": "Q105971151"
+   }
+  },
+  {
+   "id": "w329019784",
+   "nodes": [
+    "n3357557588",
+    "n3357557589"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "name": "Flughafenstraße",
+    "name:etymology:wikidata": "Q9686",
+    "name:etymology:wikipedia": "de:Flughafen Berlin-Tempelhof",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10",
+    "wikidata": "Q66545505"
+   }
+  },
+  {
+   "id": "w404275281",
+   "nodes": [
+    "n28095223",
+    "n7036605042",
+    "n10827050470",
+    "n10560277496"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Mahlower Straße",
+    "name:etymology:wikidata": "Q574128",
+    "name:etymology:wikipedia": "de:Blankenfelde-Mahlow",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:both:surface": "sett",
+    "parking:left:orientation": "diagonal",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11",
+    "wikidata": "Q105971172"
+   }
+  },
+  {
+   "id": "w612732743",
+   "nodes": [
+    "n28095188",
+    "n10827050458",
+    "n7729221962",
+    "n10827050466",
+    "n10560281263",
+    "n10560281262"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Weisestraße",
+    "name:etymology:wikidata": "Q1380912",
+    "name:etymology:wikipedia": "de:Karl Weise (Dichter)",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:both:orientation": "diagonal",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "bad",
+    "source:width": "ALKIS",
+    "surface": "sett",
+    "width": "11",
+    "wikidata": "Q105971206"
+   }
+  },
+  {
+   "id": "w684206216",
+   "nodes": [
+    "n6409811627",
+    "n5721749158",
+    "n5403899663",
+    "n28095228"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Columbiadamm",
+    "name:etymology:wikidata": "Q815800",
+    "name:etymology:wikipedia": "de:Wright-Bellanca WB-2",
+    "oneway": "yes",
+    "parking:left": "separate",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "no",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10965",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1112613",
+    "wikipedia": "de:Columbiadamm"
+   }
+  },
+  {
+   "id": "w684206217",
+   "nodes": [
+    "n28095511",
+    "n5214782111",
+    "n11272130627",
+    "n2850710344",
+    "n6409811627"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Columbiadamm",
+    "name:etymology:wikidata": "Q815800",
+    "name:etymology:wikipedia": "de:Wright-Bellanca WB-2",
+    "oneway": "yes",
+    "parking:both": "separate",
+    "postal_code": "10965",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1112613",
+    "wikipedia": "de:Columbiadamm"
+   }
+  },
+  {
+   "id": "w737714165",
+   "nodes": [
+    "n1918390886",
+    "n7727250463",
+    "n821551864"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "name": "Flughafenstraße",
+    "name:etymology:wikidata": "Q9686",
+    "name:etymology:wikipedia": "de:Flughafen Berlin-Tempelhof",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10",
+    "wikidata": "Q66545505"
+   }
+  },
+  {
+   "id": "w765235251",
+   "nodes": [
+    "n7147231655",
+    "n8883359321",
+    "n8089307815",
+    "n8883386256"
+   ],
+   "tags": {
+    "emergency": "designated",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w776782784",
+   "nodes": [
+    "n7247796877",
+    "n7247796878"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "name": "Flughafenstraße",
+    "name:etymology:wikidata": "Q9686",
+    "name:etymology:wikipedia": "de:Flughafen Berlin-Tempelhof",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:right": "lane",
+    "parking:right:access": "no",
+    "parking:right:capacity": "2",
+    "parking:right:disabled": "private",
+    "parking:right:markings": "yes",
+    "parking:right:orientation": "parallel",
+    "parking:right:traffic_sign": "DE:314,1044-11",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10",
+    "wikidata": "Q66545505"
+   }
+  },
+  {
+   "id": "w776782785",
+   "nodes": [
+    "n7247796879",
+    "n10827050416",
+    "n7247796877"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "name": "Flughafenstraße",
+    "name:etymology:wikidata": "Q9686",
+    "name:etymology:wikipedia": "de:Flughafen Berlin-Tempelhof",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10",
+    "wikidata": "Q66545505"
+   }
+  },
+  {
+   "id": "w798335700",
+   "nodes": [
+    "n7466844960",
+    "n7729221660",
+    "n7737284412",
+    "n7466844967"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "maxspeed": "walk",
+    "maxweight": "4",
+    "service": "driveway",
+    "source:maxspeed": "sign",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w798335701",
+   "nodes": [
+    "n7466844961",
+    "n7466844960"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "maxspeed": "walk",
+    "maxweight": "4",
+    "service": "driveway",
+    "source:maxspeed": "sign",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w798335704",
+   "nodes": [
+    "n7466844965",
+    "n7466844964"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "maxspeed": "walk",
+    "service": "driveway",
+    "source:maxspeed": "sign",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w798335708",
+   "nodes": [
+    "n7466844968",
+    "n7466844951",
+    "n7466844961"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "maxspeed": "walk",
+    "maxweight": "4",
+    "service": "driveway",
+    "source:maxspeed": "sign"
+   }
+  },
+  {
+   "id": "w814096109",
+   "nodes": [
+    "n7604848117",
+    "n8883359288",
+    "n8891985247",
+    "n7604848118"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w814096110",
+   "nodes": [
+    "n7604848116",
+    "n7604848117"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "maxheight": "3.8",
+    "maxweight": "12",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w814096111",
+   "nodes": [
+    "n7626235428",
+    "n7626235421",
+    "n7626235423",
+    "n7626235424",
+    "n7626235425",
+    "n7626235426",
+    "n7604848119",
+    "n7604848116"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w827714420",
+   "nodes": [
+    "n7727250464",
+    "n7729222053",
+    "n7729222052",
+    "n8832418661",
+    "n7727250463"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w867850613",
+   "nodes": [
+    "n7147231643",
+    "n9321942226",
+    "n5721749161",
+    "n5403899660",
+    "n7729222120",
+    "n28095233"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "motor_vehicle": "destination",
+    "name": "Fontanestraße",
+    "name:etymology:wikidata": "Q76632",
+    "name:etymology:wikipedia": "de:Theodor Fontane",
+    "parking:both": "lane",
+    "parking:both:fee": "yes",
+    "parking:both:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:both:orientation": "parallel",
+    "parking:both:zone": "100",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q105971151"
+   }
+  },
+  {
+   "id": "w867850614",
+   "nodes": [
+    "n7727250462",
+    "n7727250464"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w867850619",
+   "nodes": [
+    "n8089332835",
+    "n8880490579",
+    "n8089307802",
+    "n8883359272",
+    "n821551878"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway",
+    "sidewalk": "no"
+   }
+  },
+  {
+   "id": "w867850620",
+   "nodes": [
+    "n8089332834",
+    "n8089332835"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w867850621",
+   "nodes": [
+    "n8089332836",
+    "n8089332837",
+    "n8089332834"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w867850637",
+   "nodes": [
+    "n8089332869",
+    "n8089332872"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w867850638",
+   "nodes": [
+    "n8089332873",
+    "n8089332869"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w867850639",
+   "nodes": [
+    "n8089332872",
+    "n8880490580",
+    "n8089332870",
+    "n8883359271",
+    "n8089332871"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w922618916",
+   "nodes": [
+    "n8565029945",
+    "n8565029947",
+    "n7717585560"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w928855339",
+   "nodes": [
+    "n8614775286",
+    "n8614775284"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w928855340",
+   "nodes": [
+    "n8614775285",
+    "n8614775286",
+    "n8614775287",
+    "n7147231655"
+   ],
+   "tags": {
+    "access": "private",
+    "emergency": "designated",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w1006745914",
+   "nodes": [
+    "n9288256572",
+    "n14017302934",
+    "n5721749157",
+    "n5214782088",
+    "n7729222108",
+    "n28095228"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:lane": "advisory",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:width": "1.25",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lane_markings": "no",
+    "lanes": "2",
+    "lit": "yes",
+    "mapillary": "911094784992250",
+    "maxspeed": "30",
+    "name": "Fontanestraße",
+    "name:etymology:wikidata": "Q76632",
+    "name:etymology:wikipedia": "de:Theodor Fontane",
+    "note": "Neue Beschilderung seit 3.3.26: Einbahnstraße.",
+    "oneway": "yes",
+    "oneway:bicycle": "no",
+    "parking:both": "no",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:right:width": "Luftbild 2025",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "12",
+    "width:lanes:forward": "4.5",
+    "wikidata": "Q105971151"
+   }
+  },
+  {
+   "id": "w1006745915",
+   "nodes": [
+    "n9288256579",
+    "n9288256576",
+    "n9288256577",
+    "n9288256578"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w1132563442",
+   "nodes": [
+    "n10560281262",
+    "n28095411"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Weisestraße",
+    "name:etymology:wikidata": "Q1380912",
+    "name:etymology:wikipedia": "de:Karl Weise (Dichter)",
+    "parking:both": "no",
+    "parking:both:restriction": "no_stopping",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "bad",
+    "source:width": "ALKIS",
+    "surface": "sett",
+    "width": "14",
+    "wikidata": "Q105971206"
+   }
+  },
+  {
+   "id": "w1132563443",
+   "nodes": [
+    "n10560281264",
+    "n10560281261",
+    "n10827050457",
+    "n10560281263"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w1132563514",
+   "nodes": [
+    "n10560277497",
+    "n10827050478",
+    "n4442805413",
+    "n28095188"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Mahlower Straße",
+    "name:etymology:wikidata": "Q574128",
+    "name:etymology:wikipedia": "de:Blankenfelde-Mahlow",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:both:surface": "sett",
+    "parking:left:orientation": "diagonal",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11",
+    "wikidata": "Q105971172"
+   }
+  },
+  {
+   "id": "w1132563515",
+   "nodes": [
+    "n10560277496",
+    "n7466844967",
+    "n10560277497"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Mahlower Straße",
+    "name:etymology:wikidata": "Q574128",
+    "name:etymology:wikipedia": "de:Blankenfelde-Mahlow",
+    "parking:left": "lane",
+    "parking:left:fee": "no",
+    "parking:left:orientation": "diagonal",
+    "parking:left:surface": "sett",
+    "parking:right": "no",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11",
+    "wikidata": "Q105971172"
+   }
+  },
+  {
+   "id": "w1164153669",
+   "nodes": [
+    "n7247796878",
+    "n8089332871"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "name": "Flughafenstraße",
+    "name:etymology:wikidata": "Q9686",
+    "name:etymology:wikipedia": "de:Flughafen Berlin-Tempelhof",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10",
+    "wikidata": "Q66545505"
+   }
+  },
+  {
+   "id": "w1216563781",
+   "nodes": [
+    "n11272130628",
+    "n11272130623",
+    "n11272130626",
+    "n11272130627"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w1485353558",
+   "nodes": [
+    "n28095223",
+    "n7036605045",
+    "n10827050435",
+    "n9288256578",
+    "n9288256572"
+   ],
+   "tags": {
+    "cycleway:left": "lane",
+    "cycleway:left:buffer:right": "0.5",
+    "cycleway:left:lane": "advisory",
+    "cycleway:left:marking:both": "dashed_line",
+    "cycleway:left:surface:colour": "red",
+    "cycleway:left:traffic_mode:right": "parking",
+    "cycleway:left:traffic_sign": "none",
+    "cycleway:left:width": "2.5",
+    "cycleway:right": "no",
+    "fixme": "Bald entsteht ein Radfahrstreifen auf der Westseite.",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Fontanestraße",
+    "name:etymology:wikidata": "Q76632",
+    "name:etymology:wikipedia": "de:Theodor Fontane",
+    "note": "Neue Beschilderung seit 3.3.26: Einbahnstraße.",
+    "oneway": "yes",
+    "oneway:bicycle": "no",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:both:orientation": "parallel",
+    "placement:forward": "left_of:1",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "12",
+    "wikidata": "Q105971151"
+   }
+  }
+ ]
+}

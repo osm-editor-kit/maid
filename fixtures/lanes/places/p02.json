@@ -1,0 +1,3775 @@
+{
+ "nodes": {
+  "n21487236": {
+   "loc": [
+    13.4251506,
+    52.4878083
+   ],
+   "tags": {}
+  },
+  "n248386475": {
+   "loc": [
+    13.4255434,
+    52.487686
+   ],
+   "tags": {}
+  },
+  "n29881120": {
+   "loc": [
+    13.4232451,
+    52.4867247
+   ],
+   "tags": {}
+  },
+  "n29720831": {
+   "loc": [
+    13.4231916,
+    52.4866397
+   ],
+   "tags": {}
+  },
+  "n248386285": {
+   "loc": [
+    13.4242235,
+    52.4856476
+   ],
+   "tags": {}
+  },
+  "n248386472": {
+   "loc": [
+    13.4242993,
+    52.4857471
+   ],
+   "tags": {}
+  },
+  "n577322007": {
+   "loc": [
+    13.4250839,
+    52.4879893
+   ],
+   "tags": {}
+  },
+  "n248386845": {
+   "loc": [
+    13.4241039,
+    52.4863616
+   ],
+   "tags": {
+    "TMC:cid_58:tabcd_1:Class": "Point",
+    "TMC:cid_58:tabcd_1:Direction": "positive",
+    "TMC:cid_58:tabcd_1:LCLversion": "9.00",
+    "TMC:cid_58:tabcd_1:LocationCode": "26629",
+    "TMC:cid_58:tabcd_1:PrevLocationCode": "31024"
+   }
+  },
+  "n6336205645": {
+   "loc": [
+    13.4241037,
+    52.4862887
+   ],
+   "tags": {
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n3316637297": {
+   "loc": [
+    13.4241064,
+    52.4862073
+   ],
+   "tags": {
+    "button_operated": "no",
+    "check_date:traffic_signals:sound": "2025-10-24",
+    "crossing": "traffic_signals",
+    "crossing_ref": "toucan",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n3828039406": {
+   "loc": [
+    13.4241079,
+    52.4861694
+   ],
+   "tags": {}
+  },
+  "n248386473": {
+   "loc": [
+    13.4243843,
+    52.4862551
+   ],
+   "tags": {}
+  },
+  "n248386474": {
+   "loc": [
+    13.4244398,
+    52.486351
+   ],
+   "tags": {}
+  },
+  "n8920464529": {
+   "loc": [
+    13.4242081,
+    52.4864399
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n248386844": {
+   "loc": [
+    13.4241095,
+    52.4864722
+   ],
+   "tags": {
+    "TMC:cid_58:tabcd_1:Class": "Point",
+    "TMC:cid_58:tabcd_1:Direction": "negative",
+    "TMC:cid_58:tabcd_1:LCLversion": "9.00",
+    "TMC:cid_58:tabcd_1:LocationCode": "26629",
+    "TMC:cid_58:tabcd_1:PrevLocationCode": "31024"
+   }
+  },
+  "n10940189546": {
+   "loc": [
+    13.4231023,
+    52.4867665
+   ],
+   "tags": {}
+  },
+  "n3785188548": {
+   "loc": [
+    13.4230587,
+    52.4867792
+   ],
+   "tags": {}
+  },
+  "n2499469268": {
+   "loc": [
+    13.4229694,
+    52.4868056
+   ],
+   "tags": {}
+  },
+  "n2532143175": {
+   "loc": [
+    13.4227182,
+    52.4868797
+   ],
+   "tags": {}
+  },
+  "n5286131245": {
+   "loc": [
+    13.4256102,
+    52.4876623
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n1546111385": {
+   "loc": [
+    13.4256879,
+    52.4876348
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no"
+   }
+  },
+  "n8920464545": {
+   "loc": [
+    13.4257356,
+    52.4876179
+   ],
+   "tags": {}
+  },
+  "n477600750": {
+   "loc": [
+    13.4261327,
+    52.4874766
+   ],
+   "tags": {
+    "bus": "yes",
+    "local_ref": "6",
+    "name": "U Hermannplatz/Sonnenallee",
+    "note": "M29 Grunewald, 171 Schönefeld, 194 Helene-Weigel-Platz",
+    "public_transport": "stop_position",
+    "ref:BVG": "104244",
+    "website": "https://qr.bvg.de/h104244"
+   }
+  },
+  "n8179651215": {
+   "loc": [
+    13.4262656,
+    52.4874293
+   ],
+   "tags": {}
+  },
+  "n8179651184": {
+   "loc": [
+    13.4263363,
+    52.4874041
+   ],
+   "tags": {}
+  },
+  "n3880652811": {
+   "loc": [
+    13.4265519,
+    52.4873273
+   ],
+   "tags": {
+    "bus": "yes",
+    "local_ref": "5",
+    "name": "U Hermannplatz/Sonnenallee",
+    "public_transport": "stop_position",
+    "ref:BVG": "104245",
+    "website": "https://qr.bvg.de/h104245"
+   }
+  },
+  "n9064625508": {
+   "loc": [
+    13.4266517,
+    52.4872921
+   ],
+   "tags": {}
+  },
+  "n1509633771": {
+   "loc": [
+    13.426716,
+    52.4872696
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n26960768": {
+   "loc": [
+    13.4269331,
+    52.4871988
+   ],
+   "tags": {}
+  },
+  "n8880560261": {
+   "loc": [
+    13.4244743,
+    52.4863966
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n3316637302": {
+   "loc": [
+    13.424533,
+    52.4864677
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing_ref": "toucan",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n8920464452": {
+   "loc": [
+    13.4245614,
+    52.4865019
+   ],
+   "tags": {}
+  },
+  "n248389154": {
+   "loc": [
+    13.4254191,
+    52.4878602
+   ],
+   "tags": {}
+  },
+  "n7419637671": {
+   "loc": [
+    13.4251037,
+    52.4877517
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n1546111582": {
+   "loc": [
+    13.4250768,
+    52.4877192
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "mapillary": "339238117537508",
+    "survey:date": "2017-09-19",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no",
+    "wheelchair": "yes"
+   }
+  },
+  "n8920464451": {
+   "loc": [
+    13.4250535,
+    52.487691
+   ],
+   "tags": {}
+  },
+  "n3880652808": {
+   "loc": [
+    13.4247946,
+    52.4873786
+   ],
+   "tags": {
+    "bus": "yes",
+    "name": "U Hermannplatz",
+    "name:BVG": "U Hermannplatz [Bus Westseite]",
+    "note": "Endhaltestelle N8, N94",
+    "public_transport": "stop_position",
+    "ref:BVG": "102791",
+    "website": "https://qr.bvg.de/h102791"
+   }
+  },
+  "n964939154": {
+   "loc": [
+    13.4231778,
+    52.4865721
+   ],
+   "tags": {
+    "crossing": "uncontrolled",
+    "crossing:markings": "dashes",
+    "highway": "crossing"
+   }
+  },
+  "n8919779675": {
+   "loc": [
+    13.4230962,
+    52.4868289
+   ],
+   "tags": {
+    "barrier": "kerb",
+    "kerb": "lowered"
+   }
+  },
+  "n8919784604": {
+   "loc": [
+    13.4231153,
+    52.4868541
+   ],
+   "tags": {}
+  },
+  "n5097437707": {
+   "loc": [
+    13.4231487,
+    52.4868981
+   ],
+   "tags": {}
+  },
+  "n604932022": {
+   "loc": [
+    13.4231718,
+    52.4869287
+   ],
+   "tags": {}
+  },
+  "n8179651169": {
+   "loc": [
+    13.4252247,
+    52.4873019
+   ],
+   "tags": {}
+  },
+  "n8179651191": {
+   "loc": [
+    13.4252554,
+    52.4873389
+   ],
+   "tags": {}
+  },
+  "n5721749152": {
+   "loc": [
+    13.4254336,
+    52.4875536
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n1546111331": {
+   "loc": [
+    13.4254624,
+    52.4875884
+   ],
+   "tags": {
+    "button_operated": "no",
+    "check_date:traffic_signals:sound": "2025-10-24",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n7419637670": {
+   "loc": [
+    13.4254916,
+    52.4876236
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n1459033291": {
+   "loc": [
+    13.4232423,
+    52.4871464
+   ],
+   "tags": {}
+  },
+  "n12977155160": {
+   "loc": [
+    13.4231948,
+    52.4870863
+   ],
+   "tags": {
+    "barrier": "lift_gate",
+    "bicycle": "yes"
+   }
+  },
+  "n604932073": {
+   "loc": [
+    13.4230889,
+    52.4869523
+   ],
+   "tags": {}
+  },
+  "n5097437708": {
+   "loc": [
+    13.4230638,
+    52.4869224
+   ],
+   "tags": {}
+  },
+  "n8919784605": {
+   "loc": [
+    13.4230348,
+    52.4868877
+   ],
+   "tags": {}
+  },
+  "n5286133125": {
+   "loc": [
+    13.4230083,
+    52.4868544
+   ],
+   "tags": {
+    "barrier": "kerb",
+    "kerb": "lowered"
+   }
+  },
+  "n1459033301": {
+   "loc": [
+    13.4233132,
+    52.4874794
+   ],
+   "tags": {}
+  },
+  "n1459033298": {
+   "loc": [
+    13.4235697,
+    52.4874012
+   ],
+   "tags": {}
+  },
+  "n604932015": {
+   "loc": [
+    13.423283,
+    52.4870626
+   ],
+   "tags": {
+    "barrier": "lift_gate",
+    "bicycle": "yes",
+    "motor_vehicle": "customers"
+   }
+  },
+  "n604932012": {
+   "loc": [
+    13.4233307,
+    52.4871201
+   ],
+   "tags": {}
+  },
+  "n1459033295": {
+   "loc": [
+    13.4232755,
+    52.4871922
+   ],
+   "tags": {
+    "crossing": "marked",
+    "crossing:island": "no",
+    "crossing:markings": "zebra",
+    "crossing_ref": "zebra",
+    "highway": "crossing"
+   }
+  },
+  "n1459033294": {
+   "loc": [
+    13.4232909,
+    52.4871703
+   ],
+   "tags": {}
+  },
+  "n1459033292": {
+   "loc": [
+    13.4233288,
+    52.4871625
+   ],
+   "tags": {}
+  },
+  "n1459033293": {
+   "loc": [
+    13.4233725,
+    52.4871705
+   ],
+   "tags": {}
+  },
+  "n604932008": {
+   "loc": [
+    13.4237949,
+    52.4876647
+   ],
+   "tags": {}
+  },
+  "n1459033310": {
+   "loc": [
+    13.4238604,
+    52.4877322
+   ],
+   "tags": {}
+  },
+  "n1459033313": {
+   "loc": [
+    13.4234726,
+    52.4878828
+   ],
+   "tags": {}
+  },
+  "n6945588352": {
+   "loc": [
+    13.4234854,
+    52.4882782
+   ],
+   "tags": {
+    "barrier": "lift_gate"
+   }
+  },
+  "n6945588354": {
+   "loc": [
+    13.4234897,
+    52.4883449
+   ],
+   "tags": {}
+  },
+  "n6945588369": {
+   "loc": [
+    13.4233585,
+    52.4875671
+   ],
+   "tags": {}
+  },
+  "n1459033302": {
+   "loc": [
+    13.4236365,
+    52.4874794
+   ],
+   "tags": {}
+  },
+  "n12977155170": {
+   "loc": [
+    13.4233627,
+    52.4876845
+   ],
+   "tags": {}
+  },
+  "n6945588357": {
+   "loc": [
+    13.4233613,
+    52.4876327
+   ],
+   "tags": {}
+  },
+  "n6945588375": {
+   "loc": [
+    13.4232876,
+    52.4874352
+   ],
+   "tags": {}
+  },
+  "n1459033299": {
+   "loc": [
+    13.4232794,
+    52.4874065
+   ],
+   "tags": {}
+  },
+  "n1459033311": {
+   "loc": [
+    13.4239007,
+    52.4877737
+   ],
+   "tags": {
+    "access": "yes",
+    "amenity": "parking_entrance",
+    "parking": "multi-storey"
+   }
+  },
+  "n5286131242": {
+   "loc": [
+    13.4256751,
+    52.4877676
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n8919784749": {
+   "loc": [
+    13.423394,
+    52.4865707
+   ],
+   "tags": {}
+  },
+  "n3316637301": {
+   "loc": [
+    13.4238361,
+    52.4864404
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n3316637300": {
+   "loc": [
+    13.4239329,
+    52.486412
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n5286131256": {
+   "loc": [
+    13.4240029,
+    52.4863914
+   ],
+   "tags": {
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n2371724924": {
+   "loc": [
+    13.424783,
+    52.4867693
+   ],
+   "tags": {}
+  },
+  "n849493056": {
+   "loc": [
+    13.4250624,
+    52.4871062
+   ],
+   "tags": {
+    "bus": "yes",
+    "local_ref": "8",
+    "name": "U Hermannplatz",
+    "name:BVG": "U Hermannplatz [Bus Ostseite]",
+    "note": "N7 Richtung Spandau, Endhaltestelle 171",
+    "public_transport": "stop_position",
+    "ref:BVG": "104423",
+    "website": "https://qr.bvg.de/h104423"
+   }
+  },
+  "n3880652812": {
+   "loc": [
+    13.4246579,
+    52.4879974
+   ],
+   "tags": {
+    "bus": "yes",
+    "local_ref": "1",
+    "name": "U Hermannplatz/Urbanstraße",
+    "note": "M41, Start M29",
+    "public_transport": "stop_position",
+    "ref:BVG": "103244",
+    "website": "https://qr.bvg.de/h103244"
+   }
+  },
+  "n3318511571": {
+   "loc": [
+    13.4247911,
+    52.4879456
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n1546111715": {
+   "loc": [
+    13.4248656,
+    52.4879169
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:direction:angle": "172",
+    "highway": "crossing",
+    "mapillary": "400445707584695",
+    "survey:date": "2017-08-25",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no",
+    "wheelchair": "yes"
+   }
+  },
+  "n5286131260": {
+   "loc": [
+    13.4249596,
+    52.4878801
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:direction:angle": "163",
+    "highway": "crossing"
+   }
+  },
+  "n3880652810": {
+   "loc": [
+    13.4243161,
+    52.4859848
+   ],
+   "tags": {
+    "disused:bus": "yes",
+    "disused:public_transport": "stop_position",
+    "name": "U Hermannplatz/Karl-Marx-Straße",
+    "note": "aktuell kein Busverkehr"
+   }
+  },
+  "n5721749154": {
+   "loc": [
+    13.4243257,
+    52.4860863
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n3316637295": {
+   "loc": [
+    13.4243373,
+    52.4861354
+   ],
+   "tags": {
+    "button_operated": "no",
+    "check_date:traffic_signals:sound": "2025-10-24",
+    "crossing": "traffic_signals",
+    "crossing_ref": "toucan",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n8880560275": {
+   "loc": [
+    13.4243671,
+    52.4862116
+   ],
+   "tags": {
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n5721749153": {
+   "loc": [
+    13.4249949,
+    52.4861089
+   ],
+   "tags": {}
+  },
+  "n5269312605": {
+   "loc": [
+    13.4247977,
+    52.4861978
+   ],
+   "tags": {}
+  },
+  "n5721749155": {
+   "loc": [
+    13.4246774,
+    52.486252
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n3316637299": {
+   "loc": [
+    13.4246092,
+    52.4862827
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing_ref": "toucan",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n5286131247": {
+   "loc": [
+    13.4245297,
+    52.4863145
+   ],
+   "tags": {
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n13639665582": {
+   "loc": [
+    13.4263879,
+    52.4875163
+   ],
+   "tags": {}
+  },
+  "n529042752": {
+   "loc": [
+    13.4259562,
+    52.4876697
+   ],
+   "tags": {
+    "bus": "yes",
+    "local_ref": "4",
+    "name": "U Hermannplatz/Sonnenallee",
+    "note": "M29 U Hermannplatz/Urbanstr., M41 Hauptbahnhof",
+    "public_transport": "stop_position",
+    "ref:BVG": "102117",
+    "website": "https://qr.bvg.de/h102117"
+   }
+  },
+  "n5721749151": {
+   "loc": [
+    13.4258099,
+    52.4877217
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n1546111714": {
+   "loc": [
+    13.4257516,
+    52.4877415
+   ],
+   "tags": {
+    "button_operated": "no",
+    "check_date:traffic_signals:sound": "2025-10-24",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no",
+    "wheelchair": "no"
+   }
+  },
+  "n3880652806": {
+   "loc": [
+    13.4245316,
+    52.487061
+   ],
+   "tags": {
+    "bus": "yes",
+    "local_ref": "11",
+    "name": "U Hermannplatz",
+    "name:BVG": "U Hermannplatz [Bus Westseite]",
+    "note": "N7 Richtung Schönefeld, Start N94",
+    "public_transport": "stop_position",
+    "ref:BVG": "102167",
+    "website": "https://qr.bvg.de/h102167"
+   }
+  },
+  "n8919784752": {
+   "loc": [
+    13.4243528,
+    52.4868452
+   ],
+   "tags": {}
+  },
+  "n3880652804": {
+   "loc": [
+    13.4242975,
+    52.4867784
+   ],
+   "tags": {
+    "bus": "yes",
+    "local_ref": "9",
+    "name": "U Hermannplatz",
+    "name:BVG": "U Hermannplatz [Bus Westseite]",
+    "note": "N7 Richtung Spandau",
+    "public_transport": "stop_position",
+    "ref:BVG": "103631",
+    "website": "https://qr.bvg.de/h103631"
+   }
+  },
+  "n5721749156": {
+   "loc": [
+    13.4241784,
+    52.4866347
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n3316637304": {
+   "loc": [
+    13.4241434,
+    52.4865928
+   ],
+   "tags": {
+    "button_operated": "no",
+    "check_date:traffic_signals:sound": "2026-03-20",
+    "crossing": "traffic_signals",
+    "crossing_ref": "toucan",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n4614136597": {
+   "loc": [
+    13.4241197,
+    52.4865332
+   ],
+   "tags": {
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n13267152162": {
+   "loc": [
+    13.425379,
+    52.4859323
+   ],
+   "tags": {}
+  },
+  "n13016882470": {
+   "loc": [
+    13.4253124,
+    52.4859623
+   ],
+   "tags": {}
+  },
+  "n7137559727": {
+   "loc": [
+    13.425142,
+    52.4860391
+   ],
+   "tags": {}
+  },
+  "n3880652809": {
+   "loc": [
+    13.4257147,
+    52.4857803
+   ],
+   "tags": {
+    "bus": "yes",
+    "local_ref": "12",
+    "name": "U Hermannplatz/Karl-Marx-Straße",
+    "public_transport": "stop_position",
+    "ref:BVG": "103281",
+    "website": "https://qr.bvg.de/h103281"
+   }
+  },
+  "n4175430494": {
+   "loc": [
+    13.425514,
+    52.4858714
+   ],
+   "tags": {
+    "bus": "yes",
+    "local_ref": "10",
+    "name": "U Hermannplatz/Karl-Marx-Straße",
+    "public_transport": "stop_position",
+    "ref:BVG": "102908",
+    "website": "https://qr.bvg.de/h102908"
+   }
+  },
+  "n5286131248": {
+   "loc": [
+    13.4244757,
+    52.4862186
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n3316637296": {
+   "loc": [
+    13.4245558,
+    52.4861872
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing_ref": "toucan",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n3828039427": {
+   "loc": [
+    13.4245998,
+    52.4861692
+   ],
+   "tags": {}
+  },
+  "n3785148368": {
+   "loc": [
+    13.4247214,
+    52.4861209
+   ],
+   "tags": {}
+  },
+  "n3785148367": {
+   "loc": [
+    13.4248788,
+    52.4860508
+   ],
+   "tags": {}
+  },
+  "n6717982191": {
+   "loc": [
+    13.4252814,
+    52.4858681
+   ],
+   "tags": {}
+  },
+  "n6945588364": {
+   "loc": [
+    13.4237298,
+    52.4875885
+   ],
+   "tags": {}
+  },
+  "n6945588359": {
+   "loc": [
+    13.4234168,
+    52.4876835
+   ],
+   "tags": {}
+  },
+  "n6945588361": {
+   "loc": [
+    13.4234196,
+    52.4878356
+   ],
+   "tags": {}
+  },
+  "n6945588376": {
+   "loc": [
+    13.4232583,
+    52.4874982
+   ],
+   "tags": {}
+  },
+  "n6945588379": {
+   "loc": [
+    13.4232645,
+    52.4876643
+   ],
+   "tags": {}
+  },
+  "n7137559728": {
+   "loc": [
+    13.4260996,
+    52.4856057
+   ],
+   "tags": {}
+  },
+  "n8179651165": {
+   "loc": [
+    13.4260378,
+    52.4856338
+   ],
+   "tags": {}
+  },
+  "n7624025983": {
+   "loc": [
+    13.4265327,
+    52.486742
+   ],
+   "tags": {}
+  },
+  "n5236849855": {
+   "loc": [
+    13.4267312,
+    52.4867335
+   ],
+   "tags": {
+    "barrier": "gate"
+   }
+  },
+  "n7624044185": {
+   "loc": [
+    13.4264851,
+    52.486744
+   ],
+   "tags": {}
+  },
+  "n7624044187": {
+   "loc": [
+    13.4234983,
+    52.4866508
+   ],
+   "tags": {}
+  },
+  "n10940189547": {
+   "loc": [
+    13.4233351,
+    52.4866984
+   ],
+   "tags": {}
+  },
+  "n5286131257": {
+   "loc": [
+    13.4240057,
+    52.4865025
+   ],
+   "tags": {
+    "crossing": "traffic_signals",
+    "highway": "crossing"
+   }
+  },
+  "n3316637303": {
+   "loc": [
+    13.4239378,
+    52.4865223
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "mapillary": "909924319799410",
+    "survey:date": "2017-09-19",
+    "tactile_paving": "no",
+    "traffic_signals:sound": "no",
+    "traffic_signals:vibration": "no",
+    "wheelchair": "half"
+   }
+  },
+  "n8920464536": {
+   "loc": [
+    13.4238868,
+    52.4865372
+   ],
+   "tags": {}
+  },
+  "n5097437712": {
+   "loc": [
+    13.4231699,
+    52.4865312
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:kerb_extension": "left",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n7419637664": {
+   "loc": [
+    13.4231669,
+    52.4864856
+   ],
+   "tags": {
+    "direction": "backward",
+    "highway": "stop"
+   }
+  },
+  "n10940189554": {
+   "loc": [
+    13.4231659,
+    52.4864274
+   ],
+   "tags": {}
+  },
+  "n8089332920": {
+   "loc": [
+    13.4231632,
+    52.4862712
+   ],
+   "tags": {}
+  },
+  "n8089332930": {
+   "loc": [
+    13.4231575,
+    52.485953
+   ],
+   "tags": {}
+  },
+  "n8089332937": {
+   "loc": [
+    13.4231405,
+    52.4851998
+   ],
+   "tags": {}
+  },
+  "n7624044188": {
+   "loc": [
+    13.4231607,
+    52.4851309
+   ],
+   "tags": {}
+  },
+  "n8089332918": {
+   "loc": [
+    13.4230423,
+    52.486274
+   ],
+   "tags": {}
+  },
+  "n8883359243": {
+   "loc": [
+    13.4230659,
+    52.4862735
+   ],
+   "tags": {}
+  },
+  "n8089332909": {
+   "loc": [
+    13.4231002,
+    52.4862727
+   ],
+   "tags": {}
+  },
+  "n3880652807": {
+   "loc": [
+    13.4251637,
+    52.4872283
+   ],
+   "tags": {
+    "bus": "yes",
+    "local_ref": "7",
+    "name": "U Hermannplatz",
+    "name:BVG": "U Hermannplatz [Bus Ostseite]",
+    "note": "171 Schönefeld, N7 Richtung Schönefeld, N8 Wittenau via Hackescher Markt, N94 Hermannstraße",
+    "public_transport": "stop_position",
+    "ref:BVG": "102560",
+    "website": "https://qr.bvg.de/h102560"
+   }
+  },
+  "n8179651175": {
+   "loc": [
+    13.4247902,
+    52.4865713
+   ],
+   "tags": {}
+  },
+  "n8179606673": {
+   "loc": [
+    13.4247643,
+    52.4865814
+   ],
+   "tags": {}
+  },
+  "n8179651174": {
+   "loc": [
+    13.4247356,
+    52.4865925
+   ],
+   "tags": {}
+  },
+  "n8880560232": {
+   "loc": [
+    13.4247168,
+    52.4865998
+   ],
+   "tags": {}
+  },
+  "n8179651179": {
+   "loc": [
+    13.4246605,
+    52.4866216
+   ],
+   "tags": {}
+  },
+  "n8179651178": {
+   "loc": [
+    13.4249487,
+    52.48651
+   ],
+   "tags": {}
+  },
+  "n8179651176": {
+   "loc": [
+    13.4253907,
+    52.4865133
+   ],
+   "tags": {}
+  },
+  "n8179651177": {
+   "loc": [
+    13.4251611,
+    52.4865539
+   ],
+   "tags": {}
+  },
+  "n8179651180": {
+   "loc": [
+    13.4249878,
+    52.4865051
+   ],
+   "tags": {}
+  },
+  "n8179651185": {
+   "loc": [
+    13.426277,
+    52.4873221
+   ],
+   "tags": {}
+  },
+  "n8179606674": {
+   "loc": [
+    13.4262891,
+    52.4873389
+   ],
+   "tags": {}
+  },
+  "n11025732922": {
+   "loc": [
+    13.4263093,
+    52.4873668
+   ],
+   "tags": {}
+  },
+  "n8179651183": {
+   "loc": [
+    13.4262497,
+    52.4871725
+   ],
+   "tags": {}
+  },
+  "n8179651182": {
+   "loc": [
+    13.4262291,
+    52.4870168
+   ],
+   "tags": {}
+  },
+  "n8179651181": {
+   "loc": [
+    13.4262138,
+    52.4869008
+   ],
+   "tags": {}
+  },
+  "n8179651186": {
+   "loc": [
+    13.4262001,
+    52.4867976
+   ],
+   "tags": {}
+  },
+  "n8179651190": {
+   "loc": [
+    13.4253928,
+    52.4872977
+   ],
+   "tags": {}
+  },
+  "n8179651188": {
+   "loc": [
+    13.4253623,
+    52.4873069
+   ],
+   "tags": {}
+  },
+  "n8179651187": {
+   "loc": [
+    13.4253367,
+    52.4873145
+   ],
+   "tags": {}
+  },
+  "n5286133182": {
+   "loc": [
+    13.4253154,
+    52.487321
+   ],
+   "tags": {}
+  },
+  "n8179651189": {
+   "loc": [
+    13.4255622,
+    52.4872467
+   ],
+   "tags": {}
+  },
+  "n8179651192": {
+   "loc": [
+    13.4256463,
+    52.4872214
+   ],
+   "tags": {}
+  },
+  "n5236849856": {
+   "loc": [
+    13.4262,
+    52.4873493
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate",
+    "emergency": "designated",
+    "locked": "yes"
+   }
+  },
+  "n8179651214": {
+   "loc": [
+    13.4262134,
+    52.4873657
+   ],
+   "tags": {}
+  },
+  "n11025732921": {
+   "loc": [
+    13.426232,
+    52.4873884
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "swing_gate",
+    "emergency": "designated",
+    "locked": "yes",
+    "swing_gate:type": "double"
+   }
+  },
+  "n11025732923": {
+   "loc": [
+    13.4262356,
+    52.4873928
+   ],
+   "tags": {}
+  },
+  "n248386846": {
+   "loc": [
+    13.4241292,
+    52.4857427
+   ],
+   "tags": {}
+  },
+  "n5286131238": {
+   "loc": [
+    13.4253196,
+    52.487968
+   ],
+   "tags": {}
+  },
+  "n3880652805": {
+   "loc": [
+    13.4243969,
+    52.4868985
+   ],
+   "tags": {
+    "bus": "yes",
+    "local_ref": "10",
+    "name": "U Hermannplatz",
+    "name:BVG": "U Hermannplatz [Bus Westseite]",
+    "note": "Start N8",
+    "public_transport": "stop_position",
+    "ref:BVG": "102256",
+    "website": "https://qr.bvg.de/h102256"
+   }
+  },
+  "n9249271745": {
+   "loc": [
+    13.425892,
+    52.4855907
+   ],
+   "tags": {}
+  },
+  "n294609608": {
+   "loc": [
+    13.4220445,
+    52.4869634
+   ],
+   "tags": {}
+  },
+  "n8897826576": {
+   "loc": [
+    13.4222891,
+    52.4869176
+   ],
+   "tags": {}
+  },
+  "n3790693368": {
+   "loc": [
+    13.4228726,
+    52.4867464
+   ],
+   "tags": {}
+  },
+  "n8919779686": {
+   "loc": [
+    13.4230438,
+    52.4866899
+   ],
+   "tags": {}
+  },
+  "n10562364803": {
+   "loc": [
+    13.424114,
+    52.4860483
+   ],
+   "tags": {}
+  }
+ },
+ "ways": [
+  {
+   "id": "w4680448",
+   "nodes": [
+    "n21487236",
+    "n248386475"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "junction": "intersection",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "10967",
+    "sidewalk": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w4699333",
+   "nodes": [
+    "n29881120",
+    "n29720831"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lane_markings": "no",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Lucy-Lameck-Straße",
+    "name:etymology:wikidata": "Q42753123",
+    "old_name": "Wissmannstraße",
+    "old_name:etymology:wikidata": "Q77401",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12049",
+    "sidewalk:both": "no",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "15"
+   }
+  },
+  {
+   "id": "w23026083",
+   "nodes": [
+    "n248386285",
+    "n248386472"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannstraße",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-14:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:restriction:conditional": "no_parking @ (Mo-Sa 06:00-14:00)",
+    "parking:right:zone": "100",
+    "placement": "middle_of:2",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q640045",
+    "wikipedia": "de:Hermannstraße (Berlin-Neukölln)"
+   }
+  },
+  {
+   "id": "w23026101",
+   "nodes": [
+    "n577322007",
+    "n21487236"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "junction": "intersection",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w23026118",
+   "nodes": [
+    "n248386845",
+    "n6336205645",
+    "n3316637297",
+    "n3828039406"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannstraße",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q640045",
+    "wikipedia": "de:Hermannstraße (Berlin-Neukölln)"
+   }
+  },
+  {
+   "id": "w23026119",
+   "nodes": [
+    "n248386473",
+    "n248386474"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "junction": "intersection",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12047",
+    "shoulder": "no",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes": "left|through|through"
+   }
+  },
+  {
+   "id": "w23026122",
+   "nodes": [
+    "n248386845",
+    "n248386473"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "junction": "intersection",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "intermediate",
+    "surface": "asphalt",
+    "turn:lanes": "left|left|through|through"
+   }
+  },
+  {
+   "id": "w23026123",
+   "nodes": [
+    "n248386474",
+    "n8920464529",
+    "n248386844"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "junction": "intersection",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w23026124",
+   "nodes": [
+    "n29881120",
+    "n10940189546",
+    "n3785188548",
+    "n2499469268",
+    "n2532143175"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "placement": "left_of:2",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "width:carriageway": "9",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w23026127",
+   "nodes": [
+    "n5286131245",
+    "n1546111385",
+    "n8920464545",
+    "n477600750",
+    "n8179651215",
+    "n8179651184",
+    "n3880652811",
+    "n9064625508",
+    "n1509633771",
+    "n26960768"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "share_busway",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:width": "2.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:psv": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (Mo-Fr 06:00-18:00)",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "bus_lane",
+    "postal_code": "12047",
+    "shoulder": "no",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:right:width": "Luftbild 2024",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w27943683",
+   "nodes": [
+    "n248386474",
+    "n8880560261",
+    "n3316637302",
+    "n8920464452"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lanes:conditional": "3 @ (Mo-Fr 06:00-10:00; Sa 08:00-14:00)",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "10967",
+    "sidewalk": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9"
+   }
+  },
+  {
+   "id": "w31103135",
+   "nodes": [
+    "n248386475",
+    "n248389154"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "junction": "intersection",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12047",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w31909835",
+   "nodes": [
+    "n248386844",
+    "n248386845"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "junction": "intersection",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "10967",
+    "shoulder": "no",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w42623234",
+   "nodes": [
+    "n21487236",
+    "n7419637671",
+    "n1546111582",
+    "n8920464451",
+    "n3880652808"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:bus": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9"
+   }
+  },
+  {
+   "id": "w45399750",
+   "nodes": [
+    "n29720831",
+    "n964939154"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "incline": "up",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Lucy-Lameck-Straße",
+    "name:etymology:wikidata": "Q42753123",
+    "old_name": "Wissmannstraße",
+    "old_name:etymology:wikidata": "Q77401",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "bad",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11"
+   }
+  },
+  {
+   "id": "w47506965",
+   "nodes": [
+    "n3785188548",
+    "n8919779675",
+    "n8919784604",
+    "n5097437707",
+    "n604932022"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "smoothness": "intermediate",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w56002689",
+   "nodes": [
+    "n248389154",
+    "n577322007"
+   ],
+   "tags": {
+    "bicycle": "use_sidepath",
+    "cycleway:both": "no",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "junction": "intersection",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "10967",
+    "shoulder": "no",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w71392278",
+   "nodes": [
+    "n8179651169",
+    "n8179651191",
+    "n5721749152",
+    "n1546111331",
+    "n7419637670",
+    "n248386475"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:conditional": "2 @ (18:00-06:00)",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:fee:conditional": "yes @ (Mo-Fr 18:00-20:00)",
+    "parking:right:orientation": "parallel",
+    "parking:right:restriction:conditional": "no_stopping @ (06:00-08:00,14:00-18:00); no_parking @ (08:00-14:00)",
+    "parking:right:zone": "100",
+    "postal_code": "10967",
+    "sidewalk": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9"
+   }
+  },
+  {
+   "id": "w132645609",
+   "nodes": [
+    "n1459033291",
+    "n12977155160",
+    "n604932073"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxheight": "2",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "smoothness": "good",
+    "surface": "concrete",
+    "surface:colour": "red",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w132645611",
+   "nodes": [
+    "n604932073",
+    "n5097437708",
+    "n8919784605",
+    "n5286133125",
+    "n2499469268"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "smoothness": "intermediate",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w132645612",
+   "nodes": [
+    "n1459033301",
+    "n1459033298"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "service": "parking_aisle",
+    "smoothness": "good",
+    "surface": "concrete"
+   }
+  },
+  {
+   "id": "w132645613",
+   "nodes": [
+    "n604932022",
+    "n604932015",
+    "n604932012"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxheight": "2",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "smoothness": "good",
+    "surface": "concrete",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w132645617",
+   "nodes": [
+    "n1459033295",
+    "n1459033294",
+    "n1459033292",
+    "n1459033293"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxspeed": "5",
+    "service": "driveway",
+    "surface": "concrete"
+   }
+  },
+  {
+   "id": "w132645618",
+   "nodes": [
+    "n604932008",
+    "n1459033310",
+    "n1459033313",
+    "n6945588352",
+    "n6945588354"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxheight": "2",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "smoothness": "good",
+    "surface": "asphalt",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w132645619",
+   "nodes": [
+    "n6945588369",
+    "n1459033302"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "service": "parking_aisle",
+    "smoothness": "good",
+    "surface": "concrete"
+   }
+  },
+  {
+   "id": "w132645620",
+   "nodes": [
+    "n604932012",
+    "n1459033293"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "smoothness": "good",
+    "surface": "concrete"
+   }
+  },
+  {
+   "id": "w132645621",
+   "nodes": [
+    "n12977155170",
+    "n6945588357",
+    "n6945588369",
+    "n1459033301",
+    "n6945588375",
+    "n1459033299",
+    "n1459033295"
+   ],
+   "tags": {
+    "highway": "service",
+    "surface": "concrete",
+    "surface:colour": "red"
+   }
+  },
+  {
+   "id": "w137639153",
+   "nodes": [
+    "n1459033310",
+    "n1459033311"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxheight": "2",
+    "maxspeed": "5",
+    "service": "driveway",
+    "surface": "asphalt",
+    "tunnel": "yes"
+   }
+  },
+  {
+   "id": "w152470023",
+   "nodes": [
+    "n5286131242",
+    "n248389154"
+   ],
+   "tags": {
+    "bicycle": "use_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12047",
+    "shoulder": "no",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "turn:lanes": "left|none|none|none",
+    "width": "11.5",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w218539598",
+   "nodes": [
+    "n8919784749",
+    "n3316637301",
+    "n3316637300",
+    "n5286131256",
+    "n248386845"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "change:lanes": "yes|not_right|not_left|yes",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "4",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "parking:right:restriction:reason": "turn_lane",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "turn:lanes": "left|left|through|right",
+    "width": "11.5",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w228498038",
+   "nodes": [
+    "n2371724924",
+    "n849493056"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:bus": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9"
+   }
+  },
+  {
+   "id": "w228499478",
+   "nodes": [
+    "n3880652812",
+    "n3318511571",
+    "n1546111715",
+    "n5286131260",
+    "n21487236"
+   ],
+   "tags": {
+    "bicycle": "use_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Urbanstraße",
+    "name:etymology:wikidata": "Q30198",
+    "name:etymology:wikipedia": "de:Sumpf",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "surface": "asphalt",
+    "width:carriageway": "9",
+    "wikidata": "Q2500281",
+    "wikimedia_commons": "Category:Urbanstraße (Berlin)",
+    "wikipedia": "de:Urbanstraße"
+   }
+  },
+  {
+   "id": "w241014146",
+   "nodes": [
+    "n248386472",
+    "n3880652810",
+    "n5721749154",
+    "n3316637295",
+    "n8880560275",
+    "n248386473"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannstraße",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "turn:lanes": "left|through|through;right",
+    "width": "9",
+    "wikidata": "Q640045",
+    "wikipedia": "de:Hermannstraße (Berlin-Neukölln)"
+   }
+  },
+  {
+   "id": "w241014148",
+   "nodes": [
+    "n5721749153",
+    "n5269312605",
+    "n5721749155",
+    "n3316637299",
+    "n5286131247",
+    "n248386474"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "turn_lane",
+    "placement": "middle_of:2",
+    "postal_code": "12043",
+    "shoulder": "no",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "turn:lanes": "none|through|right",
+    "width": "9",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w246132659",
+   "nodes": [
+    "n13639665582",
+    "n529042752",
+    "n5721749151",
+    "n1546111714",
+    "n5286131242"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "share_busway",
+    "cycleway:right:conditional": "no @ (Mo-Fr 19:00-06:00; Sa-Su)",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:width": "2.8",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:conditional": "4 @ (Mo-Fr 06:00-19:00)",
+    "lanes:psv:conditional": "1 @ (Mo-Fr 06:00-19:00)",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "bus_stop",
+    "placement": "right_of:2",
+    "postal_code": "12047",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:right:width": "Luftbild 2024",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "turn:lanes": "left|none|none|none",
+    "width": "11.5",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w392724608",
+   "nodes": [
+    "n3880652808",
+    "n3880652806"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:bus": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9"
+   }
+  },
+  {
+   "id": "w392726572",
+   "nodes": [
+    "n8919784752",
+    "n3880652804",
+    "n5721749156",
+    "n3316637304",
+    "n4614136597",
+    "n248386844"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "turn:lanes": "none|through|right",
+    "width": "9"
+   }
+  },
+  {
+   "id": "w416859130",
+   "nodes": [
+    "n13267152162",
+    "n13016882470",
+    "n7137559727"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "advisory",
+    "cycleway:right:mapillary": "2150482771984870",
+    "cycleway:right:marking:left": "dashed_line",
+    "cycleway:right:marking:right": "no",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "none",
+    "cycleway:right:traffic_mode:right": "psv",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "5.4",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "separate",
+    "placement": "right_of:1",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:cycleway:right:width": "infra3D",
+    "source:traffic_sign:mapillary": "547649038096707",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w416884947",
+   "nodes": [
+    "n3880652809",
+    "n4175430494"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "advisory",
+    "cycleway:right:mapillary": "1345576913521329",
+    "cycleway:right:marking:left": "dashed_line",
+    "cycleway:right:marking:right": "no",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "none",
+    "cycleway:right:traffic_mode:right": "psv",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "5.4",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "bus_stop",
+    "placement": "right_of:1",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:cycleway:right:lane:width": "Messung aus Punktwolke (Infra3D)",
+    "source:cycleway:right:width": "infra3D",
+    "source:traffic_sign:mapillary": "547649038096707",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w431992766",
+   "nodes": [
+    "n248389154",
+    "n21487236"
+   ],
+   "tags": {
+    "cycleway": "no",
+    "foot": "use_sidepath",
+    "highway": "secondary_link",
+    "junction": "intersection",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "note": "auxilliary connection to prevent unnatural sharp angles when routing the left turns",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w714695295",
+   "nodes": [
+    "n248386473",
+    "n5286131248",
+    "n3316637296",
+    "n3828039427",
+    "n3785148368",
+    "n3785148367",
+    "n6717982191"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "0.8",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:marking:right": "dashed_line",
+    "cycleway:right:surface:colour": "no",
+    "cycleway:right:traffic_mode:right": "parking",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "2",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "mapillary": "128891590281805",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "separate",
+    "placement": "right_of:1",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "intermediate",
+    "source:cycleway:width": "infra3D",
+    "source:traffic_sign:mapillary": "713288613972726",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w741939712",
+   "nodes": [
+    "n6945588364",
+    "n6945588359",
+    "n6945588361"
+   ],
+   "tags": {
+    "highway": "service",
+    "oneway": "yes",
+    "surface": "concrete"
+   }
+  },
+  {
+   "id": "w741939713",
+   "nodes": [
+    "n1459033293",
+    "n1459033298",
+    "n1459033302",
+    "n6945588364",
+    "n604932008"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxspeed": "5",
+    "smoothness": "good",
+    "surface": "concrete"
+   }
+  },
+  {
+   "id": "w741939718",
+   "nodes": [
+    "n6945588375",
+    "n6945588376",
+    "n6945588379"
+   ],
+   "tags": {
+    "highway": "service",
+    "surface": "concrete"
+   }
+  },
+  {
+   "id": "w764003834",
+   "nodes": [
+    "n7137559727",
+    "n5721749153"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "cycleway",
+    "placement": "middle_of:2",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w764003835",
+   "nodes": [
+    "n7137559728",
+    "n8179651165",
+    "n3880652809"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "advisory",
+    "cycleway:right:mapillary": "1531693350868809",
+    "cycleway:right:marking:left": "dashed_line",
+    "cycleway:right:marking:right": "no",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "none",
+    "cycleway:right:traffic_mode:right": "psv",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "5.4",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "hazard": "children",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (Mo-Fr 07:00-17:00)",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "bus_stop",
+    "placement": "right_of:1",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:cycleway:right:width": "infra3D",
+    "source:traffic_sign:mapillary": "547649038096707",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w816324775",
+   "nodes": [
+    "n7624025983",
+    "n5236849855"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w816324776",
+   "nodes": [
+    "n7624044185",
+    "n7624025983"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w816324778",
+   "nodes": [
+    "n7624044187",
+    "n10940189547",
+    "n29881120"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w816324779",
+   "nodes": [
+    "n248386844",
+    "n5286131257",
+    "n3316637303",
+    "n8920464536"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w816324780",
+   "nodes": [
+    "n964939154",
+    "n5097437712",
+    "n7419637664",
+    "n10940189554",
+    "n8089332920",
+    "n8089332930",
+    "n8089332937",
+    "n7624044188"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "incline": "3%",
+    "lit": "yes",
+    "maxspeed": "30",
+    "motor_vehicle": "destination",
+    "name": "Lucy-Lameck-Straße",
+    "name:etymology:wikidata": "Q42753123",
+    "old_name": "Wissmannstraße",
+    "old_name:etymology:wikidata": "Q77401",
+    "parking:both": "lane",
+    "parking:both:fee": "yes",
+    "parking:both:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:both:zone": "100",
+    "parking:left:maxstay:conditional": "1 hour @ (Mo-Fr 09:00-18:00; Sa 09:00-14:00)",
+    "parking:left:orientation": "diagonal",
+    "parking:right:orientation": "parallel",
+    "postal_code": "12049",
+    "sidewalk:both": "separate",
+    "smoothness": "bad",
+    "source:width": "ALKIS",
+    "surface": "sett",
+    "width": "11"
+   }
+  },
+  {
+   "id": "w867850655",
+   "nodes": [
+    "n8089332918",
+    "n8883359243",
+    "n8089332909",
+    "n8089332920"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w879269206",
+   "nodes": [
+    "n849493056",
+    "n3880652807",
+    "n8179651169"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:bus": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9"
+   }
+  },
+  {
+   "id": "w879269209",
+   "nodes": [
+    "n8179651175",
+    "n8179606673",
+    "n8179651174",
+    "n8880560232",
+    "n8179651179"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w879269210",
+   "nodes": [
+    "n8179651178",
+    "n8179651175"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w879269211",
+   "nodes": [
+    "n8179651176",
+    "n8179651177",
+    "n8179651180",
+    "n8179651178"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w879269212",
+   "nodes": [
+    "n8179651185",
+    "n8179606674",
+    "n11025732922",
+    "n8179651184"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w879269213",
+   "nodes": [
+    "n8179651183",
+    "n8179651185"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w879269214",
+   "nodes": [
+    "n8179651182",
+    "n8179651183"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w879269215",
+   "nodes": [
+    "n8179651181",
+    "n8179651182"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w879269216",
+   "nodes": [
+    "n8179651186",
+    "n8179651181"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w879269217",
+   "nodes": [
+    "n8179651190",
+    "n8179651188",
+    "n8179651187",
+    "n5286133182",
+    "n8179651191"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w879269218",
+   "nodes": [
+    "n8179651189",
+    "n8179651190"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w879269219",
+   "nodes": [
+    "n8179651192",
+    "n8179651189"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w879269232",
+   "nodes": [
+    "n5236849856",
+    "n8179651214",
+    "n11025732921",
+    "n11025732923",
+    "n8179651215"
+   ],
+   "tags": {
+    "emergency": "designated",
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w964322023",
+   "nodes": [
+    "n29720831",
+    "n8919784749"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "parking:right:restriction:reason": "turn_lane",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11.5",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w964322025",
+   "nodes": [
+    "n248386846",
+    "n248386285"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "no",
+    "lanes:unmarked": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannstraße",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "street_side",
+    "parking:right:authentication:disc:conditional": "yes @ (Mo-Fr 09:00-18:00; Sa 09:00-14:00)",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:maxstay:conditional": "1 hour @ (Mo-Fr 09:00-18:00; Sa 09:00-14:00)",
+    "parking:right:orientation": "parallel",
+    "parking:right:zone": "100",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q640045",
+    "wikipedia": "de:Hermannstraße (Berlin-Neukölln)"
+   }
+  },
+  {
+   "id": "w964322027",
+   "nodes": [
+    "n248389154",
+    "n5286131238"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Kottbusser Damm",
+    "name:etymology:wikidata": "Q3214",
+    "name:etymology:wikipedia": "de:Cottbus",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "10967",
+    "shoulder": "no",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "6.5",
+    "wikidata": "Q1569715",
+    "wikipedia": "de:Kottbusser Damm"
+   }
+  },
+  {
+   "id": "w964322029",
+   "nodes": [
+    "n3880652806",
+    "n3880652805",
+    "n8919784752"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:bus": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9"
+   }
+  },
+  {
+   "id": "w1002147964",
+   "nodes": [
+    "n6717982191",
+    "n9249271745"
+   ],
+   "tags": {
+    "bicycle": "use_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "cycleway",
+    "placement": "right_of:1",
+    "postal_code": "12043",
+    "shoulder": "no",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "intermediate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w1020303900",
+   "nodes": [
+    "n294609608",
+    "n8897826576",
+    "n3790693368",
+    "n8919779686",
+    "n29720831"
+   ],
+   "tags": {
+    "bicycle": "use_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "separate",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "width:carriageway": "11.5",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w1100791550",
+   "nodes": [
+    "n3828039406",
+    "n10562364803"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannstraße",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "street_side",
+    "parking:right:fee": "no",
+    "parking:right:maxstay:conditional": "4 hours @ (08:00-18:00)",
+    "parking:right:orientation": "parallel",
+    "parking:right:restriction": "charging_only",
+    "parking:right:surface": "paving_stones",
+    "parking:right:zone": "100",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q640045",
+    "wikipedia": "de:Hermannstraße (Berlin-Neukölln)"
+   }
+  },
+  {
+   "id": "w1100791551",
+   "nodes": [
+    "n8920464536",
+    "n7624044187"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w1100791552",
+   "nodes": [
+    "n8920464452",
+    "n8179651179",
+    "n2371724924"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lanes:conditional": "3 @ (Mo-Fr 06:00-10:00; Sa 08:00-14:00)",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannplatz",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-10:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:restriction:conditional": "no_parking @ (Mo-Fr 06:00-10:00; Sa 08:00-14:00)",
+    "parking:right:zone": "100",
+    "postal_code": "10967",
+    "sidewalk": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9"
+   }
+  },
+  {
+   "id": "w1132782776",
+   "nodes": [
+    "n10562364803",
+    "n248386846"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hermannstraße",
+    "name:etymology:wikidata": "Q68880",
+    "name:etymology:wikipedia": "de:Arminius",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "street_side",
+    "parking:right:authentication:disc:conditional": "yes @ (Mo-Fr 09:00-18:00; Sa 09:00-14:00)",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:maxstay:conditional": "1 hour @ (Mo-Fr 09:00-18:00; Sa 09:00-14:00)",
+    "parking:right:orientation": "parallel",
+    "parking:right:surface": "paving_stones",
+    "parking:right:zone": "100",
+    "postal_code": "12049",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q640045",
+    "wikipedia": "de:Hermannstraße (Berlin-Neukölln)"
+   }
+  },
+  {
+   "id": "w1412184153",
+   "nodes": [
+    "n1459033295",
+    "n1459033291"
+   ],
+   "tags": {
+    "highway": "service",
+    "oneway": "yes",
+    "surface": "concrete",
+    "surface:colour": "red"
+   }
+  },
+  {
+   "id": "w1428957957",
+   "nodes": [
+    "n248386475",
+    "n5286131245"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:psv": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (Mo-Fr 06:00-18:00)",
+    "name": "Sonnenallee",
+    "name:etymology:wikidata": "Q525",
+    "name:etymology:wikipedia": "de:Sonne",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "bus_lane",
+    "postal_code": "12047",
+    "shoulder": "no",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q456397",
+    "wikipedia": "de:Sonnenallee"
+   }
+  },
+  {
+   "id": "w1445999090",
+   "nodes": [
+    "n4175430494",
+    "n13267152162"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "advisory",
+    "cycleway:right:marking:left": "dashed_line",
+    "cycleway:right:marking:right": "no",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "none",
+    "cycleway:right:traffic_mode:right": "psv",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "5.4",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "bus_stop",
+    "placement": "right_of:1",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "source:cycleway:right:width": "infra3D",
+    "source:traffic_sign:mapillary": "547649038096707",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "9",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  }
+ ]
+}

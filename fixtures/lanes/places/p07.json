@@ -1,0 +1,1505 @@
+{
+ "nodes": {
+  "n1455175905": {
+   "loc": [
+    13.436189,
+    52.481006
+   ],
+   "tags": {}
+  },
+  "n9230330874": {
+   "loc": [
+    13.4361827,
+    52.4810601
+   ],
+   "tags": {}
+  },
+  "n8939835408": {
+   "loc": [
+    13.4361802,
+    52.4810795
+   ],
+   "tags": {}
+  },
+  "n5299353196": {
+   "loc": [
+    13.4361757,
+    52.4811138
+   ],
+   "tags": {}
+  },
+  "n5299353197": {
+   "loc": [
+    13.4361707,
+    52.4811539
+   ],
+   "tags": {}
+  },
+  "n5299411275": {
+   "loc": [
+    13.4361674,
+    52.4811651
+   ],
+   "tags": {}
+  },
+  "n1455175915": {
+   "loc": [
+    13.4361618,
+    52.4811799
+   ],
+   "tags": {}
+  },
+  "n5299353198": {
+   "loc": [
+    13.43615,
+    52.4811964
+   ],
+   "tags": {}
+  },
+  "n1455175916": {
+   "loc": [
+    13.4361202,
+    52.4812178
+   ],
+   "tags": {}
+  },
+  "n5299353190": {
+   "loc": [
+    13.4363178,
+    52.4811973
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n1455175917": {
+   "loc": [
+    13.4366098,
+    52.4812381
+   ],
+   "tags": {}
+  },
+  "n1455175918": {
+   "loc": [
+    13.436786,
+    52.4812636
+   ],
+   "tags": {}
+  },
+  "n1455175927": {
+   "loc": [
+    13.4365556,
+    52.4813847
+   ],
+   "tags": {}
+  },
+  "n5299411239": {
+   "loc": [
+    13.4365455,
+    52.4814648
+   ],
+   "tags": {}
+  },
+  "n5299411240": {
+   "loc": [
+    13.436522,
+    52.4815111
+   ],
+   "tags": {}
+  },
+  "n3235739445": {
+   "loc": [
+    13.4364983,
+    52.4815375
+   ],
+   "tags": {}
+  },
+  "n2115467220": {
+   "loc": [
+    13.4385915,
+    52.4812705
+   ],
+   "tags": {
+    "amenity": "parking_entrance",
+    "parking": "multi-storey"
+   }
+  },
+  "n8949355907": {
+   "loc": [
+    13.4385807,
+    52.4812917
+   ],
+   "tags": {}
+  },
+  "n11034652196": {
+   "loc": [
+    13.4385729,
+    52.481307
+   ],
+   "tags": {}
+  },
+  "n2115467242": {
+   "loc": [
+    13.4385484,
+    52.4813555
+   ],
+   "tags": {}
+  },
+  "n1455175920": {
+   "loc": [
+    13.4364642,
+    52.4813229
+   ],
+   "tags": {}
+  },
+  "n5299353189": {
+   "loc": [
+    13.4368781,
+    52.4812733
+   ],
+   "tags": {}
+  },
+  "n5299353188": {
+   "loc": [
+    13.4369274,
+    52.4812463
+   ],
+   "tags": {}
+  },
+  "n5299353187": {
+   "loc": [
+    13.436941,
+    52.4812322
+   ],
+   "tags": {}
+  },
+  "n5299353185": {
+   "loc": [
+    13.4369533,
+    52.4812115
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n8939792808": {
+   "loc": [
+    13.4369575,
+    52.4812004
+   ],
+   "tags": {}
+  },
+  "n7843594545": {
+   "loc": [
+    13.436967,
+    52.4811753
+   ],
+   "tags": {}
+  },
+  "n5299353184": {
+   "loc": [
+    13.4369835,
+    52.4811318
+   ],
+   "tags": {}
+  },
+  "n5299353194": {
+   "loc": [
+    13.4363258,
+    52.4816415
+   ],
+   "tags": {}
+  },
+  "n5299353193": {
+   "loc": [
+    13.4362216,
+    52.4817172
+   ],
+   "tags": {}
+  },
+  "n5299353192": {
+   "loc": [
+    13.4360753,
+    52.4816425
+   ],
+   "tags": {}
+  },
+  "n5299353191": {
+   "loc": [
+    13.4359137,
+    52.48176
+   ],
+   "tags": {}
+  },
+  "n1455175919": {
+   "loc": [
+    13.4359885,
+    52.4813099
+   ],
+   "tags": {}
+  },
+  "n1455175930": {
+   "loc": [
+    13.4357556,
+    52.4814669
+   ],
+   "tags": {}
+  },
+  "n5433273458": {
+   "loc": [
+    13.4386021,
+    52.4813634
+   ],
+   "tags": {}
+  },
+  "n11034652195": {
+   "loc": [
+    13.4386249,
+    52.4813147
+   ],
+   "tags": {}
+  },
+  "n8949355908": {
+   "loc": [
+    13.4386321,
+    52.4812994
+   ],
+   "tags": {}
+  },
+  "n5433273459": {
+   "loc": [
+    13.4386549,
+    52.481251
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n5433273449": {
+   "loc": [
+    13.4386606,
+    52.4812382
+   ],
+   "tags": {}
+  },
+  "n5433273448": {
+   "loc": [
+    13.4387028,
+    52.4812166
+   ],
+   "tags": {}
+  },
+  "n5433273447": {
+   "loc": [
+    13.4387367,
+    52.4811923
+   ],
+   "tags": {}
+  },
+  "n5433273446": {
+   "loc": [
+    13.4387512,
+    52.4811809
+   ],
+   "tags": {}
+  },
+  "n5433273445": {
+   "loc": [
+    13.4387669,
+    52.4811742
+   ],
+   "tags": {}
+  },
+  "n5433273444": {
+   "loc": [
+    13.4387818,
+    52.4811713
+   ],
+   "tags": {}
+  },
+  "n5433273443": {
+   "loc": [
+    13.4388028,
+    52.4811716
+   ],
+   "tags": {}
+  },
+  "n5433273442": {
+   "loc": [
+    13.4390946,
+    52.4812129
+   ],
+   "tags": {}
+  },
+  "n5433273457": {
+   "loc": [
+    13.4386844,
+    52.4811849
+   ],
+   "tags": {}
+  },
+  "n5433273456": {
+   "loc": [
+    13.4386956,
+    52.4811668
+   ],
+   "tags": {}
+  },
+  "n5433273455": {
+   "loc": [
+    13.4387137,
+    52.4811507
+   ],
+   "tags": {}
+  },
+  "n5433273454": {
+   "loc": [
+    13.4387391,
+    52.4811369
+   ],
+   "tags": {}
+  },
+  "n5433273453": {
+   "loc": [
+    13.4387645,
+    52.4811265
+   ],
+   "tags": {}
+  },
+  "n5433273452": {
+   "loc": [
+    13.4387996,
+    52.4811238
+   ],
+   "tags": {}
+  },
+  "n5433273451": {
+   "loc": [
+    13.4388354,
+    52.4811267
+   ],
+   "tags": {}
+  },
+  "n5433273450": {
+   "loc": [
+    13.438866,
+    52.4811313
+   ],
+   "tags": {
+    "access": "private",
+    "amenity": "parking_entrance",
+    "entrance": "yes",
+    "parking": "underground"
+   }
+  },
+  "n5433273474": {
+   "loc": [
+    13.4386098,
+    52.481135
+   ],
+   "tags": {
+    "access": "delivery",
+    "entrance": "service"
+   }
+  },
+  "n8949355906": {
+   "loc": [
+    13.438407,
+    52.4812658
+   ],
+   "tags": {}
+  },
+  "n11034652197": {
+   "loc": [
+    13.4383859,
+    52.4812794
+   ],
+   "tags": {}
+  },
+  "n5433273473": {
+   "loc": [
+    13.4383197,
+    52.481322
+   ],
+   "tags": {}
+  },
+  "n6033492603": {
+   "loc": [
+    13.436197,
+    52.482072
+   ],
+   "tags": {}
+  },
+  "n6033492604": {
+   "loc": [
+    13.4365304,
+    52.4818995
+   ],
+   "tags": {}
+  },
+  "n8072376378": {
+   "loc": [
+    13.4367817,
+    52.4817695
+   ],
+   "tags": {}
+  },
+  "n6033492605": {
+   "loc": [
+    13.4369046,
+    52.4817059
+   ],
+   "tags": {}
+  },
+  "n8072376380": {
+   "loc": [
+    13.4372884,
+    52.4815073
+   ],
+   "tags": {}
+  },
+  "n6033492606": {
+   "loc": [
+    13.4374553,
+    52.481421
+   ],
+   "tags": {}
+  },
+  "n6155734223": {
+   "loc": [
+    13.4375286,
+    52.4813831
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal",
+    "traffic_signals:direction": "forward"
+   }
+  },
+  "n11034652190": {
+   "loc": [
+    13.4376105,
+    52.4813413
+   ],
+   "tags": {}
+  },
+  "n6155734228": {
+   "loc": [
+    13.4376433,
+    52.4813246
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:direction:angle": "257",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n27555077": {
+   "loc": [
+    13.437791,
+    52.4812474
+   ],
+   "tags": {}
+  },
+  "n1680040166": {
+   "loc": [
+    13.4391096,
+    52.480435
+   ],
+   "tags": {}
+  },
+  "n8949388150": {
+   "loc": [
+    13.4390146,
+    52.4804936
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10967608015": {
+   "loc": [
+    13.4389978,
+    52.4805039
+   ],
+   "tags": {}
+  },
+  "n2115467064": {
+   "loc": [
+    13.4386709,
+    52.4807054
+   ],
+   "tags": {}
+  },
+  "n6155734221": {
+   "loc": [
+    13.4380274,
+    52.481104
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal",
+    "traffic_signals:direction": "forward"
+   }
+  },
+  "n6155734226": {
+   "loc": [
+    13.4379403,
+    52.4811569
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:direction:angle": "79",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n13691948349": {
+   "loc": [
+    13.4388866,
+    52.4814052
+   ],
+   "tags": {}
+  },
+  "n7843594539": {
+   "loc": [
+    13.4381584,
+    52.4812984
+   ],
+   "tags": {}
+  },
+  "n6155734225": {
+   "loc": [
+    13.4379797,
+    52.4812729
+   ],
+   "tags": {
+    "button_operated": "yes",
+    "crossing": "traffic_signals",
+    "crossing:direction:angle": "316",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n6155734224": {
+   "loc": [
+    13.4380483,
+    52.4812822
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal",
+    "traffic_signals:direction": "backward"
+   }
+  },
+  "n6155734227": {
+   "loc": [
+    13.4375844,
+    52.4812194
+   ],
+   "tags": {
+    "button_operated": "yes",
+    "crossing": "traffic_signals",
+    "crossing:direction:angle": "135",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n6155734222": {
+   "loc": [
+    13.4375308,
+    52.4812121
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal",
+    "traffic_signals:direction": "backward"
+   }
+  },
+  "n8010307674": {
+   "loc": [
+    13.4372054,
+    52.4806935
+   ],
+   "tags": {}
+  },
+  "n8010307672": {
+   "loc": [
+    13.4372724,
+    52.4805257
+   ],
+   "tags": {}
+  },
+  "n8072376379": {
+   "loc": [
+    13.4368727,
+    52.4818356
+   ],
+   "tags": {}
+  },
+  "n8949355898": {
+   "loc": [
+    13.4368565,
+    52.4818239
+   ],
+   "tags": {}
+  },
+  "n11034652192": {
+   "loc": [
+    13.4368349,
+    52.4818082
+   ],
+   "tags": {}
+  },
+  "n8072376381": {
+   "loc": [
+    13.4373804,
+    52.4815729
+   ],
+   "tags": {}
+  },
+  "n8949355900": {
+   "loc": [
+    13.4373633,
+    52.4815607
+   ],
+   "tags": {}
+  },
+  "n11034652194": {
+   "loc": [
+    13.4373423,
+    52.4815457
+   ],
+   "tags": {}
+  },
+  "n8072376382": {
+   "loc": [
+    13.4369968,
+    52.4817712
+   ],
+   "tags": {}
+  },
+  "n8949355899": {
+   "loc": [
+    13.4369804,
+    52.4817596
+   ],
+   "tags": {}
+  },
+  "n11034652193": {
+   "loc": [
+    13.4369586,
+    52.4817442
+   ],
+   "tags": {}
+  },
+  "n8108477759": {
+   "loc": [
+    13.4387226,
+    52.4818244
+   ],
+   "tags": {}
+  },
+  "n8108477757": {
+   "loc": [
+    13.4386909,
+    52.4819512
+   ],
+   "tags": {}
+  },
+  "n8108477756": {
+   "loc": [
+    13.4387645,
+    52.4820056
+   ],
+   "tags": {}
+  },
+  "n10587242922": {
+   "loc": [
+    13.4376013,
+    52.4822664
+   ],
+   "tags": {}
+  },
+  "n6474484254": {
+   "loc": [
+    13.4377215,
+    52.482357
+   ],
+   "tags": {}
+  },
+  "n10587242923": {
+   "loc": [
+    13.4375126,
+    52.4821995
+   ],
+   "tags": {}
+  },
+  "n13273795598": {
+   "loc": [
+    13.4367731,
+    52.4810916
+   ],
+   "tags": {}
+  },
+  "n3354594356": {
+   "loc": [
+    13.4365481,
+    52.4810586
+   ],
+   "tags": {
+    "bench": "yes",
+    "bin": "yes",
+    "bus": "yes",
+    "gtfs_id": "070101000227",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "name": "U Rathaus Neukölln",
+    "public_transport": "stop_position",
+    "ref:BVG": "100227",
+    "shelter": "yes",
+    "tactile_paving": "no",
+    "website": "https://qr.bvg.de/h100227"
+   }
+  },
+  "n13758032373": {
+   "loc": [
+    13.436039,
+    52.480984
+   ],
+   "tags": {}
+  },
+  "n13273821318": {
+   "loc": [
+    13.4368912,
+    52.4811089
+   ],
+   "tags": {}
+  }
+ },
+ "ways": [
+  {
+   "id": "w132238747",
+   "nodes": [
+    "n1455175905",
+    "n9230330874",
+    "n8939835408",
+    "n5299353196",
+    "n5299353197",
+    "n5299411275",
+    "n1455175915",
+    "n5299353198",
+    "n1455175916"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w132238748",
+   "nodes": [
+    "n5299411275",
+    "n5299353190",
+    "n1455175917",
+    "n1455175918",
+    "n1455175927",
+    "n5299411239",
+    "n5299411240",
+    "n3235739445"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w201540381",
+   "nodes": [
+    "n2115467220",
+    "n8949355907",
+    "n11034652196",
+    "n2115467242"
+   ],
+   "tags": {
+    "highway": "service",
+    "oneway": "yes",
+    "smoothness": "good",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w548554569",
+   "nodes": [
+    "n1455175920",
+    "n1455175917"
+   ],
+   "tags": {
+    "check_date:smoothness": "2026-06-04",
+    "highway": "service",
+    "service": "parking_aisle",
+    "smoothness": "intermediate",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w548554571",
+   "nodes": [
+    "n1455175918",
+    "n5299353189",
+    "n5299353188",
+    "n5299353187",
+    "n5299353185",
+    "n8939792808",
+    "n7843594545",
+    "n5299353184"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w548554573",
+   "nodes": [
+    "n3235739445",
+    "n5299353194"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w548554574",
+   "nodes": [
+    "n5299353194",
+    "n5299353193",
+    "n5299353192",
+    "n5299353191"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w548554575",
+   "nodes": [
+    "n1455175919",
+    "n1455175930"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w548554576",
+   "nodes": [
+    "n1455175916",
+    "n1455175919"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "maxheight": "3.3",
+    "service": "driveway",
+    "surface": "sett",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w563861439",
+   "nodes": [
+    "n5433273458",
+    "n11034652195",
+    "n8949355908",
+    "n5433273459"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w563861440",
+   "nodes": [
+    "n5433273449",
+    "n5433273448",
+    "n5433273447",
+    "n5433273446",
+    "n5433273445",
+    "n5433273444",
+    "n5433273443",
+    "n5433273442"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w563861442",
+   "nodes": [
+    "n5433273457",
+    "n5433273456",
+    "n5433273455",
+    "n5433273454",
+    "n5433273453",
+    "n5433273452",
+    "n5433273451",
+    "n5433273450"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "incline": "down",
+    "service": "driveway",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w563861449",
+   "nodes": [
+    "n5433273474",
+    "n8949355906",
+    "n11034652197",
+    "n5433273473"
+   ],
+   "tags": {
+    "access": "delivery",
+    "highway": "service",
+    "incline": "up",
+    "service": "delivery",
+    "smoothness": "good",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w640466941",
+   "nodes": [
+    "n6033492603",
+    "n6033492604"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lane_markings": "no",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Donaustraße",
+    "name:etymology:wikidata": "Q1653",
+    "name:etymology:wikipedia": "de:Donau",
+    "parking:left": "lane",
+    "parking:left:fee": "yes",
+    "parking:left:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:left:orientation": "parallel",
+    "parking:left:zone": "100",
+    "parking:right": "separate",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "intermediate",
+    "source:width": "ALKIS",
+    "surface": "concrete:plates",
+    "traffic_sign": "none",
+    "width": "11",
+    "width:effective": "7"
+   }
+  },
+  {
+   "id": "w640466942",
+   "nodes": [
+    "n6033492604",
+    "n8072376378",
+    "n6033492605"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lane_markings": "no",
+    "lit": "yes",
+    "mapillary": "1204403867465102",
+    "maxspeed": "30",
+    "name": "Donaustraße",
+    "name:etymology:wikidata": "Q1653",
+    "name:etymology:wikipedia": "de:Donau",
+    "parking:both": "lane",
+    "parking:both:fee": "yes",
+    "parking:both:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:both:orientation": "parallel",
+    "parking:both:zone": "100",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "intermediate",
+    "source:width": "ALKIS",
+    "surface": "concrete:plates",
+    "width": "11"
+   }
+  },
+  {
+   "id": "w640466943",
+   "nodes": [
+    "n6033492605",
+    "n8072376380",
+    "n6033492606"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lane_markings": "no",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Donaustraße",
+    "name:etymology:wikidata": "Q1653",
+    "name:etymology:wikipedia": "de:Donau",
+    "parking:left": "lane",
+    "parking:left:fee": "yes",
+    "parking:left:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:left:orientation": "parallel",
+    "parking:left:zone": "100",
+    "parking:right": "separate",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "intermediate",
+    "source:width": "ALKIS",
+    "surface": "concrete:plates",
+    "width": "11",
+    "width:effective": "7"
+   }
+  },
+  {
+   "id": "w640466944",
+   "nodes": [
+    "n6033492606",
+    "n6155734223",
+    "n11034652190",
+    "n6155734228",
+    "n27555077"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "advisory",
+    "cycleway:right:marking:left": "dashed_line",
+    "cycleway:right:marking:right": "no",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "none",
+    "cycleway:right:traffic_sign": "none",
+    "cycleway:right:width": "1.1",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "mapillary": "1042703107239384",
+    "maxspeed": "30",
+    "name": "Donaustraße",
+    "name:etymology:wikidata": "Q1653",
+    "name:etymology:wikipedia": "de:Donau",
+    "parking:left": "lane",
+    "parking:left:fee": "yes",
+    "parking:left:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:left:orientation": "parallel",
+    "parking:left:zone": "100",
+    "parking:right": "no",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "intermediate",
+    "source:cycleway:right:width": "Luftbild 2025",
+    "source:width": "ALKIS",
+    "surface": "concrete:plates",
+    "width": "11",
+    "width:lanes:forward": "4.1"
+   }
+  },
+  {
+   "id": "w648467510",
+   "nodes": [
+    "n1680040166",
+    "n8949388150",
+    "n10967608015",
+    "n2115467064",
+    "n6155734221",
+    "n6155734226",
+    "n27555077"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "mapillary": "3730857163844521",
+    "maxspeed": "30",
+    "name": "Donaustraße",
+    "name:etymology:wikidata": "Q1653",
+    "name:etymology:wikipedia": "de:Donau",
+    "parking:both": "lane",
+    "parking:both:fee": "no",
+    "parking:both:orientation": "parallel",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11"
+   }
+  },
+  {
+   "id": "w840566792",
+   "nodes": [
+    "n5433273473",
+    "n2115467242",
+    "n5433273458",
+    "n13691948349"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "maxspeed:reason": "Lärmschutz",
+    "name": "Erkstraße",
+    "name:etymology:wikidata": "Q108653",
+    "name:etymology:wikipedia": "de:Ludwig Erk",
+    "parking:both": "lane",
+    "parking:both:fee": "yes",
+    "parking:both:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:both:orientation": "parallel",
+    "parking:both:zone": "100",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11.2"
+   }
+  },
+  {
+   "id": "w840566793",
+   "nodes": [
+    "n7843594539",
+    "n5433273473"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "maxspeed:reason": "Lärmschutz",
+    "name": "Erkstraße",
+    "name:etymology:wikidata": "Q108653",
+    "name:etymology:wikipedia": "de:Ludwig Erk",
+    "parking:both": "lane",
+    "parking:both:fee": "yes",
+    "parking:both:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:both:orientation": "parallel",
+    "parking:both:zone": "100",
+    "parking:right:restriction:conditional": "no_stopping @ (Mo-Sa 06:00-16:00)",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11.2"
+   }
+  },
+  {
+   "id": "w840566794",
+   "nodes": [
+    "n27555077",
+    "n6155734225",
+    "n6155734224",
+    "n7843594539"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "maxspeed:reason": "Lärmschutz",
+    "name": "Erkstraße",
+    "name:etymology:wikidata": "Q108653",
+    "name:etymology:wikipedia": "de:Ludwig Erk",
+    "parking:left": "no",
+    "parking:left:restriction": "no_stopping",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:restriction:conditional": "no_stopping @ (Mo-Sa 06:00-16:00)",
+    "parking:right:zone": "100",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11.2"
+   }
+  },
+  {
+   "id": "w840566795",
+   "nodes": [
+    "n27555077",
+    "n6155734227",
+    "n6155734222",
+    "n5299353184"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "maxspeed:reason": "Lärmschutz",
+    "name": "Erkstraße",
+    "name:etymology:wikidata": "Q108653",
+    "name:etymology:wikipedia": "de:Ludwig Erk",
+    "parking:left": "lane",
+    "parking:left:fee": "yes",
+    "parking:left:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:left:orientation": "parallel",
+    "parking:left:zone": "100",
+    "parking:right": "no",
+    "parking:right:restriction": "no_parking",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11.2"
+   }
+  },
+  {
+   "id": "w859345109",
+   "nodes": [
+    "n8010307674",
+    "n8010307672"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w866062330",
+   "nodes": [
+    "n8072376379",
+    "n8949355898",
+    "n11034652192",
+    "n8072376378"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w866062331",
+   "nodes": [
+    "n8072376381",
+    "n8949355900",
+    "n11034652194",
+    "n8072376380"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w866062332",
+   "nodes": [
+    "n8072376382",
+    "n8949355899",
+    "n11034652193",
+    "n6033492605"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w870399680",
+   "nodes": [
+    "n8108477759",
+    "n8108477757",
+    "n8108477756"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w972666577",
+   "nodes": [
+    "n5433273459",
+    "n5433273449",
+    "n5433273457"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w1135759156",
+   "nodes": [
+    "n10587242922",
+    "n6474484254"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "maxheight": "3.5",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w1135759159",
+   "nodes": [
+    "n10587242923",
+    "n10587242922"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w1136034185",
+   "nodes": [
+    "n13273795598",
+    "n3354594356",
+    "n1455175905",
+    "n13758032373"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "maxspeed:reason": "Lärmschutz",
+    "name": "Erkstraße",
+    "name:etymology:wikidata": "Q108653",
+    "name:etymology:wikipedia": "de:Ludwig Erk",
+    "parking:left": "lane",
+    "parking:left:fee": "yes",
+    "parking:left:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:left:orientation": "parallel",
+    "parking:left:zone": "100",
+    "parking:right": "no",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11.2"
+   }
+  },
+  {
+   "id": "w1446696639",
+   "nodes": [
+    "n5299353184",
+    "n13273821318",
+    "n13273795598"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "maxspeed:reason": "Lärmschutz",
+    "name": "Erkstraße",
+    "name:etymology:wikidata": "Q108653",
+    "name:etymology:wikipedia": "de:Ludwig Erk",
+    "parking:left": "lane",
+    "parking:left:fee": "yes",
+    "parking:left:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:left:orientation": "parallel",
+    "parking:left:zone": "100",
+    "parking:right": "no",
+    "parking:right:restriction": "no_parking",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11.2"
+   }
+  }
+ ]
+}

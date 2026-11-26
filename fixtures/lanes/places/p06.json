@@ -1,0 +1,2982 @@
+{
+ "nodes": {
+  "n513998864": {
+   "loc": [
+    13.4290322,
+    52.47726
+   ],
+   "tags": {}
+  },
+  "n8783740204": {
+   "loc": [
+    13.42895,
+    52.4772497
+   ],
+   "tags": {}
+  },
+  "n4955605697": {
+   "loc": [
+    13.4282818,
+    52.4771651
+   ],
+   "tags": {}
+  },
+  "n8629061769": {
+   "loc": [
+    13.4274709,
+    52.4770676
+   ],
+   "tags": {}
+  },
+  "n8783740203": {
+   "loc": [
+    13.426777,
+    52.4769841
+   ],
+   "tags": {}
+  },
+  "n663482353": {
+   "loc": [
+    13.4266479,
+    52.4769686
+   ],
+   "tags": {
+    "access": "permissive",
+    "barrier": "bollard",
+    "bicycle": "yes",
+    "bollard": "rising",
+    "foot": "yes",
+    "motor_vehicle": "private"
+   }
+  },
+  "n351900474": {
+   "loc": [
+    13.4259639,
+    52.4781821
+   ],
+   "tags": {}
+  },
+  "n7729203835": {
+   "loc": [
+    13.4260868,
+    52.4781975
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10827050591": {
+   "loc": [
+    13.4261073,
+    52.4782001
+   ],
+   "tags": {}
+  },
+  "n530598209": {
+   "loc": [
+    13.4270658,
+    52.4783197
+   ],
+   "tags": {}
+  },
+  "n1205780506": {
+   "loc": [
+    13.4274277,
+    52.4783648
+   ],
+   "tags": {}
+  },
+  "n10563728865": {
+   "loc": [
+    13.4276498,
+    52.4783925
+   ],
+   "tags": {}
+  },
+  "n8833560544": {
+   "loc": [
+    13.4270773,
+    52.4782839
+   ],
+   "tags": {}
+  },
+  "n8863258540": {
+   "loc": [
+    13.4270838,
+    52.4782635
+   ],
+   "tags": {}
+  },
+  "n530597007": {
+   "loc": [
+    13.427099,
+    52.4782159
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n5410279192": {
+   "loc": [
+    13.4272193,
+    52.477839
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n8809474833": {
+   "loc": [
+    13.4272248,
+    52.4778217
+   ],
+   "tags": {}
+  },
+  "n8809474821": {
+   "loc": [
+    13.4272306,
+    52.4778036
+   ],
+   "tags": {}
+  },
+  "n530597505": {
+   "loc": [
+    13.4272459,
+    52.477756
+   ],
+   "tags": {}
+  },
+  "n5410279196": {
+   "loc": [
+    13.4275317,
+    52.4781552
+   ],
+   "tags": {}
+  },
+  "n5410279197": {
+   "loc": [
+    13.4277414,
+    52.4781829
+   ],
+   "tags": {}
+  },
+  "n5410279198": {
+   "loc": [
+    13.4277753,
+    52.4781909
+   ],
+   "tags": {}
+  },
+  "n5410279199": {
+   "loc": [
+    13.4278004,
+    52.4782051
+   ],
+   "tags": {}
+  },
+  "n5410279200": {
+   "loc": [
+    13.4278141,
+    52.4782215
+   ],
+   "tags": {}
+  },
+  "n5410279201": {
+   "loc": [
+    13.427818,
+    52.4782448
+   ],
+   "tags": {}
+  },
+  "n5410279202": {
+   "loc": [
+    13.4278151,
+    52.478272
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "lift_gate"
+   }
+  },
+  "n5410279203": {
+   "loc": [
+    13.4277946,
+    52.47834
+   ],
+   "tags": {}
+  },
+  "n8863258541": {
+   "loc": [
+    13.4277906,
+    52.4783518
+   ],
+   "tags": {}
+  },
+  "n8833560543": {
+   "loc": [
+    13.4277836,
+    52.4783722
+   ],
+   "tags": {}
+  },
+  "n5410279204": {
+   "loc": [
+    13.4277714,
+    52.4784077
+   ],
+   "tags": {}
+  },
+  "n8185446332": {
+   "loc": [
+    13.4271037,
+    52.4783661
+   ],
+   "tags": {}
+  },
+  "n8863121494": {
+   "loc": [
+    13.4271183,
+    52.478384
+   ],
+   "tags": {}
+  },
+  "n8188396100": {
+   "loc": [
+    13.4271501,
+    52.478423
+   ],
+   "tags": {}
+  },
+  "n10757677438": {
+   "loc": [
+    13.4271174,
+    52.4785218
+   ],
+   "tags": {}
+  },
+  "n10757677468": {
+   "loc": [
+    13.4271105,
+    52.4785428
+   ],
+   "tags": {}
+  },
+  "n1205780504": {
+   "loc": [
+    13.4271599,
+    52.4785891
+   ],
+   "tags": {}
+  },
+  "n10757677467": {
+   "loc": [
+    13.4272232,
+    52.478597
+   ],
+   "tags": {}
+  },
+  "n1205780507": {
+   "loc": [
+    13.4272938,
+    52.4785737
+   ],
+   "tags": {}
+  },
+  "n8188396101": {
+   "loc": [
+    13.4273338,
+    52.4784569
+   ],
+   "tags": {}
+  },
+  "n8863121495": {
+   "loc": [
+    13.4273908,
+    52.47842
+   ],
+   "tags": {}
+  },
+  "n8185446333": {
+   "loc": [
+    13.4274138,
+    52.4784051
+   ],
+   "tags": {}
+  },
+  "n10966192308": {
+   "loc": [
+    13.4274216,
+    52.4783824
+   ],
+   "tags": {}
+  },
+  "n31259785": {
+   "loc": [
+    13.4288551,
+    52.4778705
+   ],
+   "tags": {}
+  },
+  "n5264126926": {
+   "loc": [
+    13.4288539,
+    52.4778028
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10835663275": {
+   "loc": [
+    13.4288618,
+    52.477779
+   ],
+   "tags": {}
+  },
+  "n661100150": {
+   "loc": [
+    13.4290194,
+    52.4773011
+   ],
+   "tags": {
+    "barrier": "swing_gate",
+    "bicycle": "yes",
+    "foot": "yes",
+    "motor_vehicle": "private",
+    "swing_gate:type": "single"
+   }
+  },
+  "n313049810": {
+   "loc": [
+    13.4288429,
+    52.4779551
+   ],
+   "tags": {}
+  },
+  "n8709410206": {
+   "loc": [
+    13.4287437,
+    52.4785813
+   ],
+   "tags": {}
+  },
+  "n8072409286": {
+   "loc": [
+    13.4290089,
+    52.4786144
+   ],
+   "tags": {}
+  },
+  "n4924307597": {
+   "loc": [
+    13.4290694,
+    52.478622
+   ],
+   "tags": {}
+  },
+  "n13043072977": {
+   "loc": [
+    13.4292915,
+    52.4786498
+   ],
+   "tags": {
+    "direction": "both",
+    "traffic_calming": "bump"
+   }
+  },
+  "n4924307594": {
+   "loc": [
+    13.4298082,
+    52.4787144
+   ],
+   "tags": {}
+  },
+  "n13043072978": {
+   "loc": [
+    13.429912,
+    52.4787274
+   ],
+   "tags": {
+    "direction": "both",
+    "traffic_calming": "bump"
+   }
+  },
+  "n6768672073": {
+   "loc": [
+    13.4299833,
+    52.4787363
+   ],
+   "tags": {}
+  },
+  "n4854154882": {
+   "loc": [
+    13.4295538,
+    52.4770487
+   ],
+   "tags": {}
+  },
+  "n5984092825": {
+   "loc": [
+    13.4296536,
+    52.4770609
+   ],
+   "tags": {}
+  },
+  "n5984092801": {
+   "loc": [
+    13.4296729,
+    52.4770632
+   ],
+   "tags": {}
+  },
+  "n5984092842": {
+   "loc": [
+    13.4297158,
+    52.4770685
+   ],
+   "tags": {}
+  },
+  "n5984092799": {
+   "loc": [
+    13.4298112,
+    52.4770801
+   ],
+   "tags": {}
+  },
+  "n5986029473": {
+   "loc": [
+    13.4298751,
+    52.4770879
+   ],
+   "tags": {}
+  },
+  "n4386007907": {
+   "loc": [
+    13.4300402,
+    52.4771081
+   ],
+   "tags": {
+    "check_date": "2022-12-21",
+    "traffic_calming": "bump"
+   }
+  },
+  "n5984092802": {
+   "loc": [
+    13.43006,
+    52.4771106
+   ],
+   "tags": {}
+  },
+  "n5986029472": {
+   "loc": [
+    13.4301603,
+    52.4771234
+   ],
+   "tags": {}
+  },
+  "n5984092797": {
+   "loc": [
+    13.4303257,
+    52.4771445
+   ],
+   "tags": {}
+  },
+  "n5984090684": {
+   "loc": [
+    13.4304084,
+    52.477155
+   ],
+   "tags": {}
+  },
+  "n5986029471": {
+   "loc": [
+    13.4304385,
+    52.4771589
+   ],
+   "tags": {}
+  },
+  "n5984092795": {
+   "loc": [
+    13.4304488,
+    52.4771602
+   ],
+   "tags": {}
+  },
+  "n5984090680": {
+   "loc": [
+    13.430596,
+    52.4771789
+   ],
+   "tags": {}
+  },
+  "n4386007908": {
+   "loc": [
+    13.4306133,
+    52.4771811
+   ],
+   "tags": {
+    "traffic_calming": "bump"
+   }
+  },
+  "n5501787320": {
+   "loc": [
+    13.4307769,
+    52.4772012
+   ],
+   "tags": {}
+  },
+  "n3269585729": {
+   "loc": [
+    13.4307995,
+    52.4772039
+   ],
+   "tags": {}
+  },
+  "n1454355383": {
+   "loc": [
+    13.4309458,
+    52.477221
+   ],
+   "tags": {}
+  },
+  "n3269585730": {
+   "loc": [
+    13.4310974,
+    52.4772395
+   ],
+   "tags": {}
+  },
+  "n26952875": {
+   "loc": [
+    13.4261682,
+    52.477565
+   ],
+   "tags": {}
+  },
+  "n4413017177": {
+   "loc": [
+    13.4264048,
+    52.4775576
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:arrow": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n8920464456": {
+   "loc": [
+    13.4264411,
+    52.4775623
+   ],
+   "tags": {}
+  },
+  "n13716359525": {
+   "loc": [
+    13.4266863,
+    52.4775944
+   ],
+   "tags": {}
+  },
+  "n3356361106": {
+   "loc": [
+    13.4268402,
+    52.4776154
+   ],
+   "tags": {
+    "bench": "yes",
+    "bin": "yes",
+    "bus": "yes",
+    "check_date:shelter": "2023-12-25",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "name": "Herrfurthstraße",
+    "public_transport": "stop_position",
+    "ref:BVG": "100956",
+    "shelter": "no",
+    "tactile_paving": "no",
+    "website": "https://qr.bvg.de/h100956",
+    "wheelchair": "yes"
+   }
+  },
+  "n2301911110": {
+   "loc": [
+    13.4268641,
+    52.4776187
+   ],
+   "tags": {}
+  },
+  "n5978644427": {
+   "loc": [
+    13.4269309,
+    52.4776278
+   ],
+   "tags": {}
+  },
+  "n7143431953": {
+   "loc": [
+    13.4269787,
+    52.4776343
+   ],
+   "tags": {}
+  },
+  "n2301911111": {
+   "loc": [
+    13.426836,
+    52.4777038
+   ],
+   "tags": {}
+  },
+  "n10835663273": {
+   "loc": [
+    13.4268449,
+    52.4776768
+   ],
+   "tags": {}
+  },
+  "n10835663272": {
+   "loc": [
+    13.4268536,
+    52.4776504
+   ],
+   "tags": {}
+  },
+  "n7143431955": {
+   "loc": [
+    13.4273233,
+    52.4777659
+   ],
+   "tags": {}
+  },
+  "n4032629808": {
+   "loc": [
+    13.4269899,
+    52.4777234
+   ],
+   "tags": {
+    "bench": "no",
+    "bin": "yes",
+    "bus": "yes",
+    "check_date:shelter": "2023-12-25",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "name": "Herrfurthstraße",
+    "public_transport": "stop_position",
+    "ref:BVG": "100230",
+    "shelter": "yes",
+    "tactile_paving": "no",
+    "website": "https://qr.bvg.de/h100230",
+    "wheelchair": "yes"
+   }
+  },
+  "n8194917384": {
+   "loc": [
+    13.426917,
+    52.4777141
+   ],
+   "tags": {}
+  },
+  "n8194931248": {
+   "loc": [
+    13.4267259,
+    52.4776898
+   ],
+   "tags": {}
+  },
+  "n11277077994": {
+   "loc": [
+    13.4265944,
+    52.4776731
+   ],
+   "tags": {}
+  },
+  "n920510436": {
+   "loc": [
+    13.4292257,
+    52.4766916
+   ],
+   "tags": {}
+  },
+  "n7686974594": {
+   "loc": [
+    13.4291898,
+    52.4767318
+   ],
+   "tags": {}
+  },
+  "n5812777970": {
+   "loc": [
+    13.4291238,
+    52.4769293
+   ],
+   "tags": {}
+  },
+  "n31261053": {
+   "loc": [
+    13.4291083,
+    52.4769958
+   ],
+   "tags": {}
+  },
+  "n5984093001": {
+   "loc": [
+    13.4290974,
+    52.477056
+   ],
+   "tags": {}
+  },
+  "n5813278043": {
+   "loc": [
+    13.4290701,
+    52.477145
+   ],
+   "tags": {}
+  },
+  "n4854154883": {
+   "loc": [
+    13.4293431,
+    52.477023
+   ],
+   "tags": {}
+  },
+  "n8760985046": {
+   "loc": [
+    13.4292088,
+    52.4770074
+   ],
+   "tags": {}
+  },
+  "n5984093000": {
+   "loc": [
+    13.4293157,
+    52.4770197
+   ],
+   "tags": {}
+  },
+  "n4924307593": {
+   "loc": [
+    13.4292674,
+    52.4788334
+   ],
+   "tags": {}
+  },
+  "n4924307592": {
+   "loc": [
+    13.4293102,
+    52.4787019
+   ],
+   "tags": {}
+  },
+  "n6420328150": {
+   "loc": [
+    13.4297974,
+    52.4787465
+   ],
+   "tags": {
+    "access": "customers",
+    "barrier": "gate"
+   }
+  },
+  "n4924307595": {
+   "loc": [
+    13.429746,
+    52.4788935
+   ],
+   "tags": {}
+  },
+  "n4924307591": {
+   "loc": [
+    13.4295058,
+    52.4788633
+   ],
+   "tags": {}
+  },
+  "n4924307596": {
+   "loc": [
+    13.4290075,
+    52.4788007
+   ],
+   "tags": {}
+  },
+  "n6420328149": {
+   "loc": [
+    13.4290569,
+    52.4786532
+   ],
+   "tags": {
+    "access": "customers",
+    "barrier": "gate"
+   }
+  },
+  "n5978644415": {
+   "loc": [
+    13.4271917,
+    52.4775876
+   ],
+   "tags": {}
+  },
+  "n5978642220": {
+   "loc": [
+    13.4271888,
+    52.4775961
+   ],
+   "tags": {}
+  },
+  "n8622721839": {
+   "loc": [
+    13.427183,
+    52.4776134
+   ],
+   "tags": {}
+  },
+  "n5978644413": {
+   "loc": [
+    13.4271681,
+    52.4776581
+   ],
+   "tags": {}
+  },
+  "n5978644416": {
+   "loc": [
+    13.4272193,
+    52.4775054
+   ],
+   "tags": {}
+  },
+  "n5978644412": {
+   "loc": [
+    13.4270744,
+    52.4774353
+   ],
+   "tags": {}
+  },
+  "n5978644414": {
+   "loc": [
+    13.427236,
+    52.4774554
+   ],
+   "tags": {}
+  },
+  "n5978644429": {
+   "loc": [
+    13.426995,
+    52.4774387
+   ],
+   "tags": {}
+  },
+  "n5978644408": {
+   "loc": [
+    13.4270017,
+    52.4774186
+   ],
+   "tags": {}
+  },
+  "n5978644426": {
+   "loc": [
+    13.4270324,
+    52.4773279
+   ],
+   "tags": {
+    "access": "private",
+    "amenity": "parking_entrance",
+    "capacity": "75",
+    "entrance": "yes",
+    "maxheight": "below_default",
+    "parking": "underground"
+   }
+  },
+  "n5978644425": {
+   "loc": [
+    13.4269563,
+    52.4775529
+   ],
+   "tags": {}
+  },
+  "n8622721840": {
+   "loc": [
+    13.4269459,
+    52.4775835
+   ],
+   "tags": {}
+  },
+  "n5978644428": {
+   "loc": [
+    13.426952,
+    52.4775656
+   ],
+   "tags": {}
+  },
+  "n5983758432": {
+   "loc": [
+    13.4281776,
+    52.477635
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate",
+    "material": "metal"
+   }
+  },
+  "n5983758433": {
+   "loc": [
+    13.4282029,
+    52.4775592
+   ],
+   "tags": {}
+  },
+  "n5983758434": {
+   "loc": [
+    13.4281292,
+    52.4777791
+   ],
+   "tags": {}
+  },
+  "n8622721838": {
+   "loc": [
+    13.4281442,
+    52.4777346
+   ],
+   "tags": {}
+  },
+  "n5984093086": {
+   "loc": [
+    13.428151,
+    52.4777144
+   ],
+   "tags": {}
+  },
+  "n5984092858": {
+   "loc": [
+    13.4296703,
+    52.47722
+   ],
+   "tags": {}
+  },
+  "n4377877947": {
+   "loc": [
+    13.4296632,
+    52.4772434
+   ],
+   "tags": {}
+  },
+  "n5984092859": {
+   "loc": [
+    13.4297041,
+    52.4771075
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate",
+    "emergency": "designated",
+    "level": "0"
+   }
+  },
+  "n7143431952": {
+   "loc": [
+    13.4286883,
+    52.4778495
+   ],
+   "tags": {}
+  },
+  "n4413017183": {
+   "loc": [
+    13.4287253,
+    52.4778542
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "kerb": "raised",
+    "tactile_paving": "no"
+   }
+  },
+  "n4413017185": {
+   "loc": [
+    13.4290143,
+    52.4778905
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n7143431951": {
+   "loc": [
+    13.4290504,
+    52.477895
+   ],
+   "tags": {}
+  },
+  "n7302425563": {
+   "loc": [
+    13.4273657,
+    52.477683
+   ],
+   "tags": {}
+  },
+  "n3235965503": {
+   "loc": [
+    13.4303089,
+    52.4780539
+   ],
+   "tags": {}
+  },
+  "n9301173522": {
+   "loc": [
+    13.4304326,
+    52.4780694
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "tactile_paving:left": "primitive"
+   }
+  },
+  "n4953735570": {
+   "loc": [
+    13.4304887,
+    52.4780764
+   ],
+   "tags": {}
+  },
+  "n4413020591": {
+   "loc": [
+    13.4306457,
+    52.478096
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "kerb": "raised",
+    "tactile_paving": "no"
+   }
+  },
+  "n4953735569": {
+   "loc": [
+    13.4308084,
+    52.4781164
+   ],
+   "tags": {}
+  },
+  "n3235965520": {
+   "loc": [
+    13.4310353,
+    52.4781448
+   ],
+   "tags": {}
+  },
+  "n7143431950": {
+   "loc": [
+    13.4321096,
+    52.4782792
+   ],
+   "tags": {}
+  },
+  "n7143431956": {
+   "loc": [
+    13.4286602,
+    52.4779324
+   ],
+   "tags": {}
+  },
+  "n7143431957": {
+   "loc": [
+    13.4290214,
+    52.4779777
+   ],
+   "tags": {}
+  },
+  "n4413020590": {
+   "loc": [
+    13.4289852,
+    52.4779732
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n4413017188": {
+   "loc": [
+    13.4286971,
+    52.477937
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "kerb": "lowered",
+    "tactile_paving": "no"
+   }
+  },
+  "n7143431958": {
+   "loc": [
+    13.430156,
+    52.4781219
+   ],
+   "tags": {}
+  },
+  "n7302425553": {
+   "loc": [
+    13.4296988,
+    52.4780638
+   ],
+   "tags": {}
+  },
+  "n7143431959": {
+   "loc": [
+    13.4304043,
+    52.4781535
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no",
+    "tactile_paving:left": "primitive"
+   }
+  },
+  "n3235965522": {
+   "loc": [
+    13.4302809,
+    52.4781378
+   ],
+   "tags": {}
+  },
+  "n7302425552": {
+   "loc": [
+    13.4293824,
+    52.4780236
+   ],
+   "tags": {}
+  },
+  "n7302425564": {
+   "loc": [
+    13.4271977,
+    52.4776618
+   ],
+   "tags": {}
+  },
+  "n7302425565": {
+   "loc": [
+    13.4271403,
+    52.4776546
+   ],
+   "tags": {}
+  },
+  "n8072409287": {
+   "loc": [
+    13.4290248,
+    52.4785633
+   ],
+   "tags": {}
+  },
+  "n8072409288": {
+   "loc": [
+    13.4291588,
+    52.4785794
+   ],
+   "tags": {
+    "access": "delivery",
+    "barrier": "gate"
+   }
+  },
+  "n8072409285": {
+   "loc": [
+    13.4290189,
+    52.478583
+   ],
+   "tags": {}
+  },
+  "n8072409289": {
+   "loc": [
+    13.4289465,
+    52.4784787
+   ],
+   "tags": {}
+  },
+  "n8072409291": {
+   "loc": [
+    13.429006,
+    52.4781756
+   ],
+   "tags": {
+    "access": "delivery",
+    "entrance": "service"
+   }
+  },
+  "n8072409290": {
+   "loc": [
+    13.428915,
+    52.4784441
+   ],
+   "tags": {}
+  },
+  "n8809474823": {
+   "loc": [
+    13.4269004,
+    52.4777621
+   ],
+   "tags": {}
+  },
+  "n8809474832": {
+   "loc": [
+    13.4268942,
+    52.4777802
+   ],
+   "tags": {}
+  },
+  "n8194917383": {
+   "loc": [
+    13.4268816,
+    52.4778165
+   ],
+   "tags": {
+    "barrier": "lift_gate",
+    "motor_vehicle": "private"
+   }
+  },
+  "n8194931268": {
+   "loc": [
+    13.4268536,
+    52.4778975
+   ],
+   "tags": {}
+  },
+  "n8194931191": {
+   "loc": [
+    13.426819,
+    52.4778932
+   ],
+   "tags": {}
+  },
+  "n8194931269": {
+   "loc": [
+    13.4266638,
+    52.4778739
+   ],
+   "tags": {}
+  },
+  "n8194931238": {
+   "loc": [
+    13.426699,
+    52.4777694
+   ],
+   "tags": {
+    "barrier": "lift_gate",
+    "motor_vehicle": "private"
+   }
+  },
+  "n8809474831": {
+   "loc": [
+    13.4267034,
+    52.4777563
+   ],
+   "tags": {}
+  },
+  "n8809474822": {
+   "loc": [
+    13.4267096,
+    52.477738
+   ],
+   "tags": {}
+  },
+  "n5978642229": {
+   "loc": [
+    13.427439,
+    52.4771604
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate",
+    "emergency": "yes"
+   }
+  },
+  "n8629061767": {
+   "loc": [
+    13.4274549,
+    52.4771142
+   ],
+   "tags": {}
+  },
+  "n8629061768": {
+   "loc": [
+    13.427458,
+    52.4771052
+   ],
+   "tags": {}
+  },
+  "n4876666652": {
+   "loc": [
+    13.4286011,
+    52.4786408
+   ],
+   "tags": {
+    "crossing": "uncontrolled",
+    "crossing:island": "no",
+    "crossing:markings": "zebra",
+    "highway": "crossing",
+    "note": "Temporärer Zebrastreifen im Zuge der Bauarbeiten auf dem südlichen Teilstück der Mainzer Straße (bis vorraussichtlich Ende 2025).",
+    "tactile_paving": "no",
+    "temporary": "yes"
+   }
+  },
+  "n10966192312": {
+   "loc": [
+    13.4286036,
+    52.4786332
+   ],
+   "tags": {}
+  },
+  "n8863121492": {
+   "loc": [
+    13.4286201,
+    52.4785837
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n10966192321": {
+   "loc": [
+    13.428622,
+    52.4785781
+   ],
+   "tags": {}
+  },
+  "n1234171507": {
+   "loc": [
+    13.4286259,
+    52.4785665
+   ],
+   "tags": {}
+  },
+  "n1680040101": {
+   "loc": [
+    13.4286438,
+    52.4785164
+   ],
+   "tags": {}
+  },
+  "n8863258533": {
+   "loc": [
+    13.4280062,
+    52.478437
+   ],
+   "tags": {}
+  },
+  "n8863258525": {
+   "loc": [
+    13.4280003,
+    52.4784548
+   ],
+   "tags": {}
+  },
+  "n8863121510": {
+   "loc": [
+    13.4279863,
+    52.4784969
+   ],
+   "tags": {}
+  },
+  "n8863258530": {
+   "loc": [
+    13.4279792,
+    52.4785181
+   ],
+   "tags": {}
+  },
+  "n8863258535": {
+   "loc": [
+    13.4278308,
+    52.4784151
+   ],
+   "tags": {}
+  },
+  "n8863258524": {
+   "loc": [
+    13.4278249,
+    52.4784329
+   ],
+   "tags": {}
+  },
+  "n8863121511": {
+   "loc": [
+    13.427811,
+    52.4784753
+   ],
+   "tags": {}
+  },
+  "n8863258528": {
+   "loc": [
+    13.4278042,
+    52.4784959
+   ],
+   "tags": {}
+  },
+  "n8863258762": {
+   "loc": [
+    13.4287072,
+    52.4785767
+   ],
+   "tags": {}
+  },
+  "n3812233528": {
+   "loc": [
+    13.4284899,
+    52.4789742
+   ],
+   "tags": {}
+  },
+  "n10563728866": {
+   "loc": [
+    13.427936,
+    52.4784282
+   ],
+   "tags": {}
+  },
+  "n8863258542": {
+   "loc": [
+    13.4281576,
+    52.4784558
+   ],
+   "tags": {
+    "crossing": "uncontrolled",
+    "crossing:island": "no",
+    "crossing:markings": "zebra",
+    "highway": "crossing",
+    "note": "Temporärer Zebrastreifen im Zuge der Bauarbeiten auf dem südlichen Teilstück der Mainzer Straße (bis vorraussichtlich Ende 2025).",
+    "tactile_paving": "no",
+    "temporary": "yes"
+   }
+  },
+  "n10966192318": {
+   "loc": [
+    13.4284925,
+    52.4784976
+   ],
+   "tags": {}
+  },
+  "n8709410214": {
+   "loc": [
+    13.4285187,
+    52.4785009
+   ],
+   "tags": {
+    "disused:crossing": "unmarked",
+    "disused:highway": "crossing"
+   }
+  }
+ },
+ "ways": [
+  {
+   "id": "w18908128",
+   "nodes": [
+    "n513998864",
+    "n8783740204",
+    "n4955605697",
+    "n8629061769",
+    "n8783740203",
+    "n663482353"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "highway": "service",
+    "lit": "yes",
+    "maxspeed": "walk",
+    "motor_vehicle": "private",
+    "name": "Briesestraße",
+    "name:etymology:wikidata": "Q915182",
+    "name:etymology:wikipedia": "de:Briese (Fluss)",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "bad",
+    "surface": "sett",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "id": "w18908132",
+   "nodes": [
+    "n351900474",
+    "n7729203835",
+    "n10827050591",
+    "n530598209",
+    "n1205780506",
+    "n10563728865"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Rollbergstraße",
+    "parking:left": "separate",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:zone": "101",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "6"
+   }
+  },
+  {
+   "id": "w42486893",
+   "nodes": [
+    "n530598209",
+    "n8833560544",
+    "n8863258540",
+    "n530597007",
+    "n5410279192",
+    "n8809474833",
+    "n8809474821",
+    "n530597505"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w42487111",
+   "nodes": [
+    "n5410279196",
+    "n5410279197",
+    "n5410279198",
+    "n5410279199",
+    "n5410279200",
+    "n5410279201",
+    "n5410279202",
+    "n5410279203",
+    "n8863258541",
+    "n8833560543",
+    "n5410279204"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w104510366",
+   "nodes": [
+    "n530598209",
+    "n8185446332",
+    "n8863121494",
+    "n8188396100",
+    "n10757677438",
+    "n10757677468",
+    "n1205780504",
+    "n10757677467",
+    "n1205780507",
+    "n8188396101",
+    "n8863121495",
+    "n8185446333",
+    "n10966192308",
+    "n1205780506"
+   ],
+   "tags": {
+    "highway": "service",
+    "lanes": "1",
+    "maxheight:signed": "no",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w104511823",
+   "nodes": [
+    "n31259785",
+    "n5264126926",
+    "n10835663275",
+    "n661100150"
+   ],
+   "tags": {
+    "bicycle": "use_sidepath",
+    "cycleway:left": "separate",
+    "cycleway:right": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lane_markings": "no",
+    "lit": "yes",
+    "mapillary": "763205425780261",
+    "maxspeed": "50",
+    "name": "Falkstraße",
+    "name:etymology:wikidata": "Q347336",
+    "name:etymology:wikipedia": "de:Adalbert Falk",
+    "parking:both": "lane",
+    "parking:both:fee": "yes",
+    "parking:both:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:both:orientation": "parallel",
+    "parking:both:zone": "101",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "7.5"
+   }
+  },
+  {
+   "id": "w104511826",
+   "nodes": [
+    "n313049810",
+    "n31259785"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "tertiary_link",
+    "lane_markings": "no",
+    "lit": "yes",
+    "mapillary": "721011363400419",
+    "maxspeed": "50",
+    "noname": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "13"
+   }
+  },
+  {
+   "id": "w107377988",
+   "nodes": [
+    "n8709410206",
+    "n8072409286",
+    "n4924307597",
+    "n13043072977",
+    "n4924307594",
+    "n13043072978",
+    "n6768672073"
+   ],
+   "tags": {
+    "access": "permissive",
+    "cycleway:both": "no",
+    "foot": "permissive",
+    "highway": "living_street",
+    "lit": "yes",
+    "name": "Rollbergstraße",
+    "operator:type": "private",
+    "parking:both": "no",
+    "sidewalk:both": "no",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "paving_stones",
+    "width": "7"
+   }
+  },
+  {
+   "id": "w155605348",
+   "nodes": [
+    "n4854154882",
+    "n5984092825",
+    "n5984092801",
+    "n5984092842",
+    "n5984092799",
+    "n5986029473",
+    "n4386007907",
+    "n5984092802",
+    "n5986029472",
+    "n5984092797",
+    "n5984090684",
+    "n5986029471",
+    "n5984092795",
+    "n5984090680",
+    "n4386007908",
+    "n5501787320",
+    "n3269585729",
+    "n1454355383",
+    "n3269585730"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "maxspeed": "walk",
+    "motor_vehicle": "private",
+    "smoothness": "good",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w155605360",
+   "nodes": [
+    "n26952875",
+    "n4413017177",
+    "n8920464456",
+    "n13716359525",
+    "n3356361106",
+    "n2301911110",
+    "n5978644427",
+    "n7143431953"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "advisory",
+    "cycleway:right:mapillary": "1204242664318617",
+    "cycleway:right:marking:left": "dashed_line",
+    "cycleway:right:marking:right": "no",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "red",
+    "cycleway:right:traffic_mode:right": "bus",
+    "cycleway:right:traffic_sign": "none",
+    "cycleway:right:width": "1.7",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "bus_lane",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "width:lanes": "4",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w221133380",
+   "nodes": [
+    "n2301911111",
+    "n10835663273",
+    "n10835663272",
+    "n2301911110"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "highway": "tertiary_link",
+    "lane_markings": "no",
+    "lit": "yes",
+    "mapillary": "939465954233990",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12053",
+    "sidewalk:both": "no",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8"
+   }
+  },
+  {
+   "id": "w413997566",
+   "nodes": [
+    "n7143431955",
+    "n530597505",
+    "n4032629808",
+    "n8194917384",
+    "n2301911111",
+    "n8194931248",
+    "n11277077994"
+   ],
+   "tags": {
+    "bicycle:lanes": "no|designated|yes",
+    "cycleway:lanes": "no|lane|no",
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "341832498318236",
+    "cycleway:right:marking:both": "dashed_line",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface:colour": "red",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:traffic_sign:mapillary": "1121113242418442",
+    "cycleway:right:width": "1.5",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "turn:lanes": "left|left;through|right",
+    "vehicle:lanes": "yes|no|yes",
+    "width": "8.5",
+    "width:lanes": "3|1.5|4",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w440072364",
+   "nodes": [
+    "n920510436",
+    "n7686974594",
+    "n5812777970",
+    "n31261053",
+    "n5984093001",
+    "n5813278043",
+    "n513998864",
+    "n661100150"
+   ],
+   "tags": {
+    "bicycle": "designated",
+    "foot": "designated",
+    "highway": "service",
+    "lit": "yes",
+    "maxspeed": "walk",
+    "motor_vehicle": "private",
+    "name": "Falkstraße",
+    "name:etymology:wikidata": "Q347336",
+    "name:etymology:wikipedia": "de:Adalbert Falk",
+    "postal_code": "12053",
+    "segregated": "no",
+    "smoothness": "bad",
+    "surface": "sett",
+    "traffic_sign": "DE:240"
+   }
+  },
+  {
+   "id": "w493504254",
+   "nodes": [
+    "n4854154883",
+    "n4854154882"
+   ],
+   "tags": {
+    "highway": "service",
+    "incline": "down",
+    "lit": "yes",
+    "maxspeed": "walk",
+    "motor_vehicle": "private",
+    "smoothness": "intermediate",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w493504256",
+   "nodes": [
+    "n31261053",
+    "n8760985046",
+    "n5984093000",
+    "n4854154883"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "maxspeed": "walk",
+    "motor_vehicle": "private",
+    "smoothness": "intermediate",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w501702854",
+   "nodes": [
+    "n4924307593",
+    "n4924307592"
+   ],
+   "tags": {
+    "access": "customers",
+    "highway": "service",
+    "service": "parking_aisle",
+    "smoothness": "good",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w501702855",
+   "nodes": [
+    "n4924307594",
+    "n6420328150",
+    "n4924307595",
+    "n4924307591",
+    "n4924307593",
+    "n4924307596",
+    "n6420328149",
+    "n4924307597"
+   ],
+   "tags": {
+    "access": "customers",
+    "highway": "service",
+    "lit": "yes",
+    "maxspeed": "10",
+    "oneway": "yes",
+    "smoothness": "good",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w633344806",
+   "nodes": [
+    "n5978644415",
+    "n5978642220",
+    "n8622721839",
+    "n5978644413"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w633344807",
+   "nodes": [
+    "n5978644416",
+    "n5978644415"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w633344810",
+   "nodes": [
+    "n5978644412",
+    "n5978644414",
+    "n5978644416"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w633344813",
+   "nodes": [
+    "n5978644429",
+    "n5978644408",
+    "n5978644426"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w633344814",
+   "nodes": [
+    "n5978644425",
+    "n5978644429"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxheight": "below_default",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w633344815",
+   "nodes": [
+    "n5978644427",
+    "n8622721840",
+    "n5978644428",
+    "n5978644425"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w633966946",
+   "nodes": [
+    "n5983758432",
+    "n5983758433"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "emergency_access",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w633966947",
+   "nodes": [
+    "n5983758434",
+    "n8622721838",
+    "n5984093086",
+    "n5983758432"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "emergency_access",
+    "smoothness": "good",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w634006138",
+   "nodes": [
+    "n5984092858",
+    "n4377877947"
+   ],
+   "tags": {
+    "access": "private",
+    "emergency": "designated",
+    "highway": "service",
+    "service": "emergency_access"
+   }
+  },
+  {
+   "id": "w634006139",
+   "nodes": [
+    "n5984092859",
+    "n5984092858"
+   ],
+   "tags": {
+    "access": "private",
+    "emergency": "designated",
+    "highway": "service",
+    "service": "emergency_access",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w634006140",
+   "nodes": [
+    "n5984092842",
+    "n5984092859"
+   ],
+   "tags": {
+    "emergency": "designated",
+    "highway": "service",
+    "service": "emergency_access",
+    "smoothness": "bad",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w764644562",
+   "nodes": [
+    "n7143431952",
+    "n4413017183",
+    "n31259785",
+    "n4413017185",
+    "n7143431951"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "1200601441837202",
+    "cycleway:right:marking:both": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "red",
+    "cycleway:right:traffic_mode:right": "bus",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "junction",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w764644563",
+   "nodes": [
+    "n7302425563",
+    "n5983758434",
+    "n7143431952"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "0.8",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "939465954233990",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:marking:right": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface:colour": "green",
+    "cycleway:right:traffic_mode:right": "parking",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:zone": "101",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w764644564",
+   "nodes": [
+    "n7143431951",
+    "n3235965503",
+    "n9301173522",
+    "n4953735570",
+    "n4413020591",
+    "n4953735569",
+    "n3235965520",
+    "n7143431950"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "0.6",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "1351883845874301",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:marking:right": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface:colour": "green",
+    "cycleway:right:traffic_mode:right": "parking",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "incline": "-2%",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:zone": "101",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w764644565",
+   "nodes": [
+    "n7143431956",
+    "n7143431955"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "0.6",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "417492827447408",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:marking:right": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface:colour": "green",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:zone": "101",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w764644566",
+   "nodes": [
+    "n7143431957",
+    "n4413020590",
+    "n313049810",
+    "n4413017188",
+    "n7143431956"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "374747498774640",
+    "cycleway:right:marking:both": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface:colour": "red",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w764644567",
+   "nodes": [
+    "n7143431958",
+    "n7302425553"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "0.6",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "447617690994188",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:marking:right": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface:colour": "green",
+    "cycleway:right:traffic_mode:right": "parking",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "incline": "2%",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:zone": "101",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w764644568",
+   "nodes": [
+    "n7143431959",
+    "n3235965522",
+    "n7143431958"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "491720185403765",
+    "cycleway:right:marking:both": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "red",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "incline": "2%",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "driveway",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w782128167",
+   "nodes": [
+    "n7302425552",
+    "n7143431957"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "0.6",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "447617690994188",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:marking:right": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface:colour": "green",
+    "cycleway:right:traffic_mode:right": "parking",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "incline": "2%",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:zone": "101",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w782128168",
+   "nodes": [
+    "n7302425553",
+    "n7302425552"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "0.6",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "447617690994188",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:marking:right": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface:colour": "green",
+    "cycleway:right:traffic_mode:right": "parking",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "incline": "2%",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:restriction:conditional": "no_parking @ (Mo-Sa 06:00-18:00)",
+    "parking:right:zone": "101",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w782128177",
+   "nodes": [
+    "n7302425564",
+    "n7302425563"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "0.8",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "939465954233990",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:marking:right": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface:colour": "green",
+    "cycleway:right:traffic_mode:right": "parking",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:orientation": "parallel",
+    "parking:right:restriction": "charging_only",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w782128178",
+   "nodes": [
+    "n7302425565",
+    "n5978644413",
+    "n7302425564"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "0.8",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "939465954233990",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:marking:right": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface:colour": "green",
+    "cycleway:right:traffic_mode:right": "parking",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "driveway",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w782128179",
+   "nodes": [
+    "n7143431953",
+    "n7302425565"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "0.8",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "939465954233990",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:marking:right": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:separation:both": "no",
+    "cycleway:right:surface:colour": "green",
+    "cycleway:right:traffic_mode:right": "parking",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "1.9",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Werbellinstraße",
+    "name:etymology:wikidata": "Q2560013",
+    "name:etymology:wikipedia": "de:Werbellin",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:zone": "101",
+    "placement": "right_of:1",
+    "postal_code": "12053",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "good",
+    "source:cycleway:right:width": "infra3D",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "8.5",
+    "wikidata": "Q80416573"
+   }
+  },
+  {
+   "id": "w866068199",
+   "nodes": [
+    "n8072409287",
+    "n8072409288"
+   ],
+   "tags": {
+    "access": "delivery",
+    "highway": "service",
+    "maxheight:signed": "no",
+    "service": "delivery",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w866068200",
+   "nodes": [
+    "n8072409285",
+    "n8072409286"
+   ],
+   "tags": {
+    "access": "delivery",
+    "highway": "service",
+    "service": "delivery",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w866068201",
+   "nodes": [
+    "n8072409289",
+    "n8072409287",
+    "n8072409285"
+   ],
+   "tags": {
+    "access": "delivery",
+    "highway": "service",
+    "maxheight:signed": "no",
+    "service": "delivery",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w866068202",
+   "nodes": [
+    "n8072409291",
+    "n8072409290",
+    "n8072409289"
+   ],
+   "tags": {
+    "access": "delivery",
+    "highway": "service",
+    "service": "delivery",
+    "smoothness": "good",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w881094108",
+   "nodes": [
+    "n8194917384",
+    "n8809474823",
+    "n8809474832",
+    "n8194917383",
+    "n8194931268",
+    "n8194931191",
+    "n8194931269",
+    "n8194931238",
+    "n8809474831",
+    "n8809474822",
+    "n8194931248"
+   ],
+   "tags": {
+    "foot": "permissive",
+    "highway": "service",
+    "motor_vehicle": "private",
+    "service": "driveway",
+    "surface": "paving_stones"
+   }
+  },
+  {
+   "id": "w930644872",
+   "nodes": [
+    "n5978642229",
+    "n8629061767",
+    "n8629061768",
+    "n8629061769"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "emergency_access",
+    "surface": "ground"
+   }
+  },
+  {
+   "id": "w940398169",
+   "nodes": [
+    "n4876666652",
+    "n10966192312",
+    "n8863121492",
+    "n10966192321",
+    "n1234171507",
+    "n1680040101"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Mainzer Straße",
+    "name:etymology:wikidata": "Q1720",
+    "name:etymology:wikipedia": "de:Mainz",
+    "parking:both": "lane",
+    "parking:both:fee": "yes",
+    "parking:both:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:both:orientation": "parallel",
+    "parking:both:zone": "101",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11",
+    "wikidata": "Q1885767",
+    "wikipedia": "de:Mainzer Straße (Berlin-Neukölln)",
+    "zone:maxspeed": "DE:30"
+   }
+  },
+  {
+   "id": "w957879326",
+   "nodes": [
+    "n8863258533",
+    "n8863258525",
+    "n8863121510",
+    "n8863258530"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w957879327",
+   "nodes": [
+    "n8863258535",
+    "n8863258524",
+    "n8863121511",
+    "n8863258528"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w957879346",
+   "nodes": [
+    "n1234171507",
+    "n8863258762",
+    "n8709410206"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "permissive",
+    "highway": "living_street",
+    "lit": "yes",
+    "name": "Rollbergstraße",
+    "parking:both": "no",
+    "sidewalk:both": "no",
+    "smoothness": "good",
+    "surface": "paving_stones",
+    "width": "7"
+   }
+  },
+  {
+   "id": "w973138471",
+   "nodes": [
+    "n3812233528",
+    "n4876666652"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "incline": "2.8%",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Mainzer Straße",
+    "name:etymology:wikidata": "Q1720",
+    "name:etymology:wikipedia": "de:Mainz",
+    "parking:both": "lane",
+    "parking:both:fee": "yes",
+    "parking:both:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:both:orientation": "parallel",
+    "parking:both:zone": "101",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "bad",
+    "source:width": "ALKIS",
+    "surface": "sett",
+    "width": "11",
+    "wikidata": "Q1885767",
+    "wikipedia": "de:Mainzer Straße (Berlin-Neukölln)",
+    "zone:maxspeed": "DE:30"
+   }
+  },
+  {
+   "id": "w1133008283",
+   "nodes": [
+    "n10563728866",
+    "n8863258533",
+    "n8863258542",
+    "n10966192318",
+    "n8709410214",
+    "n1680040101"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Rollbergstraße",
+    "parking:left": "separate",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:zone": "101",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "6"
+   }
+  },
+  {
+   "id": "w1133008284",
+   "nodes": [
+    "n10563728865",
+    "n5410279204",
+    "n8863258535",
+    "n10563728866"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Rollbergstraße",
+    "parking:left": "separate",
+    "parking:right": "no",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "6"
+   }
+  }
+ ]
+}

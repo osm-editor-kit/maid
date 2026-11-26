@@ -1,0 +1,2268 @@
+{
+ "nodes": {
+  "n29881120": {
+   "loc": [
+    13.4232451,
+    52.4867247
+   ],
+   "tags": {}
+  },
+  "n10940189546": {
+   "loc": [
+    13.4231023,
+    52.4867665
+   ],
+   "tags": {}
+  },
+  "n3785188548": {
+   "loc": [
+    13.4230587,
+    52.4867792
+   ],
+   "tags": {}
+  },
+  "n2499469268": {
+   "loc": [
+    13.4229694,
+    52.4868056
+   ],
+   "tags": {}
+  },
+  "n2532143175": {
+   "loc": [
+    13.4227182,
+    52.4868797
+   ],
+   "tags": {}
+  },
+  "n12439001210": {
+   "loc": [
+    13.4220009,
+    52.4867379
+   ],
+   "tags": {}
+  },
+  "n901799418": {
+   "loc": [
+    13.4219703,
+    52.4866411
+   ],
+   "tags": {
+    "barrier": "lift_gate",
+    "bicycle": "yes",
+    "foot": "yes",
+    "lift_gate:type": "single",
+    "motorcar": "yes",
+    "motorcycle": "yes"
+   }
+  },
+  "n12439001213": {
+   "loc": [
+    13.4219706,
+    52.4866021
+   ],
+   "tags": {}
+  },
+  "n577325383": {
+   "loc": [
+    13.4219877,
+    52.4865227
+   ],
+   "tags": {}
+  },
+  "n258396504": {
+   "loc": [
+    13.4205908,
+    52.4873935
+   ],
+   "tags": {}
+  },
+  "n13677631412": {
+   "loc": [
+    13.4206068,
+    52.4874426
+   ],
+   "tags": {}
+  },
+  "n8919784494": {
+   "loc": [
+    13.4206129,
+    52.4874613
+   ],
+   "tags": {}
+  },
+  "n8919784497": {
+   "loc": [
+    13.420622,
+    52.4874893
+   ],
+   "tags": {}
+  },
+  "n3785148422": {
+   "loc": [
+    13.4206708,
+    52.487639
+   ],
+   "tags": {}
+  },
+  "n577325377": {
+   "loc": [
+    13.4224712,
+    52.4864716
+   ],
+   "tags": {}
+  },
+  "n577325397": {
+   "loc": [
+    13.4226136,
+    52.486652
+   ],
+   "tags": {
+    "noexit": "yes"
+   }
+  },
+  "n577325375": {
+   "loc": [
+    13.422229,
+    52.4856541
+   ],
+   "tags": {}
+  },
+  "n12439001340": {
+   "loc": [
+    13.4222328,
+    52.4862283
+   ],
+   "tags": {}
+  },
+  "n12439001214": {
+   "loc": [
+    13.4222347,
+    52.4865161
+   ],
+   "tags": {}
+  },
+  "n577325385": {
+   "loc": [
+    13.4222504,
+    52.4865378
+   ],
+   "tags": {}
+  },
+  "n29720825": {
+   "loc": [
+    13.4211699,
+    52.4872057
+   ],
+   "tags": {}
+  },
+  "n29825635": {
+   "loc": [
+    13.421222,
+    52.4873241
+   ],
+   "tags": {}
+  },
+  "n8919779675": {
+   "loc": [
+    13.4230962,
+    52.4868289
+   ],
+   "tags": {
+    "barrier": "kerb",
+    "kerb": "lowered"
+   }
+  },
+  "n8919784604": {
+   "loc": [
+    13.4231153,
+    52.4868541
+   ],
+   "tags": {}
+  },
+  "n5097437707": {
+   "loc": [
+    13.4231487,
+    52.4868981
+   ],
+   "tags": {}
+  },
+  "n604932022": {
+   "loc": [
+    13.4231718,
+    52.4869287
+   ],
+   "tags": {}
+  },
+  "n12439001339": {
+   "loc": [
+    13.4219832,
+    52.4862294
+   ],
+   "tags": {}
+  },
+  "n12438982499": {
+   "loc": [
+    13.4219749,
+    52.4856866
+   ],
+   "tags": {}
+  },
+  "n901799416": {
+   "loc": [
+    13.421146,
+    52.4868729
+   ],
+   "tags": {}
+  },
+  "n901799430": {
+   "loc": [
+    13.4211655,
+    52.4870771
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n3316593193": {
+   "loc": [
+    13.4211699,
+    52.4871084
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "image": "http://storage4.openstreetcam.org/files/photo/2017/6/1/lth/439508_98ac2_593031ac14d21.jpg",
+    "survey:date": "2017-06-01",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes",
+    "wheelchair": "limited"
+   }
+  },
+  "n5286133147": {
+   "loc": [
+    13.4211695,
+    52.4871485
+   ],
+   "tags": {}
+  },
+  "n6555693265": {
+   "loc": [
+    13.4211694,
+    52.4871579
+   ],
+   "tags": {}
+  },
+  "n1121856187": {
+   "loc": [
+    13.4216796,
+    52.4872101
+   ],
+   "tags": {}
+  },
+  "n3316604948": {
+   "loc": [
+    13.4215737,
+    52.4871904
+   ],
+   "tags": {}
+  },
+  "n4614136596": {
+   "loc": [
+    13.4215385,
+    52.4871788
+   ],
+   "tags": {}
+  },
+  "n1121856178": {
+   "loc": [
+    13.42151,
+    52.4871627
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "stop_line": "solid_line",
+    "stop_line:angle": "133"
+   }
+  },
+  "n1121856192": {
+   "loc": [
+    13.4214798,
+    52.4871232
+   ],
+   "tags": {}
+  },
+  "n1459033291": {
+   "loc": [
+    13.4232423,
+    52.4871464
+   ],
+   "tags": {}
+  },
+  "n12977155160": {
+   "loc": [
+    13.4231948,
+    52.4870863
+   ],
+   "tags": {
+    "barrier": "lift_gate",
+    "bicycle": "yes"
+   }
+  },
+  "n604932073": {
+   "loc": [
+    13.4230889,
+    52.4869523
+   ],
+   "tags": {}
+  },
+  "n5097437708": {
+   "loc": [
+    13.4230638,
+    52.4869224
+   ],
+   "tags": {}
+  },
+  "n8919784605": {
+   "loc": [
+    13.4230348,
+    52.4868877
+   ],
+   "tags": {}
+  },
+  "n5286133125": {
+   "loc": [
+    13.4230083,
+    52.4868544
+   ],
+   "tags": {
+    "barrier": "kerb",
+    "kerb": "lowered"
+   }
+  },
+  "n604932015": {
+   "loc": [
+    13.423283,
+    52.4870626
+   ],
+   "tags": {
+    "barrier": "lift_gate",
+    "bicycle": "yes",
+    "motor_vehicle": "customers"
+   }
+  },
+  "n604932012": {
+   "loc": [
+    13.4233307,
+    52.4871201
+   ],
+   "tags": {}
+  },
+  "n1459033295": {
+   "loc": [
+    13.4232755,
+    52.4871922
+   ],
+   "tags": {
+    "crossing": "marked",
+    "crossing:island": "no",
+    "crossing:markings": "zebra",
+    "crossing_ref": "zebra",
+    "highway": "crossing"
+   }
+  },
+  "n1459033294": {
+   "loc": [
+    13.4232909,
+    52.4871703
+   ],
+   "tags": {}
+  },
+  "n1459033292": {
+   "loc": [
+    13.4233288,
+    52.4871625
+   ],
+   "tags": {}
+  },
+  "n1459033293": {
+   "loc": [
+    13.4233725,
+    52.4871705
+   ],
+   "tags": {}
+  },
+  "n12977155170": {
+   "loc": [
+    13.4233627,
+    52.4876845
+   ],
+   "tags": {}
+  },
+  "n6945588357": {
+   "loc": [
+    13.4233613,
+    52.4876327
+   ],
+   "tags": {}
+  },
+  "n6945588369": {
+   "loc": [
+    13.4233585,
+    52.4875671
+   ],
+   "tags": {}
+  },
+  "n1459033301": {
+   "loc": [
+    13.4233132,
+    52.4874794
+   ],
+   "tags": {}
+  },
+  "n6945588375": {
+   "loc": [
+    13.4232876,
+    52.4874352
+   ],
+   "tags": {}
+  },
+  "n1459033299": {
+   "loc": [
+    13.4232794,
+    52.4874065
+   ],
+   "tags": {}
+  },
+  "n294615564": {
+   "loc": [
+    13.4210547,
+    52.4856279
+   ],
+   "tags": {}
+  },
+  "n577325373": {
+   "loc": [
+    13.4224617,
+    52.4856495
+   ],
+   "tags": {}
+  },
+  "n12439001341": {
+   "loc": [
+    13.4224684,
+    52.4862268
+   ],
+   "tags": {}
+  },
+  "n7624044186": {
+   "loc": [
+    13.422456,
+    52.4869645
+   ],
+   "tags": {}
+  },
+  "n9079066103": {
+   "loc": [
+    13.422239,
+    52.4870438
+   ],
+   "tags": {}
+  },
+  "n294496987": {
+   "loc": [
+    13.4221114,
+    52.487085
+   ],
+   "tags": {}
+  },
+  "n3785148436": {
+   "loc": [
+    13.4206784,
+    52.4877676
+   ],
+   "tags": {}
+  },
+  "n258396516": {
+   "loc": [
+    13.4206802,
+    52.4878123
+   ],
+   "tags": {}
+  },
+  "n3785148410": {
+   "loc": [
+    13.4221574,
+    52.4873423
+   ],
+   "tags": {}
+  },
+  "n3785148417": {
+   "loc": [
+    13.4221644,
+    52.487525
+   ],
+   "tags": {}
+  },
+  "n294496988": {
+   "loc": [
+    13.4221691,
+    52.4876451
+   ],
+   "tags": {}
+  },
+  "n4393685888": {
+   "loc": [
+    13.4227358,
+    52.4869334
+   ],
+   "tags": {}
+  },
+  "n8919784572": {
+   "loc": [
+    13.42275,
+    52.4869839
+   ],
+   "tags": {}
+  },
+  "n8919784600": {
+   "loc": [
+    13.4227548,
+    52.487001
+   ],
+   "tags": {}
+  },
+  "n8919784542": {
+   "loc": [
+    13.4227603,
+    52.4870208
+   ],
+   "tags": {}
+  },
+  "n3785148376": {
+   "loc": [
+    13.4227679,
+    52.4870477
+   ],
+   "tags": {}
+  },
+  "n3785148392": {
+   "loc": [
+    13.4227761,
+    52.4871849
+   ],
+   "tags": {}
+  },
+  "n3785148394": {
+   "loc": [
+    13.4221522,
+    52.4872278
+   ],
+   "tags": {}
+  },
+  "n3785148419": {
+   "loc": [
+    13.4227973,
+    52.4875385
+   ],
+   "tags": {}
+  },
+  "n3785148418": {
+   "loc": [
+    13.4229536,
+    52.4875362
+   ],
+   "tags": {}
+  },
+  "n8457066471": {
+   "loc": [
+    13.4221711,
+    52.4876975
+   ],
+   "tags": {}
+  },
+  "n3785152459": {
+   "loc": [
+    13.4221819,
+    52.487981
+   ],
+   "tags": {}
+  },
+  "n3785152462": {
+   "loc": [
+    13.4206969,
+    52.4879982
+   ],
+   "tags": {}
+  },
+  "n3785152465": {
+   "loc": [
+    13.4207636,
+    52.4880277
+   ],
+   "tags": {}
+  },
+  "n3785152490": {
+   "loc": [
+    13.420776,
+    52.4881772
+   ],
+   "tags": {}
+  },
+  "n8098562168": {
+   "loc": [
+    13.4207829,
+    52.4883711
+   ],
+   "tags": {}
+  },
+  "n5286133133": {
+   "loc": [
+    13.4212354,
+    52.4873518
+   ],
+   "tags": {}
+  },
+  "n8919784523": {
+   "loc": [
+    13.4212612,
+    52.4873974
+   ],
+   "tags": {}
+  },
+  "n8919784606": {
+   "loc": [
+    13.4212708,
+    52.4874112
+   ],
+   "tags": {}
+  },
+  "n8919784539": {
+   "loc": [
+    13.4212902,
+    52.4874393
+   ],
+   "tags": {}
+  },
+  "n4972056387": {
+   "loc": [
+    13.4213133,
+    52.4874728
+   ],
+   "tags": {}
+  },
+  "n4972056386": {
+   "loc": [
+    13.4213996,
+    52.4875834
+   ],
+   "tags": {}
+  },
+  "n6765963064": {
+   "loc": [
+    13.4210023,
+    52.4881765
+   ],
+   "tags": {}
+  },
+  "n6765963065": {
+   "loc": [
+    13.4210043,
+    52.4883559
+   ],
+   "tags": {}
+  },
+  "n6765963066": {
+   "loc": [
+    13.4210063,
+    52.4880352
+   ],
+   "tags": {}
+  },
+  "n901799422": {
+   "loc": [
+    13.4210331,
+    52.4872308
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n29720814": {
+   "loc": [
+    13.4213565,
+    52.4871575
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "mapillary": "917048472442119",
+    "survey:date": "2017-06-01",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  "n9079066114": {
+   "loc": [
+    13.4213913,
+    52.4871481
+   ],
+   "tags": {}
+  },
+  "n12823411264": {
+   "loc": [
+    13.4218477,
+    52.4870167
+   ],
+   "tags": {}
+  },
+  "n8919779688": {
+   "loc": [
+    13.421969,
+    52.4869838
+   ],
+   "tags": {}
+  },
+  "n294609608": {
+   "loc": [
+    13.4220445,
+    52.4869634
+   ],
+   "tags": {}
+  },
+  "n9079066104": {
+   "loc": [
+    13.4226479,
+    52.4869004
+   ],
+   "tags": {}
+  },
+  "n9079066105": {
+   "loc": [
+    13.422575,
+    52.4869238
+   ],
+   "tags": {}
+  },
+  "n8098055094": {
+   "loc": [
+    13.4225208,
+    52.4871193
+   ],
+   "tags": {}
+  },
+  "n8919784541": {
+   "loc": [
+    13.4225178,
+    52.4870908
+   ],
+   "tags": {}
+  },
+  "n8919784535": {
+   "loc": [
+    13.4225154,
+    52.4870681
+   ],
+   "tags": {}
+  },
+  "n8098562178": {
+   "loc": [
+    13.4225135,
+    52.4870522
+   ],
+   "tags": {}
+  },
+  "n8098055093": {
+   "loc": [
+    13.4224835,
+    52.4870069
+   ],
+   "tags": {}
+  },
+  "n8098055095": {
+   "loc": [
+    13.4225243,
+    52.4872481
+   ],
+   "tags": {}
+  },
+  "n8098055097": {
+   "loc": [
+    13.4225558,
+    52.4874733
+   ],
+   "tags": {}
+  },
+  "n8098055096": {
+   "loc": [
+    13.4225484,
+    52.4873212
+   ],
+   "tags": {}
+  },
+  "n8098562170": {
+   "loc": [
+    13.4203454,
+    52.48768
+   ],
+   "tags": {}
+  },
+  "n8098562159": {
+   "loc": [
+    13.4203023,
+    52.487557
+   ],
+   "tags": {
+    "barrier": "gate"
+   }
+  },
+  "n8919784488": {
+   "loc": [
+    13.4202937,
+    52.4875322
+   ],
+   "tags": {}
+  },
+  "n8919784495": {
+   "loc": [
+    13.4202835,
+    52.4875032
+   ],
+   "tags": {}
+  },
+  "n13677566373": {
+   "loc": [
+    13.4202775,
+    52.4874861
+   ],
+   "tags": {}
+  },
+  "n8098562169": {
+   "loc": [
+    13.4202598,
+    52.4874354
+   ],
+   "tags": {}
+  },
+  "n8098562187": {
+   "loc": [
+    13.42151,
+    52.4874154
+   ],
+   "tags": {}
+  },
+  "n8919784543": {
+   "loc": [
+    13.4215082,
+    52.4873797
+   ],
+   "tags": {}
+  },
+  "n8919784532": {
+   "loc": [
+    13.4215072,
+    52.4873589
+   ],
+   "tags": {}
+  },
+  "n8919784553": {
+   "loc": [
+    13.4215064,
+    52.4873427
+   ],
+   "tags": {}
+  },
+  "n5286133128": {
+   "loc": [
+    13.4214915,
+    52.4872927
+   ],
+   "tags": {}
+  },
+  "n8098562186": {
+   "loc": [
+    13.421483,
+    52.4872642
+   ],
+   "tags": {}
+  },
+  "n8098577928": {
+   "loc": [
+    13.423247,
+    52.4878059
+   ],
+   "tags": {}
+  },
+  "n8098577930": {
+   "loc": [
+    13.4231002,
+    52.4878084
+   ],
+   "tags": {}
+  },
+  "n8098577927": {
+   "loc": [
+    13.4229114,
+    52.4878116
+   ],
+   "tags": {}
+  },
+  "n8919779674": {
+   "loc": [
+    13.4221248,
+    52.4871113
+   ],
+   "tags": {}
+  },
+  "n8098562174": {
+   "loc": [
+    13.4221487,
+    52.4871583
+   ],
+   "tags": {}
+  },
+  "n8919784534": {
+   "loc": [
+    13.4221494,
+    52.4871728
+   ],
+   "tags": {}
+  },
+  "n8919784540": {
+   "loc": [
+    13.4221506,
+    52.4871968
+   ],
+   "tags": {}
+  },
+  "n8901012586": {
+   "loc": [
+    13.4197144,
+    52.4874093
+   ],
+   "tags": {}
+  },
+  "n29720811": {
+   "loc": [
+    13.4201279,
+    52.4873554
+   ],
+   "tags": {}
+  },
+  "n9104186567": {
+   "loc": [
+    13.4208764,
+    52.4872554
+   ],
+   "tags": {}
+  },
+  "n8901012585": {
+   "loc": [
+    13.4197471,
+    52.487501
+   ],
+   "tags": {}
+  },
+  "n1652869620": {
+   "loc": [
+    13.4214284,
+    52.4872791
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n577325401": {
+   "loc": [
+    13.4213676,
+    52.4872939
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  "n9079066106": {
+   "loc": [
+    13.4213318,
+    52.4873018
+   ],
+   "tags": {}
+  },
+  "n8919779692": {
+   "loc": [
+    13.4212928,
+    52.4873104
+   ],
+   "tags": {}
+  },
+  "n8919779693": {
+   "loc": [
+    13.4210284,
+    52.4873542
+   ],
+   "tags": {}
+  },
+  "n8919779694": {
+   "loc": [
+    13.4208899,
+    52.4873684
+   ],
+   "tags": {}
+  },
+  "n8919779695": {
+   "loc": [
+    13.4207637,
+    52.4873778
+   ],
+   "tags": {}
+  },
+  "n8919784519": {
+   "loc": [
+    13.4215082,
+    52.4875412
+   ],
+   "tags": {}
+  },
+  "n8919784518": {
+   "loc": [
+    13.4215099,
+    52.4874217
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n8897826536": {
+   "loc": [
+    13.4208599,
+    52.4872125
+   ],
+   "tags": {}
+  },
+  "n8897826570": {
+   "loc": [
+    13.4208562,
+    52.4872038
+   ],
+   "tags": {}
+  },
+  "n9104183256": {
+   "loc": [
+    13.4208459,
+    52.487179
+   ],
+   "tags": {}
+  },
+  "n9104186564": {
+   "loc": [
+    13.4208397,
+    52.4871639
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n9104186566": {
+   "loc": [
+    13.4208056,
+    52.4870824
+   ],
+   "tags": {}
+  },
+  "n9104186565": {
+   "loc": [
+    13.4207806,
+    52.4869821
+   ],
+   "tags": {}
+  },
+  "n8897826576": {
+   "loc": [
+    13.4222891,
+    52.4869176
+   ],
+   "tags": {}
+  },
+  "n3790693368": {
+   "loc": [
+    13.4228726,
+    52.4867464
+   ],
+   "tags": {}
+  },
+  "n8919779686": {
+   "loc": [
+    13.4230438,
+    52.4866899
+   ],
+   "tags": {}
+  },
+  "n29720831": {
+   "loc": [
+    13.4231916,
+    52.4866397
+   ],
+   "tags": {}
+  },
+  "n6555693272": {
+   "loc": [
+    13.4220302,
+    52.4869201
+   ],
+   "tags": {}
+  },
+  "n13705116145": {
+   "loc": [
+    13.422026,
+    52.4869115
+   ],
+   "tags": {}
+  },
+  "n5097437706": {
+   "loc": [
+    13.4220056,
+    52.4868691
+   ],
+   "tags": {}
+  },
+  "n12439001211": {
+   "loc": [
+    13.4220304,
+    52.486603
+   ],
+   "tags": {}
+  },
+  "n12439001212": {
+   "loc": [
+    13.4220306,
+    52.4866412
+   ],
+   "tags": {
+    "barrier": "lift_gate",
+    "bicycle": "yes",
+    "foot": "yes",
+    "lift_gate:type": "single",
+    "motorcar": "yes",
+    "motorcycle": "yes"
+   }
+  },
+  "n577325387": {
+   "loc": [
+    13.4223921,
+    52.4867147
+   ],
+   "tags": {
+    "noexit": "yes"
+   }
+  }
+ },
+ "ways": [
+  {
+   "id": "w23026124",
+   "nodes": [
+    "n29881120",
+    "n10940189546",
+    "n3785188548",
+    "n2499469268",
+    "n2532143175"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "placement": "left_of:2",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "width:carriageway": "9",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w26832568",
+   "nodes": [
+    "n12439001210",
+    "n901799418",
+    "n12439001213",
+    "n577325383"
+   ],
+   "tags": {
+    "highway": "service",
+    "lanes": "1",
+    "lit": "yes",
+    "maxheight": "5",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "sidewalk": "right",
+    "sidewalk:right:surface": "asphalt",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes": "left|through"
+   }
+  },
+  {
+   "id": "w29036175",
+   "nodes": [
+    "n258396504",
+    "n13677631412",
+    "n8919784494",
+    "n8919784497",
+    "n3785148422"
+   ],
+   "tags": {
+    "highway": "service",
+    "oneway": "no",
+    "service": "driveway",
+    "source:width": "Luftbild 2025",
+    "surface": "sett",
+    "width": "4"
+   }
+  },
+  {
+   "id": "w45399416",
+   "nodes": [
+    "n577325377",
+    "n577325397"
+   ],
+   "tags": {
+    "check_date:smoothness": "2023-05-07",
+    "highway": "service",
+    "maxheight": "5",
+    "maxspeed": "5",
+    "service": "parking_aisle",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w45399417",
+   "nodes": [
+    "n577325375",
+    "n12439001340",
+    "n12439001214",
+    "n577325385"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "maxheight": "5",
+    "maxspeed": "5",
+    "service": "parking_aisle",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w45399418",
+   "nodes": [
+    "n29720825",
+    "n29825635"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "maxspeed": "50",
+    "oneway": "yes",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w47506965",
+   "nodes": [
+    "n3785188548",
+    "n8919779675",
+    "n8919784604",
+    "n5097437707",
+    "n604932022"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "smoothness": "intermediate",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w60825550",
+   "nodes": [
+    "n577325383",
+    "n12439001339",
+    "n12438982499"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "maxheight": "5",
+    "maxspeed": "5",
+    "sidewalk": "right",
+    "sidewalk:right:surface": "asphalt",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w76504424",
+   "nodes": [
+    "n901799416",
+    "n901799430",
+    "n3316593193",
+    "n5286133147",
+    "n6555693265",
+    "n29720825"
+   ],
+   "tags": {
+    "highway": "service",
+    "lanes": "2",
+    "lit": "no",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w96825819",
+   "nodes": [
+    "n1121856187",
+    "n3316604948",
+    "n4614136596",
+    "n1121856178",
+    "n1121856192"
+   ],
+   "tags": {
+    "cycleway:right": "no",
+    "foot": "use_sidepath",
+    "highway": "secondary_link",
+    "lanes": "1",
+    "lit": "yes",
+    "maxlength": "10",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "traffic_sign": "DE:266-10[10]",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w132645609",
+   "nodes": [
+    "n1459033291",
+    "n12977155160",
+    "n604932073"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxheight": "2",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "smoothness": "good",
+    "surface": "concrete",
+    "surface:colour": "red",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w132645611",
+   "nodes": [
+    "n604932073",
+    "n5097437708",
+    "n8919784605",
+    "n5286133125",
+    "n2499469268"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "smoothness": "intermediate",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w132645613",
+   "nodes": [
+    "n604932022",
+    "n604932015",
+    "n604932012"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxheight": "2",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "smoothness": "good",
+    "surface": "concrete",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w132645617",
+   "nodes": [
+    "n1459033295",
+    "n1459033294",
+    "n1459033292",
+    "n1459033293"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxspeed": "5",
+    "service": "driveway",
+    "surface": "concrete"
+   }
+  },
+  {
+   "id": "w132645621",
+   "nodes": [
+    "n12977155170",
+    "n6945588357",
+    "n6945588369",
+    "n1459033301",
+    "n6945588375",
+    "n1459033299",
+    "n1459033295"
+   ],
+   "tags": {
+    "highway": "service",
+    "surface": "concrete",
+    "surface:colour": "red"
+   }
+  },
+  {
+   "id": "w165387436",
+   "nodes": [
+    "n294615564",
+    "n901799416"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "no",
+    "maxheight": "5",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "traffic_calming": "bump"
+   }
+  },
+  {
+   "id": "w165387437",
+   "nodes": [
+    "n577325373",
+    "n12439001341",
+    "n577325377"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "maxheight": "5",
+    "maxspeed": "5",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w246136583",
+   "nodes": [
+    "n7624044186",
+    "n9079066103",
+    "n294496987",
+    "n1121856187"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "separate",
+    "placement": "left_of:3",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes": "reverse|through|none",
+    "width:carriageway": "9",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w375126256",
+   "nodes": [
+    "n3785148422",
+    "n3785148436",
+    "n258396516"
+   ],
+   "tags": {
+    "highway": "service",
+    "layer": "-1",
+    "maxheight": "3.9",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w375126258",
+   "nodes": [
+    "n3785148410",
+    "n3785148417"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w375126262",
+   "nodes": [
+    "n3785148417",
+    "n294496988"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w375126268",
+   "nodes": [
+    "n2532143175",
+    "n4393685888",
+    "n8919784572",
+    "n8919784600",
+    "n8919784542",
+    "n3785148376"
+   ],
+   "tags": {
+    "emergency": "designated",
+    "highway": "service",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w375126269",
+   "nodes": [
+    "n3785148376",
+    "n3785148392"
+   ],
+   "tags": {
+    "emergency": "designated",
+    "highway": "service",
+    "layer": "-1",
+    "maxheight": "4",
+    "maxspeed": "10",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w375126271",
+   "nodes": [
+    "n3785148394",
+    "n3785148410"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxheight": "2.6",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w375126275",
+   "nodes": [
+    "n3785148392",
+    "n3785148419",
+    "n3785148418"
+   ],
+   "tags": {
+    "emergency": "designated",
+    "highway": "service",
+    "maxspeed": "10",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w375126276",
+   "nodes": [
+    "n8457066471",
+    "n3785152459"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "parking_aisle"
+   }
+  },
+  {
+   "id": "w375126278",
+   "nodes": [
+    "n258396516",
+    "n3785152462",
+    "n3785152465",
+    "n3785152490",
+    "n8098562168"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w507757354",
+   "nodes": [
+    "n29825635",
+    "n5286133133",
+    "n8919784523",
+    "n8919784606",
+    "n8919784539",
+    "n4972056387"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w507757355",
+   "nodes": [
+    "n4972056387",
+    "n4972056386"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxheight": "3.6",
+    "maxheight:signed": "no",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w721126665",
+   "nodes": [
+    "n3785152490",
+    "n6765963064",
+    "n6765963065"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "parking_aisle"
+   }
+  },
+  {
+   "id": "w721126666",
+   "nodes": [
+    "n6765963064",
+    "n6765963066"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "parking_aisle"
+   }
+  },
+  {
+   "id": "w816324772",
+   "nodes": [
+    "n901799422",
+    "n29720825",
+    "n29720814",
+    "n9079066114",
+    "n1121856192",
+    "n12823411264",
+    "n8919779688",
+    "n294609608"
+   ],
+   "tags": {
+    "bicycle": "use_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "width:carriageway": "9",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w816324777",
+   "nodes": [
+    "n2532143175",
+    "n9079066104",
+    "n9079066105",
+    "n7624044186"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "separate",
+    "placement": "left_of:2",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "width:carriageway": "9",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w868797765",
+   "nodes": [
+    "n8098055094",
+    "n8919784541",
+    "n8919784535",
+    "n8098562178",
+    "n8098055093",
+    "n7624044186"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w868797766",
+   "nodes": [
+    "n8098055095",
+    "n8098055094"
+   ],
+   "tags": {
+    "highway": "service",
+    "maxheight": "below_default",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w868797767",
+   "nodes": [
+    "n8098055097",
+    "n8098055096",
+    "n8098055095"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w868858777",
+   "nodes": [
+    "n8098562170",
+    "n8098562159",
+    "n8919784488",
+    "n8919784495",
+    "n13677566373",
+    "n8098562169"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "source:width": "Luftbild 2025",
+    "width": "4"
+   }
+  },
+  {
+   "id": "w868858779",
+   "nodes": [
+    "n8098562187",
+    "n8919784543",
+    "n8919784532",
+    "n8919784553",
+    "n5286133128",
+    "n8098562186"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w868858801",
+   "nodes": [
+    "n8098577928",
+    "n8098577930",
+    "n8098577927"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w910781024",
+   "nodes": [
+    "n294496987",
+    "n8919779674",
+    "n8098562174",
+    "n8919784534",
+    "n8919784540",
+    "n3785148394"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w910781025",
+   "nodes": [
+    "n294496988",
+    "n8457066471"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w962252499",
+   "nodes": [
+    "n258396504",
+    "n8098562169"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:access": "no",
+    "parking:right:bus": "designated",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w962258013",
+   "nodes": [
+    "n8901012586",
+    "n29720811",
+    "n9104186567",
+    "n901799422"
+   ],
+   "tags": {
+    "bicycle": "use_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "width:carriageway": "9",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w962258014",
+   "nodes": [
+    "n8098562169",
+    "n8901012585"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "lane",
+    "parking:right:fee": "yes",
+    "parking:right:fee:conditional": "no @ (Mo-Sa 00:00-09:00,22:00-24:00; Su)",
+    "parking:right:orientation": "parallel",
+    "parking:right:zone": "63",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "width:carriageway": "9",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w964321902",
+   "nodes": [
+    "n1121856187",
+    "n8098562186",
+    "n1652869620",
+    "n577325401",
+    "n9079066106",
+    "n8919779692",
+    "n29825635"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "width:carriageway": "6",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w964321903",
+   "nodes": [
+    "n29825635",
+    "n8919779693",
+    "n8919779694",
+    "n8919779695",
+    "n258396504"
+   ],
+   "tags": {
+    "bicycle": "optional_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "width:carriageway": "9",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w964321973",
+   "nodes": [
+    "n8919784519",
+    "n8919784518",
+    "n8098562187"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w984750811",
+   "nodes": [
+    "n9104186567",
+    "n8897826536",
+    "n8897826570",
+    "n9104183256",
+    "n9104186564",
+    "n9104186566",
+    "n9104186565"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w1020303900",
+   "nodes": [
+    "n294609608",
+    "n8897826576",
+    "n3790693368",
+    "n8919779686",
+    "n29720831"
+   ],
+   "tags": {
+    "bicycle": "use_sidepath",
+    "cycleway:left": "no",
+    "cycleway:right": "separate",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Hasenheide",
+    "name:etymology:wikidata": "Q25900",
+    "name:etymology:wikipedia": "de:Hasen",
+    "oneway": "yes",
+    "parking:left": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right": "separate",
+    "postal_code": "10967",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "width:carriageway": "11.5",
+    "wikidata": "Q1588346",
+    "wikipedia": "de:Hasenheide (Straße)"
+   }
+  },
+  {
+   "id": "w1055418574",
+   "nodes": [
+    "n577325377",
+    "n577325385"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "maxheight": "5",
+    "maxspeed": "5",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w1055418575",
+   "nodes": [
+    "n294609608",
+    "n6555693272",
+    "n13705116145",
+    "n5097437706"
+   ],
+   "tags": {
+    "highway": "service",
+    "lanes": "2",
+    "lit": "yes",
+    "maxheight": "5",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "sidewalk": "right",
+    "sidewalk:right:surface": "paving_stones",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes": "left|through"
+   }
+  },
+  {
+   "id": "w1344577940",
+   "nodes": [
+    "n577325385",
+    "n12439001211",
+    "n12439001212",
+    "n12439001210"
+   ],
+   "tags": {
+    "highway": "service",
+    "lanes": "1",
+    "lit": "yes",
+    "maxheight": "5",
+    "maxspeed": "5",
+    "oneway": "-1",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w1344577941",
+   "nodes": [
+    "n5097437706",
+    "n12439001210"
+   ],
+   "tags": {
+    "highway": "service",
+    "lanes": "2",
+    "lit": "yes",
+    "maxheight": "5",
+    "maxspeed": "5",
+    "oneway": "yes",
+    "sidewalk": "right",
+    "sidewalk:right:surface": "asphalt",
+    "smoothness": "excellent",
+    "surface": "asphalt",
+    "turn:lanes": "left|through"
+   }
+  },
+  {
+   "id": "w1344577942",
+   "nodes": [
+    "n577325385",
+    "n577325387"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "maxheight": "5",
+    "maxspeed": "5",
+    "service": "parking_aisle",
+    "smoothness": "excellent",
+    "surface": "asphalt"
+   }
+  },
+  {
+   "id": "w1412184153",
+   "nodes": [
+    "n1459033295",
+    "n1459033291"
+   ],
+   "tags": {
+    "highway": "service",
+    "oneway": "yes",
+    "surface": "concrete",
+    "surface:colour": "red"
+   }
+  }
+ ]
+}

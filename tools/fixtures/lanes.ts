@@ -726,6 +726,112 @@ export const CASES: LaneCase[] = [
   },
 ]
 
+/**
+ * Real places of the `dense` scene (Neukölln, cut from an extract of 2026-08-06, OSM data under the ODbL) that show the
+ * same questions on real mapping. Each is written as a case file of the lane roads within `radius` metres, so another
+ * editor can draw the very same data, and with a link to open the place there on today's data.
+ */
+export type LanePlace = { id: string; title: string; shows: string; lat: number; lon: number; radius: number }
+
+export const PLACES: LanePlace[] = [
+  {
+    id: 'P01',
+    title: 'Karl-Marx-Straße at Rathaus Neukölln',
+    shows: 'Turn lanes, a cycle lane between the lanes (German pattern), placement, side streets and a dual carriageway nearby.',
+    lat: 52.48057,
+    lon: 13.43568,
+    radius: 120,
+  },
+  {
+    id: 'P02',
+    title: 'Hermannplatz',
+    shows: 'A large junction of many nodes, bus lanes running into it, roads splitting into one-way carriageways.',
+    lat: 52.4868,
+    lon: 13.4248,
+    radius: 130,
+  },
+  {
+    id: 'P03',
+    title: 'Karl-Marx-Straße at Werbellinstraße',
+    shows: 'Turn lanes in both directions, a two-way road splitting into two one-way roads, cycle lanes.',
+    lat: 52.48,
+    lon: 13.4365,
+    radius: 120,
+  },
+  {
+    id: 'P04',
+    title: 'Sonnenallee with bus lanes',
+    shows: 'psv:lanes on a main road, side streets without lane tags.',
+    lat: 52.4803,
+    lon: 13.4429,
+    radius: 120,
+  },
+  {
+    id: 'P05',
+    title: 'Hasenheide slip roads',
+    shows: 'secondary_link slip roads leaving and joining a main road.',
+    lat: 52.48718,
+    lon: 13.42154,
+    radius: 120,
+  },
+  {
+    id: 'P06',
+    title: 'Werbellinstraße links',
+    shows: 'tertiary_link ways at a junction of three roads.',
+    lat: 52.4778,
+    lon: 13.4285,
+    radius: 120,
+  },
+  {
+    id: 'P07',
+    title: 'A wide unmarked street meets a marked one',
+    shows: 'A residential carriageway tagged with its width goes on as a road with lanes and a cycle lane.',
+    lat: 52.48148,
+    lon: 13.43738,
+    radius: 100,
+  },
+  {
+    id: 'P08',
+    title: 'Flughafenstraße and Columbiadamm',
+    shows: 'Ways mapped off the middle of the road (placement), a junction of main roads.',
+    lat: 52.4804,
+    lon: 13.4215,
+    radius: 120,
+  },
+]
+
+const LANE_ROADS = new Set([
+  'motorway', 'motorway_link', 'trunk', 'trunk_link', 'primary', 'primary_link', 'secondary', 'secondary_link',
+  'tertiary', 'tertiary_link', 'unclassified', 'road', 'busway', 'residential', 'living_street', 'service',
+])
+
+/** The lane roads of the dense fixture near a place, with all their nodes, as a case file */
+function placeFile(
+  dense: { elements: { type: string; id: number; lat?: number; lon?: number; nodes?: number[]; tags?: Tags }[] },
+  place: LanePlace,
+) {
+  const nodes = new Map<number, { lat: number; lon: number; tags?: Tags }>()
+  for (const e of dense.elements) if (e.type === 'node') nodes.set(e.id, { lat: e.lat!, lon: e.lon!, ...(e.tags ? { tags: e.tags } : {}) })
+  const kx = 111_320 * Math.cos((place.lat * Math.PI) / 180)
+  const near = (id: number) => {
+    const n = nodes.get(id)
+    return n !== undefined && Math.hypot((n.lon - place.lon) * kx, (n.lat - place.lat) * 111_320) <= place.radius
+  }
+  const ways = dense.elements.filter(
+    (e) => e.type === 'way' && LANE_ROADS.has(e.tags?.highway ?? '') && e.tags?.area !== 'yes' && e.nodes!.some(near),
+  )
+  const used = [...new Set(ways.flatMap((w) => w.nodes!))].filter((id) => nodes.has(id))
+  return {
+    nodes: Object.fromEntries(
+      used.map((id) => {
+        const n = nodes.get(id)!
+        return [`n${id}`, { loc: [n.lon, n.lat], tags: n.tags ?? {} }]
+      }),
+    ),
+    ways: ways.map((w) => ({ id: `w${w.id}`, nodes: w.nodes!.filter((id) => nodes.has(id)).map((id) => `n${id}`), tags: w.tags ?? {} })),
+  }
+}
+
 /** Cells of 300 m in rows of five, from the north-west */
 const CELL = 300
 const COLUMNS = 5
@@ -851,6 +957,29 @@ if (import.meta.main) {
     })
   }
   await Bun.write(join(outDir, 'lanes', 'cases.json'), `${JSON.stringify(catalogue, null, 2)}\n`)
+
+  // the real places, cut from the committed dense fixture (no download, no OSM server)
+  const dense = JSON.parse(new TextDecoder().decode(Bun.gunzipSync(await Bun.file(join(outDir, 'dense.json.gz')).bytes())))
+  const places = []
+  for (const place of PLACES) {
+    const name = `${place.id.toLowerCase()}.json`
+    await Bun.write(join(outDir, 'lanes', 'places', name), `${JSON.stringify(placeFile(dense, place), null, 1)}\n`)
+    const map = `19/${place.lat}/${place.lon}`
+    places.push({
+      id: place.id,
+      title: place.title,
+      shows: place.shows,
+      file: `places/${name}`,
+      centre: [place.lon, place.lat],
+      attribution: '© OpenStreetMap contributors, ODbL 1.0 (fixtures/dense, extract of 2026-08-06)',
+      links: {
+        maid: `?scene=dense#map=${map}`,
+        openStreetMap: `https://www.openstreetmap.org/#map=${map}`,
+        laneStudio: `https://lanestudio.marcelmarzec.com/editor/#map=${map}`,
+      },
+    })
+  }
+  await Bun.write(join(outDir, 'lanes', 'places.json'), `${JSON.stringify(places, null, 2)}\n`)
   console.log(
     `lanes: ${CASES.length} cases, ${counts.node} nodes, ${counts.way} ways; wrote ${outDir}/lanes.json.gz and ${outDir}/lanes/`,
   )

@@ -6,7 +6,7 @@ import { join } from 'node:path'
  * reports/lanes-cases.html and, with a headless browser that loads nothing from the network, reports/lanes-cases.png.
  * To compare with another lane editor, draw the same case files there.
  *
- * Usage: bun run lanes-sheet [L08 L13 ...]   (all cases without arguments)
+ * Usage: bun run lanes-sheet [L08 L13 P02 ...]   (all made-up cases without arguments; `P` for all real places)
  */
 import { chromium } from '@playwright/test'
 import { streetOf, type StreetEntity } from '../../packages/module-lanes/src/overlay/street.ts'
@@ -18,14 +18,17 @@ type CaseFile = {
 type Entry = { id: string; title: string; shows: string; file: string; centre: [number, number] }
 
 const root = join(import.meta.dir, '../..')
-const catalogue = JSON.parse(
-  readFileSync(join(root, 'fixtures/lanes/cases.json'), 'utf8'),
-) as Entry[]
+const read = (file: string) => JSON.parse(readFileSync(join(root, 'fixtures/lanes', file), 'utf8')) as Entry[]
+const catalogue = [...read('cases.json'), ...read('places.json')]
 const wanted = process.argv.slice(2).map((a) => a.toUpperCase())
-const entries = wanted.length ? catalogue.filter((e) => wanted.includes(e.id)) : catalogue
+// all made-up cases without arguments; `P` for all real places
+const entries = wanted.length
+  ? catalogue.filter((e) => wanted.includes(e.id) || (wanted.includes('P') && e.id.startsWith('P')))
+  : catalogue.filter((e) => e.id.startsWith('L'))
 
 const SIZE = 420
-const HALF = 75
+/** Half the side of a drawing in metres: a made-up case, a real place */
+const halfOf = (entry: Entry) => (entry.id.startsWith('P') ? 130 : 75)
 const COLOURS: Record<string, string> = {
   car: '#71717a',
   bus: '#b91c1c',
@@ -35,6 +38,7 @@ const COLOURS: Record<string, string> = {
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 function drawCase(entry: Entry): string {
+  const HALF = halfOf(entry)
   const data = JSON.parse(
     readFileSync(join(root, 'fixtures/lanes', entry.file), 'utf8'),
   ) as CaseFile
@@ -83,7 +87,7 @@ function drawCase(entry: Entry): string {
     svg += `<g transform="translate(${x!.toFixed(1)},${y!.toFixed(1)}) rotate(${arrow.bearing.toFixed(0)})"><path d="M0,-7 L4,-2 L1.2,-2 L1.2,5 L-1.2,5 L-1.2,-2 L-4,-2Z" fill="#fff"/></g>`
     svg += `<text x="${(x! + 6).toFixed(1)}" y="${y!.toFixed(1)}" font-size="9" fill="#18181b">${esc(arrow.turn)}</text>`
   }
-  svg += `<text x="8" y="${SIZE - 8}" font-size="10" fill="#52525b">${HALF * 2} m</text></svg>`
+  svg += `<text x="8" y="${SIZE - 8}" font-size="10" fill="#52525b">${HALF * 2} m${entry.id.startsWith('P') ? ' · © OpenStreetMap contributors' : ''}</text></svg>`
   return svg
 }
 

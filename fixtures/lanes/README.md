@@ -39,9 +39,20 @@ Made by `bun run fixtures-lanes` (`tools/fixtures/lanes.ts`): change the cases t
 | L10 | A skewed crossing | L21 | Small streets without lane tags |
 | L11 | A road splits into a dual carriageway | L22 | Widths per lane |
 
+## Real places
+
+`places.json` and `places/p01.json` … `places/p08.json`: eight places of Maid's `dense` scene (Neukölln, Berlin) that
+show the same questions on real mapping: Karl-Marx-Straße at Rathaus Neukölln, Hermannplatz, Karl-Marx-Straße at
+Werbellinstraße, Sonnenallee with bus lanes, slip roads at Hasenheide, links at Werbellinstraße, a wide unmarked street
+meeting a marked one, Flughafenstraße and Columbiadamm. Each file holds the lane roads within 100–130 m, cut from the
+committed fixture (an extract of 2026-08-06), so two editors can draw the very same data. This is OSM data:
+© OpenStreetMap contributors, ODbL 1.0. Each entry has links to open the place in Maid (`?scene=dense`), on
+openstreetmap.org and in Lane Studio, the latter two on today's data.
+
 ## Comparing
 
-- `bun run lanes-sheet` draws every case with Maid's street drawing into `reports/lanes-cases.html` and `.png`.
+- `bun run lanes-sheet` draws every made-up case with Maid's street drawing into `reports/lanes-cases.html` and `.png`;
+  `bun run lanes-sheet P` the real places, `bun run lanes-sheet L13 P02` single ones.
 - `packages/module-lanes/src/overlay/lane-cases.test.ts` checks every case (each way drawn, no outline crossing
   itself) and what each one is about where it can be put in numbers (side streets stop at the main road's kerb, the
   arms of the roundabout stop outside the ring, which lanes narrow to nothing).

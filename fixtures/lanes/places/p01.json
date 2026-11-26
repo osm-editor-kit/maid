@@ -1,0 +1,2949 @@
+{
+ "nodes": {
+  "n6814293061": {
+   "loc": [
+    13.4321658,
+    52.4800492
+   ],
+   "tags": {}
+  },
+  "n1713912781": {
+   "loc": [
+    13.4322038,
+    52.4800443
+   ],
+   "tags": {}
+  },
+  "n4964681176": {
+   "loc": [
+    13.4322321,
+    52.4800444
+   ],
+   "tags": {}
+  },
+  "n4964681193": {
+   "loc": [
+    13.432284,
+    52.4800497
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "kerb": "no",
+    "tactile_paving": "no"
+   }
+  },
+  "n3235966084": {
+   "loc": [
+    13.4329875,
+    52.4801424
+   ],
+   "tags": {}
+  },
+  "n4964681188": {
+   "loc": [
+    13.4335534,
+    52.4802011
+   ],
+   "tags": {}
+  },
+  "n4199580756": {
+   "loc": [
+    13.4340395,
+    52.4802523
+   ],
+   "tags": {}
+  },
+  "n13758032373": {
+   "loc": [
+    13.436039,
+    52.480984
+   ],
+   "tags": {}
+  },
+  "n10589986262": {
+   "loc": [
+    13.4359633,
+    52.4809729
+   ],
+   "tags": {}
+  },
+  "n3354594361": {
+   "loc": [
+    13.4355564,
+    52.4809128
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals:direction": "forward"
+   }
+  },
+  "n6836843387": {
+   "loc": [
+    13.4355005,
+    52.4808955
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n1509404651": {
+   "loc": [
+    13.4353494,
+    52.4808126
+   ],
+   "tags": {}
+  },
+  "n27554999": {
+   "loc": [
+    13.4365332,
+    52.4799619
+   ],
+   "tags": {}
+  },
+  "n3880652841": {
+   "loc": [
+    13.4364128,
+    52.480048
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "crossing:kerb_extension": "right",
+    "highway": "crossing",
+    "kerb": "lowered",
+    "lit": "yes",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n8896016086": {
+   "loc": [
+    13.436366,
+    52.4800805
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals:direction": "backward"
+   }
+  },
+  "n3354594346": {
+   "loc": [
+    13.4363189,
+    52.4801145
+   ],
+   "tags": {
+    "bench": "yes",
+    "bin": "yes",
+    "bus": "yes",
+    "departures_board": "realtime",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "name": "U Rathaus Neukölln / Alfred-Scholz-Platz",
+    "public_transport": "stop_position",
+    "ref:BVG": "100228",
+    "shelter": "yes",
+    "tactile_paving": "yes"
+   }
+  },
+  "n11277077990": {
+   "loc": [
+    13.4361595,
+    52.48023
+   ],
+   "tags": {}
+  },
+  "n1455175905": {
+   "loc": [
+    13.436189,
+    52.481006
+   ],
+   "tags": {}
+  },
+  "n9230330874": {
+   "loc": [
+    13.4361827,
+    52.4810601
+   ],
+   "tags": {}
+  },
+  "n8939835408": {
+   "loc": [
+    13.4361802,
+    52.4810795
+   ],
+   "tags": {}
+  },
+  "n5299353196": {
+   "loc": [
+    13.4361757,
+    52.4811138
+   ],
+   "tags": {}
+  },
+  "n5299353197": {
+   "loc": [
+    13.4361707,
+    52.4811539
+   ],
+   "tags": {}
+  },
+  "n5299411275": {
+   "loc": [
+    13.4361674,
+    52.4811651
+   ],
+   "tags": {}
+  },
+  "n1455175915": {
+   "loc": [
+    13.4361618,
+    52.4811799
+   ],
+   "tags": {}
+  },
+  "n5299353198": {
+   "loc": [
+    13.43615,
+    52.4811964
+   ],
+   "tags": {}
+  },
+  "n1455175916": {
+   "loc": [
+    13.4361202,
+    52.4812178
+   ],
+   "tags": {}
+  },
+  "n5299353190": {
+   "loc": [
+    13.4363178,
+    52.4811973
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n1455175917": {
+   "loc": [
+    13.4366098,
+    52.4812381
+   ],
+   "tags": {}
+  },
+  "n1455175918": {
+   "loc": [
+    13.436786,
+    52.4812636
+   ],
+   "tags": {}
+  },
+  "n1455175927": {
+   "loc": [
+    13.4365556,
+    52.4813847
+   ],
+   "tags": {}
+  },
+  "n5299411239": {
+   "loc": [
+    13.4365455,
+    52.4814648
+   ],
+   "tags": {}
+  },
+  "n5299411240": {
+   "loc": [
+    13.436522,
+    52.4815111
+   ],
+   "tags": {}
+  },
+  "n3235739445": {
+   "loc": [
+    13.4364983,
+    52.4815375
+   ],
+   "tags": {}
+  },
+  "n13299694594": {
+   "loc": [
+    13.4352692,
+    52.4809457
+   ],
+   "tags": {}
+  },
+  "n13299694587": {
+   "loc": [
+    13.4352208,
+    52.4809877
+   ],
+   "tags": {}
+  },
+  "n13299694592": {
+   "loc": [
+    13.4349767,
+    52.4811571
+   ],
+   "tags": {}
+  },
+  "n7682408012": {
+   "loc": [
+    13.4349118,
+    52.4812022
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n1509404654": {
+   "loc": [
+    13.4348479,
+    52.4812466
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "crossing:markings": "dashes",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n13016715417": {
+   "loc": [
+    13.4341308,
+    52.4816403
+   ],
+   "tags": {}
+  },
+  "n10039821032": {
+   "loc": [
+    13.4341831,
+    52.4815911
+   ],
+   "tags": {}
+  },
+  "n7682408011": {
+   "loc": [
+    13.4345036,
+    52.4813619
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n2873726316": {
+   "loc": [
+    13.4345675,
+    52.4813177
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "crossing:markings": "dashes",
+    "disused:crossing": "traffic_signals",
+    "disused:highway": "crossing",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n8025870983": {
+   "loc": [
+    13.4372408,
+    52.479347
+   ],
+   "tags": {}
+  },
+  "n8896016081": {
+   "loc": [
+    13.4371763,
+    52.4795036
+   ],
+   "tags": {}
+  },
+  "n9118147700": {
+   "loc": [
+    13.437131,
+    52.4795499
+   ],
+   "tags": {}
+  },
+  "n10967608054": {
+   "loc": [
+    13.4371022,
+    52.479574
+   ],
+   "tags": {}
+  },
+  "n3410445690": {
+   "loc": [
+    13.4370782,
+    52.4795935
+   ],
+   "tags": {}
+  },
+  "n1969158534": {
+   "loc": [
+    13.4370597,
+    52.4796083
+   ],
+   "tags": {}
+  },
+  "n8896016089": {
+   "loc": [
+    13.4367469,
+    52.4798344
+   ],
+   "tags": {
+    "highway": "traffic_signals"
+   }
+  },
+  "n7682347303": {
+   "loc": [
+    13.4366979,
+    52.4798698
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "kerb": "lowered",
+    "lit": "yes",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n8896016082": {
+   "loc": [
+    13.4366663,
+    52.4798932
+   ],
+   "tags": {}
+  },
+  "n3410445881": {
+   "loc": [
+    13.435203,
+    52.4803334
+   ],
+   "tags": {}
+  },
+  "n8863258716": {
+   "loc": [
+    13.4352117,
+    52.4803069
+   ],
+   "tags": {
+    "barrier": "kerb",
+    "kerb": "lowered",
+    "tactile_paving": "no"
+   }
+  },
+  "n8863258714": {
+   "loc": [
+    13.43522,
+    52.4802819
+   ],
+   "tags": {}
+  },
+  "n8048425337": {
+   "loc": [
+    13.4352247,
+    52.4802676
+   ],
+   "tags": {
+    "barrier": "lift_gate"
+   }
+  },
+  "n1455175920": {
+   "loc": [
+    13.4364642,
+    52.4813229
+   ],
+   "tags": {}
+  },
+  "n5299353189": {
+   "loc": [
+    13.4368781,
+    52.4812733
+   ],
+   "tags": {}
+  },
+  "n5299353188": {
+   "loc": [
+    13.4369274,
+    52.4812463
+   ],
+   "tags": {}
+  },
+  "n5299353187": {
+   "loc": [
+    13.436941,
+    52.4812322
+   ],
+   "tags": {}
+  },
+  "n5299353185": {
+   "loc": [
+    13.4369533,
+    52.4812115
+   ],
+   "tags": {
+    "access": "private",
+    "barrier": "gate"
+   }
+  },
+  "n8939792808": {
+   "loc": [
+    13.4369575,
+    52.4812004
+   ],
+   "tags": {}
+  },
+  "n7843594545": {
+   "loc": [
+    13.436967,
+    52.4811753
+   ],
+   "tags": {}
+  },
+  "n5299353184": {
+   "loc": [
+    13.4369835,
+    52.4811318
+   ],
+   "tags": {}
+  },
+  "n1455175919": {
+   "loc": [
+    13.4359885,
+    52.4813099
+   ],
+   "tags": {}
+  },
+  "n1455175930": {
+   "loc": [
+    13.4357556,
+    52.4814669
+   ],
+   "tags": {}
+  },
+  "n13002582702": {
+   "loc": [
+    13.43502,
+    52.4811774
+   ],
+   "tags": {}
+  },
+  "n8939830121": {
+   "loc": [
+    13.4350594,
+    52.4811984
+   ],
+   "tags": {}
+  },
+  "n13004375300": {
+   "loc": [
+    13.4351154,
+    52.4812284
+   ],
+   "tags": {
+    "barrier": "bollard",
+    "bollard": "removable",
+    "material": "metal"
+   }
+  },
+  "n5299353933": {
+   "loc": [
+    13.4352234,
+    52.4812855
+   ],
+   "tags": {}
+  },
+  "n5299353932": {
+   "loc": [
+    13.4353859,
+    52.481371
+   ],
+   "tags": {}
+  },
+  "n3886063370": {
+   "loc": [
+    13.4353455,
+    52.4813995
+   ],
+   "tags": {
+    "entrance": "yes",
+    "name": "Rathaus Neukölln Nebeneingang",
+    "wheelchair": "yes"
+   }
+  },
+  "n7681182212": {
+   "loc": [
+    13.4366612,
+    52.4800261
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "crossing:kerb_extension": "left",
+    "highway": "crossing",
+    "kerb": "lowered",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "no"
+   }
+  },
+  "n9402032152": {
+   "loc": [
+    13.4367099,
+    52.4800419
+   ],
+   "tags": {}
+  },
+  "n3880652840": {
+   "loc": [
+    13.4367673,
+    52.4800522
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals:direction": "backward"
+   }
+  },
+  "n13758143608": {
+   "loc": [
+    13.4368873,
+    52.4800721
+   ],
+   "tags": {}
+  },
+  "n9402032154": {
+   "loc": [
+    13.4369483,
+    52.4800871
+   ],
+   "tags": {}
+  },
+  "n13299694555": {
+   "loc": [
+    13.4348002,
+    52.4812798
+   ],
+   "tags": {}
+  },
+  "n13299694557": {
+   "loc": [
+    13.4347144,
+    52.4813394
+   ],
+   "tags": {}
+  },
+  "n2873726319": {
+   "loc": [
+    13.4346675,
+    52.481372
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "crossing:markings": "dashes",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n13299694556": {
+   "loc": [
+    13.4346207,
+    52.4814046
+   ],
+   "tags": {}
+  },
+  "n322648692": {
+   "loc": [
+    13.4345789,
+    52.4814336
+   ],
+   "tags": {}
+  },
+  "n13299694535": {
+   "loc": [
+    13.4345361,
+    52.4814633
+   ],
+   "tags": {}
+  },
+  "n12997086265": {
+   "loc": [
+    13.434243,
+    52.4816671
+   ],
+   "tags": {}
+  },
+  "n3410445728": {
+   "loc": [
+    13.4353842,
+    52.4797825
+   ],
+   "tags": {
+    "access": "delivery",
+    "barrier": "gate"
+   }
+  },
+  "n7368347399": {
+   "loc": [
+    13.4354835,
+    52.4794807
+   ],
+   "tags": {
+    "access": "delivery",
+    "barrier": "gate"
+   }
+  },
+  "n7368347404": {
+   "loc": [
+    13.4348643,
+    52.479467
+   ],
+   "tags": {}
+  },
+  "n7368347400": {
+   "loc": [
+    13.4346372,
+    52.4794389
+   ],
+   "tags": {}
+  },
+  "n7368347403": {
+   "loc": [
+    13.4345866,
+    52.4795904
+   ],
+   "tags": {}
+  },
+  "n7368347402": {
+   "loc": [
+    13.4353024,
+    52.479679
+   ],
+   "tags": {}
+  },
+  "n7368347401": {
+   "loc": [
+    13.435353,
+    52.4795276
+   ],
+   "tags": {}
+  },
+  "n27555077": {
+   "loc": [
+    13.437791,
+    52.4812474
+   ],
+   "tags": {}
+  },
+  "n6155734227": {
+   "loc": [
+    13.4375844,
+    52.4812194
+   ],
+   "tags": {
+    "button_operated": "yes",
+    "crossing": "traffic_signals",
+    "crossing:direction:angle": "135",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n6155734222": {
+   "loc": [
+    13.4375308,
+    52.4812121
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal",
+    "traffic_signals:direction": "backward"
+   }
+  },
+  "n8010307670": {
+   "loc": [
+    13.4373806,
+    52.4802549
+   ],
+   "tags": {}
+  },
+  "n8010307669": {
+   "loc": [
+    13.4374225,
+    52.4802906
+   ],
+   "tags": {}
+  },
+  "n8010307668": {
+   "loc": [
+    13.4374038,
+    52.480339
+   ],
+   "tags": {
+    "disused:amenity": "parking_entrance",
+    "disused:capacity": "60",
+    "disused:parking": "underground"
+   }
+  },
+  "n8010307672": {
+   "loc": [
+    13.4372724,
+    52.4805257
+   ],
+   "tags": {}
+  },
+  "n8010307671": {
+   "loc": [
+    13.4373847,
+    52.4802446
+   ],
+   "tags": {}
+  },
+  "n8010307674": {
+   "loc": [
+    13.4372054,
+    52.4806935
+   ],
+   "tags": {}
+  },
+  "n8048425321": {
+   "loc": [
+    13.4344512,
+    52.4809229
+   ],
+   "tags": {}
+  },
+  "n8863258688": {
+   "loc": [
+    13.4344467,
+    52.4809359
+   ],
+   "tags": {}
+  },
+  "n8863258687": {
+   "loc": [
+    13.4344392,
+    52.4809574
+   ],
+   "tags": {}
+  },
+  "n8048425328": {
+   "loc": [
+    13.4344336,
+    52.4809735
+   ],
+   "tags": {}
+  },
+  "n8048425329": {
+   "loc": [
+    13.4344904,
+    52.48081
+   ],
+   "tags": {}
+  },
+  "n8048425324": {
+   "loc": [
+    13.4348176,
+    52.4807368
+   ],
+   "tags": {}
+  },
+  "n8048425323": {
+   "loc": [
+    13.4346331,
+    52.4807344
+   ],
+   "tags": {}
+  },
+  "n8048425322": {
+   "loc": [
+    13.4345739,
+    52.4807262
+   ],
+   "tags": {}
+  },
+  "n8048425325": {
+   "loc": [
+    13.4347963,
+    52.4806754
+   ],
+   "tags": {
+    "access": "private",
+    "amenity": "parking_entrance",
+    "parking": "underground"
+   }
+  },
+  "n8048425326": {
+   "loc": [
+    13.4346326,
+    52.4806594
+   ],
+   "tags": {}
+  },
+  "n8048425327": {
+   "loc": [
+    13.434595,
+    52.4806715
+   ],
+   "tags": {}
+  },
+  "n8048425302": {
+   "loc": [
+    13.4345098,
+    52.480762
+   ],
+   "tags": {}
+  },
+  "n8048425331": {
+   "loc": [
+    13.4342063,
+    52.4810635
+   ],
+   "tags": {}
+  },
+  "n8863258672": {
+   "loc": [
+    13.4342105,
+    52.4810521
+   ],
+   "tags": {}
+  },
+  "n8863121482": {
+   "loc": [
+    13.4342195,
+    52.481028
+   ],
+   "tags": {}
+  },
+  "n8048425330": {
+   "loc": [
+    13.4342451,
+    52.4809594
+   ],
+   "tags": {}
+  },
+  "n8048425339": {
+   "loc": [
+    13.4350437,
+    52.4802527
+   ],
+   "tags": {}
+  },
+  "n8863258715": {
+   "loc": [
+    13.4350407,
+    52.4802631
+   ],
+   "tags": {}
+  },
+  "n8863258717": {
+   "loc": [
+    13.4350336,
+    52.4802882
+   ],
+   "tags": {}
+  },
+  "n8048425340": {
+   "loc": [
+    13.435026,
+    52.4803149
+   ],
+   "tags": {}
+  },
+  "n8048425338": {
+   "loc": [
+    13.4350674,
+    52.4801697
+   ],
+   "tags": {}
+  },
+  "n8048425341": {
+   "loc": [
+    13.4351425,
+    52.4799064
+   ],
+   "tags": {}
+  },
+  "n4964681200": {
+   "loc": [
+    13.4344515,
+    52.4809748
+   ],
+   "tags": {}
+  },
+  "n8863121483": {
+   "loc": [
+    13.4348384,
+    52.4810291
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes"
+   }
+  },
+  "n8946809554": {
+   "loc": [
+    13.4356819,
+    52.4803836
+   ],
+   "tags": {}
+  },
+  "n8807672374": {
+   "loc": [
+    13.4357328,
+    52.4803929
+   ],
+   "tags": {
+    "crossing": "marked",
+    "crossing:island": "no",
+    "crossing:kerb_extension": "left",
+    "crossing:markings": "surface",
+    "highway": "crossing",
+    "surface": "sett",
+    "tactile_paving": "yes"
+   }
+  },
+  "n8946809555": {
+   "loc": [
+    13.4357686,
+    52.4804039
+   ],
+   "tags": {
+    "direction": "forward",
+    "highway": "give_way"
+   }
+  },
+  "n8946809562": {
+   "loc": [
+    13.4357766,
+    52.4804064
+   ],
+   "tags": {
+    "barrier": "kerb",
+    "kerb": "lowered"
+   }
+  },
+  "n27555000": {
+   "loc": [
+    13.435852,
+    52.4804424
+   ],
+   "tags": {}
+  },
+  "n8048416653": {
+   "loc": [
+    13.4341412,
+    52.4801523
+   ],
+   "tags": {}
+  },
+  "n8863258719": {
+   "loc": [
+    13.4341369,
+    52.4801682
+   ],
+   "tags": {}
+  },
+  "n8863258718": {
+   "loc": [
+    13.4341231,
+    52.4802196
+   ],
+   "tags": {}
+  },
+  "n6833361499": {
+   "loc": [
+    13.4341147,
+    52.4802489
+   ],
+   "tags": {}
+  },
+  "n8048416652": {
+   "loc": [
+    13.434161,
+    52.4800783
+   ],
+   "tags": {}
+  },
+  "n4964681186": {
+   "loc": [
+    13.4340725,
+    52.4802539
+   ],
+   "tags": {}
+  },
+  "n6833351979": {
+   "loc": [
+    13.4341706,
+    52.4802382
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:kerb_extension": "both",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n6833361486": {
+   "loc": [
+    13.4342023,
+    52.4802324
+   ],
+   "tags": {}
+  },
+  "n4964681187": {
+   "loc": [
+    13.434226,
+    52.480231
+   ],
+   "tags": {}
+  },
+  "n8048416654": {
+   "loc": [
+    13.4342065,
+    52.4799088
+   ],
+   "tags": {}
+  },
+  "n8863121484": {
+   "loc": [
+    13.4341166,
+    52.4809499
+   ],
+   "tags": {}
+  },
+  "n8863121485": {
+   "loc": [
+    13.4338103,
+    52.4809067
+   ],
+   "tags": {}
+  },
+  "n3354594355": {
+   "loc": [
+    13.4356816,
+    52.4805696
+   ],
+   "tags": {
+    "bench": "no",
+    "bin": "yes",
+    "bus": "yes",
+    "gtfs_id": "070101003052",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "name": "U Rathaus Neukölln",
+    "public_transport": "stop_position",
+    "ref:BVG": "103052",
+    "shelter": "no",
+    "tactile_paving": "yes",
+    "website": "https://qr.bvg.de/h103052",
+    "wheelchair": "yes"
+   }
+  },
+  "n8896016088": {
+   "loc": [
+    13.4355408,
+    52.4806702
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals:direction": "forward"
+   }
+  },
+  "n8896016085": {
+   "loc": [
+    13.436599,
+    52.4798517
+   ],
+   "tags": {}
+  },
+  "n8896016079": {
+   "loc": [
+    13.436625,
+    52.479833
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "kerb": "lowered",
+    "lit": "yes",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n9402032141": {
+   "loc": [
+    13.4366521,
+    52.4798134
+   ],
+   "tags": {}
+  },
+  "n9402032142": {
+   "loc": [
+    13.4368936,
+    52.4796393
+   ],
+   "tags": {}
+  },
+  "n8896016083": {
+   "loc": [
+    13.4370018,
+    52.4795654
+   ],
+   "tags": {}
+  },
+  "n8946809528": {
+   "loc": [
+    13.4360807,
+    52.4802861
+   ],
+   "tags": {}
+  },
+  "n8946809529": {
+   "loc": [
+    13.436037,
+    52.4803427
+   ],
+   "tags": {}
+  },
+  "n8896016087": {
+   "loc": [
+    13.4360126,
+    52.4803604
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "kerb": "lowered",
+    "lit": "yes",
+    "tactile_paving": "yes"
+   }
+  },
+  "n8946809530": {
+   "loc": [
+    13.4359882,
+    52.4803781
+   ],
+   "tags": {}
+  },
+  "n9803858057": {
+   "loc": [
+    13.4355661,
+    52.4812482
+   ],
+   "tags": {}
+  },
+  "n8939835406": {
+   "loc": [
+    13.4358787,
+    52.4810342
+   ],
+   "tags": {}
+  },
+  "n13002559200": {
+   "loc": [
+    13.4359001,
+    52.4810188
+   ],
+   "tags": {}
+  },
+  "n8946809520": {
+   "loc": [
+    13.4359301,
+    52.4803485
+   ],
+   "tags": {}
+  },
+  "n8946800113": {
+   "loc": [
+    13.4359546,
+    52.4803308
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "kerb": "lowered",
+    "lit": "yes",
+    "tactile_paving": "yes"
+   }
+  },
+  "n8946809519": {
+   "loc": [
+    13.4359791,
+    52.4803131
+   ],
+   "tags": {}
+  },
+  "n4964681199": {
+   "loc": [
+    13.4355226,
+    52.4803669
+   ],
+   "tags": {}
+  },
+  "n8863258705": {
+   "loc": [
+    13.434596,
+    52.4802698
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:kerb_extension": "left",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes"
+   }
+  },
+  "n8863258701": {
+   "loc": [
+    13.4351467,
+    52.4803275
+   ],
+   "tags": {
+    "crossing": "unmarked",
+    "crossing:island": "no",
+    "crossing:kerb_extension": "left",
+    "crossing:markings": "no",
+    "highway": "crossing",
+    "tactile_paving": "no"
+   }
+  },
+  "n9402032155": {
+   "loc": [
+    13.4370831,
+    52.480109
+   ],
+   "tags": {}
+  },
+  "n7843594550": {
+   "loc": [
+    13.4374216,
+    52.4801634
+   ],
+   "tags": {}
+  },
+  "n10966167992": {
+   "loc": [
+    13.434897,
+    52.4810384
+   ],
+   "tags": {}
+  },
+  "n340181945": {
+   "loc": [
+    13.4349452,
+    52.4810569
+   ],
+   "tags": {}
+  },
+  "n13273795598": {
+   "loc": [
+    13.4367731,
+    52.4810916
+   ],
+   "tags": {}
+  },
+  "n3354594356": {
+   "loc": [
+    13.4365481,
+    52.4810586
+   ],
+   "tags": {
+    "bench": "yes",
+    "bin": "yes",
+    "bus": "yes",
+    "gtfs_id": "070101000227",
+    "highway": "bus_stop",
+    "lit": "yes",
+    "name": "U Rathaus Neukölln",
+    "public_transport": "stop_position",
+    "ref:BVG": "100227",
+    "shelter": "yes",
+    "tactile_paving": "no",
+    "website": "https://qr.bvg.de/h100227"
+   }
+  },
+  "n13299694564": {
+   "loc": [
+    13.4348426,
+    52.4811278
+   ],
+   "tags": {}
+  },
+  "n1509404650": {
+   "loc": [
+    13.4352338,
+    52.4808598
+   ],
+   "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals:direction": "forward"
+   }
+  },
+  "n13004454307": {
+   "loc": [
+    13.4354812,
+    52.4807136
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:island": "no",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n13273821318": {
+   "loc": [
+    13.4368912,
+    52.4811089
+   ],
+   "tags": {}
+  },
+  "n13299694549": {
+   "loc": [
+    13.4346148,
+    52.4812851
+   ],
+   "tags": {}
+  },
+  "n13299694548": {
+   "loc": [
+    13.4347,
+    52.4812262
+   ],
+   "tags": {}
+  },
+  "n1509404653": {
+   "loc": [
+    13.434747,
+    52.4811937
+   ],
+   "tags": {
+    "button_operated": "no",
+    "crossing": "traffic_signals",
+    "crossing:markings": "dashes",
+    "highway": "crossing",
+    "tactile_paving": "yes",
+    "traffic_signals:sound": "yes",
+    "traffic_signals:vibration": "yes"
+   }
+  },
+  "n13299694554": {
+   "loc": [
+    13.4347942,
+    52.4811611
+   ],
+   "tags": {}
+  }
+ },
+ "ways": [
+  {
+   "id": "w19822684",
+   "nodes": [
+    "n6814293061",
+    "n1713912781",
+    "n4964681176",
+    "n4964681193",
+    "n3235966084",
+    "n4964681188",
+    "n4199580756"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "living_street",
+    "incline": "-2.5%",
+    "lit": "yes",
+    "name": "Neckarstraße",
+    "name:etymology:wikidata": "Q1673",
+    "name:etymology:wikipedia": "de:Neckar",
+    "oneway": "no",
+    "parking:left": "no",
+    "parking:left:reason": "living_street",
+    "parking:right": "separate",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "aerial imagery",
+    "surface": "paving_stones",
+    "width": "6"
+   }
+  },
+  {
+   "id": "w65706693",
+   "nodes": [
+    "n13758032373",
+    "n10589986262",
+    "n3354594361",
+    "n6836843387",
+    "n1509404651"
+   ],
+   "tags": {
+    "check_date": "2025-07-16",
+    "check_date:smoothness": "2025-07-16",
+    "cycleway:left": "lane",
+    "cycleway:left:lane": "advisory",
+    "cycleway:right": "no",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:backward": "1",
+    "lanes:forward": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "maxspeed:reason": "Lärmschutz",
+    "name": "Erkstraße",
+    "name:etymology:wikidata": "Q108653",
+    "name:etymology:wikipedia": "de:Ludwig Erk",
+    "parking:both": "no",
+    "parking:both:restriction": "no_stopping",
+    "placement:forward": "left_of:1",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "turn:lanes:forward": "left|right",
+    "width": "11.2",
+    "width:lanes:backward": "3.8",
+    "width:lanes:forward": "3|3"
+   }
+  },
+  {
+   "id": "w71392596",
+   "nodes": [
+    "n27554999",
+    "n3880652841",
+    "n8896016086",
+    "n3354594346",
+    "n11277077990"
+   ],
+   "tags": {
+    "change:lanes:backward": "no|no",
+    "cycleway:both": "lane",
+    "cycleway:both:lane": "advisory",
+    "cycleway:left:width": "2",
+    "cycleway:right:buffer:right": "0.5",
+    "cycleway:right:width": "1.5",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "3",
+    "lanes:backward": "2",
+    "lanes:forward": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "parking:left": "no",
+    "parking:left:restriction": "no_stopping",
+    "parking:right": "separate",
+    "placement:forward": "left_of:1",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:left:width": "Luftbild 2025",
+    "source:cycleway:right:width": "Luftbild 2025",
+    "source:width": "aerial imagery",
+    "surface": "asphalt",
+    "turn:lanes:backward": "left|through",
+    "width": "16",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w132238747",
+   "nodes": [
+    "n1455175905",
+    "n9230330874",
+    "n8939835408",
+    "n5299353196",
+    "n5299353197",
+    "n5299411275",
+    "n1455175915",
+    "n5299353198",
+    "n1455175916"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w132238748",
+   "nodes": [
+    "n5299411275",
+    "n5299353190",
+    "n1455175917",
+    "n1455175918",
+    "n1455175927",
+    "n5299411239",
+    "n5299411240",
+    "n3235739445"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w137623808",
+   "nodes": [
+    "n1509404651",
+    "n13299694594",
+    "n13299694587",
+    "n13299694592",
+    "n7682408012",
+    "n1509404654"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "1",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "1161578085925674",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "none",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "2",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "cycleway",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:buffer:right": "Orthofoto 2025 (Sommerbefliegung)",
+    "source:cycleway:width": "Orthofoto 2025 (Sommerbefliegung)",
+    "source:maxspeed": "sign",
+    "surface": "asphalt",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w182694412",
+   "nodes": [
+    "n13016715417",
+    "n10039821032",
+    "n7682408011",
+    "n2873726316"
+   ],
+   "tags": {
+    "check_date": "2025-07-16",
+    "check_date:smoothness": "2025-07-16",
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "advisory",
+    "cycleway:right:mapillary": "1063900309179032",
+    "cycleway:right:marking:left": "dashed_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "none",
+    "cycleway:right:traffic_sign": "none",
+    "cycleway:right:width": "2",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "cycleway",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:buffer:right": "Orthofoto 2025 (Sommerbefliegung)",
+    "source:cycleway:width": "Orthofoto 2025 (Sommerbefliegung)",
+    "source:maxspeed": "sign",
+    "surface": "asphalt",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w279465959",
+   "nodes": [
+    "n8025870983",
+    "n8896016081",
+    "n9118147700",
+    "n10967608054",
+    "n3410445690",
+    "n1969158534",
+    "n8896016089",
+    "n7682347303",
+    "n8896016082",
+    "n27554999"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "2",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "cycleway",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:right:width": "Luftbild 2025",
+    "source:width": "aerial imagery",
+    "surface": "asphalt",
+    "width": "5.4",
+    "width:lanes": "3.4",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w333972937",
+   "nodes": [
+    "n3410445881",
+    "n8863258716",
+    "n8863258714",
+    "n8048425337"
+   ],
+   "tags": {
+    "access": "delivery",
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w548554569",
+   "nodes": [
+    "n1455175920",
+    "n1455175917"
+   ],
+   "tags": {
+    "check_date:smoothness": "2026-06-04",
+    "highway": "service",
+    "service": "parking_aisle",
+    "smoothness": "intermediate",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w548554571",
+   "nodes": [
+    "n1455175918",
+    "n5299353189",
+    "n5299353188",
+    "n5299353187",
+    "n5299353185",
+    "n8939792808",
+    "n7843594545",
+    "n5299353184"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w548554575",
+   "nodes": [
+    "n1455175919",
+    "n1455175930"
+   ],
+   "tags": {
+    "highway": "service",
+    "service": "driveway",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w548554576",
+   "nodes": [
+    "n1455175916",
+    "n1455175919"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "maxheight": "3.3",
+    "service": "driveway",
+    "surface": "sett",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w548554599",
+   "nodes": [
+    "n13299694592",
+    "n13002582702",
+    "n8939830121",
+    "n13004375300",
+    "n5299353933",
+    "n5299353932",
+    "n3886063370"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "smoothness": "intermediate",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w722791461",
+   "nodes": [
+    "n27554999",
+    "n7681182212",
+    "n9402032152",
+    "n3880652840",
+    "n13758143608",
+    "n9402032154"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:lane": "advisory",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Anzengruberstraße",
+    "name:etymology:wikidata": "Q93718",
+    "name:etymology:wikipedia": "de:Ludwig Anzengruber",
+    "parking:left": "separate",
+    "parking:right": "no",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10"
+   }
+  },
+  {
+   "id": "w764003857",
+   "nodes": [
+    "n1509404654",
+    "n13299694555",
+    "n13299694557",
+    "n2873726319",
+    "n13299694556",
+    "n322648692",
+    "n13299694535",
+    "n12997086265"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:left": "no",
+    "cycleway:right:buffer:right": "1",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "2302734070189744",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "none",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "2",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "cycleway",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:buffer:right": "Orthofoto 2025 (Sommerbefliegung)",
+    "source:cycleway:width": "Orthofoto 2025 (Sommerbefliegung)",
+    "source:maxspeed": "sign",
+    "surface": "asphalt",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w788103796",
+   "nodes": [
+    "n3410445728",
+    "n7368347399"
+   ],
+   "tags": {
+    "access": "delivery",
+    "highway": "service",
+    "maxheight": "default",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w788103797",
+   "nodes": [
+    "n7368347404",
+    "n7368347400",
+    "n7368347403",
+    "n7368347402",
+    "n7368347401",
+    "n7368347404"
+   ],
+   "tags": {
+    "highway": "service",
+    "layer": "-1",
+    "maxheight": "2.1",
+    "service": "parking_aisle",
+    "surface": "concrete",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w840566795",
+   "nodes": [
+    "n27555077",
+    "n6155734227",
+    "n6155734222",
+    "n5299353184"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "maxspeed:reason": "Lärmschutz",
+    "name": "Erkstraße",
+    "name:etymology:wikidata": "Q108653",
+    "name:etymology:wikipedia": "de:Ludwig Erk",
+    "parking:left": "lane",
+    "parking:left:fee": "yes",
+    "parking:left:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:left:orientation": "parallel",
+    "parking:left:zone": "100",
+    "parking:right": "no",
+    "parking:right:restriction": "no_parking",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11.2"
+   }
+  },
+  {
+   "id": "w859345106",
+   "nodes": [
+    "n8010307670",
+    "n8010307669",
+    "n8010307668"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w859345108",
+   "nodes": [
+    "n8010307672",
+    "n8010307670",
+    "n8010307671"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w859345109",
+   "nodes": [
+    "n8010307674",
+    "n8010307672"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w863913414",
+   "nodes": [
+    "n8048425321",
+    "n8863258688",
+    "n8863258687",
+    "n8048425328"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w863913415",
+   "nodes": [
+    "n8048425329",
+    "n8048425321"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w863913416",
+   "nodes": [
+    "n8048425324",
+    "n8048425323",
+    "n8048425322"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w863913417",
+   "nodes": [
+    "n8048425325",
+    "n8048425326",
+    "n8048425327",
+    "n8048425322",
+    "n8048425302",
+    "n8048425329"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w863913418",
+   "nodes": [
+    "n8048425331",
+    "n8863258672",
+    "n8863121482",
+    "n8048425330"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w863913421",
+   "nodes": [
+    "n8048425339",
+    "n8863258715",
+    "n8863258717",
+    "n8048425340"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w863913422",
+   "nodes": [
+    "n8048425338",
+    "n8048425339"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w863913423",
+   "nodes": [
+    "n8048425341",
+    "n8048425338"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w863913424",
+   "nodes": [
+    "n4964681200",
+    "n8863121483"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "incline": "-2.6%",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Boddinstraße",
+    "name:etymology:wikidata": "Q1610707",
+    "name:etymology:wikipedia": "de:Hermann Boddin",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "narrow",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "bad",
+    "source:width": "ALKIS",
+    "surface": "sett",
+    "width": "3.5",
+    "wikidata": "Q78330219"
+   }
+  },
+  {
+   "id": "w863913425",
+   "nodes": [
+    "n8946809554",
+    "n8807672374",
+    "n8946809555",
+    "n8946809562",
+    "n27555000"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Neckarstraße",
+    "name:etymology:wikidata": "Q1673",
+    "name:etymology:wikipedia": "de:Neckar",
+    "oneway": "no",
+    "parking:both": "no",
+    "parking:both:restriction": "no_stopping",
+    "sidewalk:both": "separate",
+    "smoothness": "intermediate",
+    "source:width": "aerial imagery",
+    "surface": "sett",
+    "width": "6"
+   }
+  },
+  {
+   "id": "w863913945",
+   "nodes": [
+    "n8048416653",
+    "n8863258719",
+    "n8863258718",
+    "n6833361499"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w863913946",
+   "nodes": [
+    "n8048416652",
+    "n8048416653"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway",
+    "tunnel": "building_passage"
+   }
+  },
+  {
+   "id": "w863913947",
+   "nodes": [
+    "n4199580756",
+    "n4964681186",
+    "n6833361499",
+    "n6833351979",
+    "n6833361486",
+    "n4964681187"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "incline": "-3%",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Neckarstraße",
+    "name:etymology:wikidata": "Q1673",
+    "name:etymology:wikipedia": "de:Neckar",
+    "oneway": "no",
+    "parking:both": "no",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "aerial imagery",
+    "surface": "asphalt",
+    "width": "6"
+   }
+  },
+  {
+   "id": "w863913948",
+   "nodes": [
+    "n8048416654",
+    "n8048416652"
+   ],
+   "tags": {
+    "access": "private",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w957879316",
+   "nodes": [
+    "n8863121484",
+    "n8048425330",
+    "n8048425328",
+    "n4964681200"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "incline": "-2.6%",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Boddinstraße",
+    "name:etymology:wikidata": "Q1610707",
+    "name:etymology:wikipedia": "de:Hermann Boddin",
+    "oneway": "yes",
+    "parking:left": "separate",
+    "parking:right": "no",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "bad",
+    "source:width": "ALKIS",
+    "surface": "sett",
+    "width": "11",
+    "wikidata": "Q78330219"
+   }
+  },
+  {
+   "id": "w957879317",
+   "nodes": [
+    "n8863121485",
+    "n8863121484"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "incline": "-2.6%",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Boddinstraße",
+    "name:etymology:wikidata": "Q1610707",
+    "name:etymology:wikipedia": "de:Hermann Boddin",
+    "oneway": "yes",
+    "parking:both": "lane",
+    "parking:both:fee": "yes",
+    "parking:both:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:both:zone": "101",
+    "parking:left:orientation": "diagonal",
+    "parking:right:orientation": "parallel",
+    "parking:right:restriction:conditional": "loading_only @ (Mo-Fr 08:00-17:00)",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "bad",
+    "source:width": "ALKIS",
+    "surface": "sett",
+    "width": "11",
+    "wikidata": "Q78330219"
+   }
+  },
+  {
+   "id": "w960167546",
+   "nodes": [
+    "n27555000",
+    "n3354594355",
+    "n8896016088"
+   ],
+   "tags": {
+    "bicycle:lanes:forward": "no|designated|yes",
+    "cycleway:both": "lane",
+    "cycleway:both:width": "2",
+    "cycleway:lanes:forward": "no|lane|no",
+    "cycleway:left:bicycle": "designated",
+    "cycleway:left:lane": "exclusive",
+    "cycleway:right:lane": "advisory",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:backward": "1",
+    "lanes:forward": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "parking:both": "no",
+    "parking:left:reason": "cycleway",
+    "parking:right:restriction": "no_stopping",
+    "placement:forward": "left_of:1",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:both:width": "Luftbild 2025",
+    "source:width": "aerial imagery",
+    "surface": "asphalt",
+    "turn:lanes:forward": "through|through|right",
+    "vehicle:lanes:forward": "yes|no|yes",
+    "width": "14",
+    "width:lanes:backward": "3.4",
+    "width:lanes:forward": "3.4|2|3",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w961723800",
+   "nodes": [
+    "n27554999",
+    "n8896016085",
+    "n8896016079",
+    "n9402032141",
+    "n9402032142",
+    "n8896016083"
+   ],
+   "tags": {
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "2",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "cycleway",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:right:width": "Luftbild 2025",
+    "source:width": "aerial imagery",
+    "surface": "asphalt",
+    "width": "5.4",
+    "width:lanes": "3.4",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w966285570",
+   "nodes": [
+    "n8946809528",
+    "n8946809529",
+    "n8896016087",
+    "n8946809530",
+    "n27555000"
+   ],
+   "tags": {
+    "cycleway:right": "lane",
+    "cycleway:right:lane": "advisory",
+    "cycleway:right:width": "2",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "crossing",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:right:width": "Luftbild 2025",
+    "source:width": "aerial imagery",
+    "surface": "asphalt",
+    "width": "8",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w966297098",
+   "nodes": [
+    "n5299353932",
+    "n9803858057",
+    "n8939835406",
+    "n13002559200",
+    "n10589986262"
+   ],
+   "tags": {
+    "highway": "service",
+    "lit": "yes",
+    "smoothness": "intermediate",
+    "surface": "sett"
+   }
+  },
+  {
+   "id": "w967044757",
+   "nodes": [
+    "n27555000",
+    "n8946809520",
+    "n8946800113",
+    "n8946809519",
+    "n8946809528"
+   ],
+   "tags": {
+    "cycleway:right": "lane",
+    "cycleway:right:lane": "advisory",
+    "cycleway:right:width": "2",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "crossing",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:right:width": "Luftbild 2025",
+    "source:width": "aerial imagery",
+    "surface": "asphalt",
+    "width": "6",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w967044767",
+   "nodes": [
+    "n4964681199",
+    "n8946809554"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Neckarstraße",
+    "name:etymology:wikidata": "Q1673",
+    "name:etymology:wikipedia": "de:Neckar",
+    "oneway": "no",
+    "parking:both": "no",
+    "parking:both:restriction": "no_stopping",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "aerial imagery",
+    "surface": "asphalt",
+    "width": "6"
+   }
+  },
+  {
+   "id": "w983216567",
+   "nodes": [
+    "n4964681187",
+    "n8863258705",
+    "n8048425340",
+    "n8863258701",
+    "n3410445881",
+    "n4964681199"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "incline": "-3,5%",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Neckarstraße",
+    "name:etymology:wikidata": "Q1673",
+    "name:etymology:wikipedia": "de:Neckar",
+    "oneway": "no",
+    "parking:left": "separate",
+    "parking:right": "no",
+    "parking:right:restriction": "no_stopping",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:width": "aerial imagery",
+    "surface": "asphalt",
+    "width": "6"
+   }
+  },
+  {
+   "id": "w1019380755",
+   "nodes": [
+    "n9402032154",
+    "n9402032155"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Anzengruberstraße",
+    "name:etymology:wikidata": "Q93718",
+    "name:etymology:wikipedia": "de:Ludwig Anzengruber",
+    "parking:both": "separate",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10"
+   }
+  },
+  {
+   "id": "w1022425095",
+   "nodes": [
+    "n9402032155",
+    "n7843594550"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Anzengruberstraße",
+    "name:etymology:wikidata": "Q93718",
+    "name:etymology:wikipedia": "de:Ludwig Anzengruber",
+    "parking:left": "separate",
+    "parking:right": "lane",
+    "parking:right:fee": "no",
+    "parking:right:orientation": "parallel",
+    "parking:right:restriction:conditional": "no_parking @ (Mo-Fr 07:00-17:00)",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "10"
+   }
+  },
+  {
+   "id": "w1071944942",
+   "nodes": [
+    "n8863121483",
+    "n10966167992",
+    "n340181945"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "residential",
+    "incline": "-2.6%",
+    "lit": "yes",
+    "maxspeed": "30",
+    "name": "Boddinstraße",
+    "name:etymology:wikidata": "Q1610707",
+    "name:etymology:wikipedia": "de:Hermann Boddin",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:both:reason": "junction",
+    "postal_code": "12053",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "sett",
+    "width": "3.5",
+    "wikidata": "Q78330219"
+   }
+  },
+  {
+   "id": "w1136034185",
+   "nodes": [
+    "n13273795598",
+    "n3354594356",
+    "n1455175905",
+    "n13758032373"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "maxspeed:reason": "Lärmschutz",
+    "name": "Erkstraße",
+    "name:etymology:wikidata": "Q108653",
+    "name:etymology:wikipedia": "de:Ludwig Erk",
+    "parking:left": "lane",
+    "parking:left:fee": "yes",
+    "parking:left:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:left:orientation": "parallel",
+    "parking:left:zone": "100",
+    "parking:right": "no",
+    "parking:right:restriction": "no_stopping",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11.2"
+   }
+  },
+  {
+   "id": "w1151431197",
+   "nodes": [
+    "n8048425337",
+    "n3410445728"
+   ],
+   "tags": {
+    "access": "delivery",
+    "highway": "service",
+    "service": "driveway"
+   }
+  },
+  {
+   "id": "w1217061907",
+   "nodes": [
+    "n11277077990",
+    "n8946809528"
+   ],
+   "tags": {
+    "cycleway:both": "lane",
+    "cycleway:both:lane": "advisory",
+    "cycleway:left:width": "2",
+    "cycleway:right:buffer:right": "0.5",
+    "cycleway:right:width": "1.5",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "3",
+    "lanes:backward": "2",
+    "lanes:forward": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "parking:left": "no",
+    "parking:left:restriction": "no_stopping",
+    "parking:right": "separate",
+    "placement:forward": "left_of:1",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:left:width": "Luftbild 2025",
+    "source:cycleway:right:width": "Luftbild 2025",
+    "source:width": "aerial imagery",
+    "surface": "asphalt",
+    "turn:lanes:backward": "left|through",
+    "width": "16",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w1414867517",
+   "nodes": [
+    "n13299694564",
+    "n340181945",
+    "n1509404650",
+    "n1509404651"
+   ],
+   "tags": {
+    "check_date": "2025-07-16",
+    "check_date:smoothness": "2025-07-16",
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "2040996259764848",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "none",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "2",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "cycleway",
+    "placement": "middle_of:2",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:buffer:right": "Orthofoto 2025 (Sommerbefliegung)",
+    "source:cycleway:width": "Orthofoto 2025 (Sommerbefliegung)",
+    "source:maxspeed": "sign",
+    "surface": "asphalt",
+    "turn:lanes": "left|through",
+    "width:lanes": "3.3|3.3",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w1415183676",
+   "nodes": [
+    "n8896016088",
+    "n13004454307",
+    "n1509404651"
+   ],
+   "tags": {
+    "bicycle:lanes:forward": "no|designated|yes",
+    "cycleway:both": "lane",
+    "cycleway:both:width": "2",
+    "cycleway:lanes:forward": "no|lane|no",
+    "cycleway:left:bicycle": "designated",
+    "cycleway:left:lane": "exclusive",
+    "cycleway:right:lane": "advisory",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lane_markings": "yes",
+    "lanes": "3",
+    "lanes:backward": "1",
+    "lanes:forward": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "parking:both": "no",
+    "parking:left:reason": "cycleway",
+    "parking:right:restriction": "no_stopping",
+    "placement:forward": "left_of:1",
+    "sidewalk:both": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:both:width": "Luftbild 2025",
+    "source:width": "aerial imagery",
+    "surface": "asphalt",
+    "turn:lanes:forward": "through|through|right",
+    "vehicle:lanes:forward": "yes|no|yes",
+    "width": "14",
+    "width:lanes:backward": "3.4",
+    "width:lanes:forward": "3.4|2|3",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  },
+  {
+   "id": "w1446696639",
+   "nodes": [
+    "n5299353184",
+    "n13273821318",
+    "n13273795598"
+   ],
+   "tags": {
+    "cycleway:both": "no",
+    "foot": "use_sidepath",
+    "highway": "tertiary",
+    "lane_markings": "yes",
+    "lanes": "2",
+    "lit": "yes",
+    "maxspeed": "50",
+    "maxspeed:conditional": "30 @ (22:00-06:00)",
+    "maxspeed:reason": "Lärmschutz",
+    "name": "Erkstraße",
+    "name:etymology:wikidata": "Q108653",
+    "name:etymology:wikipedia": "de:Ludwig Erk",
+    "parking:left": "lane",
+    "parking:left:fee": "yes",
+    "parking:left:fee:conditional": "no @ (Mo-Fr 00:00-09:00,20:00-24:00; Sa-Su)",
+    "parking:left:orientation": "parallel",
+    "parking:left:zone": "100",
+    "parking:right": "no",
+    "parking:right:restriction": "no_parking",
+    "postal_code": "12043",
+    "sidewalk:both": "separate",
+    "smoothness": "good",
+    "source:width": "ALKIS",
+    "surface": "asphalt",
+    "width": "11.2"
+   }
+  },
+  {
+   "id": "w1450036372",
+   "nodes": [
+    "n2873726316",
+    "n13299694549",
+    "n13299694548",
+    "n1509404653",
+    "n13299694554",
+    "n13299694564"
+   ],
+   "tags": {
+    "check_date": "2025-07-16",
+    "check_date:smoothness": "2025-07-16",
+    "cycleway:left": "no",
+    "cycleway:right": "lane",
+    "cycleway:right:buffer:both": "no",
+    "cycleway:right:lane": "exclusive",
+    "cycleway:right:mapillary": "1944556696300058",
+    "cycleway:right:marking:left": "solid_line",
+    "cycleway:right:oneway": "yes",
+    "cycleway:right:surface": "asphalt",
+    "cycleway:right:surface:colour": "none",
+    "cycleway:right:traffic_sign": "DE:237",
+    "cycleway:right:width": "2",
+    "dual_carriageway": "yes",
+    "foot": "use_sidepath",
+    "highway": "secondary",
+    "lanes": "1",
+    "lit": "yes",
+    "maxspeed": "50",
+    "name": "Karl-Marx-Straße",
+    "name:etymology:wikidata": "Q9061",
+    "name:etymology:wikipedia": "de:Karl Marx",
+    "oneway": "yes",
+    "parking:both": "no",
+    "parking:left:reason": "dual_carriage",
+    "parking:right:reason": "cycleway",
+    "postal_code": "12043",
+    "sidewalk:left": "no",
+    "sidewalk:right": "separate",
+    "smoothness": "excellent",
+    "source:cycleway:buffer:right": "Orthofoto 2025 (Sommerbefliegung)",
+    "source:cycleway:width": "Orthofoto 2025 (Sommerbefliegung)",
+    "source:maxspeed": "sign",
+    "surface": "asphalt",
+    "wikidata": "Q1365109",
+    "wikipedia": "de:Karl-Marx-Straße (Berlin)"
+   }
+  }
+ ]
+}
