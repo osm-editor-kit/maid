@@ -61,10 +61,24 @@ function useDataVersion(history: History): number {
   return useSyncExternalStore(subscribe, () => counter.value)
 }
 
+/**
+ * The first of BEFORE the map has, read again whenever the style changes: the street can arrive before the editor's
+ * line layers, and without this its fills would stay above them until the next edit
+ */
 function useBeforeId() {
   const { current: map } = useMap()
-  if (!map) return undefined
-  return BEFORE.find((id) => map.getLayer(id) !== undefined)
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      map?.on('styledata', listener)
+      return () => {
+        map?.off('styledata', listener)
+      }
+    },
+    [map],
+  )
+  return useSyncExternalStore(subscribe, () =>
+    map ? BEFORE.find((id) => map.getLayer(id) !== undefined) : undefined,
+  )
 }
 
 const AREAS_SOURCE = 'maid-street-areas'
