@@ -32,12 +32,12 @@ describe('task progress in the mock user preferences', () => {
     // only the active slot and the meta stay
     expect(
       Object.keys(all).every(
-        (k) => k === `maid.tasks.${key}` || k.startsWith(`maid.tasks.${key}.${second.s}.`),
+        (k) => k === `maid-tasks-${key}` || k.startsWith(`maid-tasks-${key}-${second.s}-`),
       ),
     ).toBe(true)
     const chunks = Object.keys(all)
-      .filter((k) => k.startsWith(`maid.tasks.${key}.${second.s}.`))
-      .sort((a, b) => Number(a.split('.').pop()) - Number(b.split('.').pop()))
+      .filter((k) => k.startsWith(`maid-tasks-${key}-${second.s}-`))
+      .sort((a, b) => Number(a.split('-').pop()) - Number(b.split('-').pop()))
       .map((k) => all[k])
       .join('')
     expect(await decodeStatuses(chunks, 2000)).toEqual(statuses)

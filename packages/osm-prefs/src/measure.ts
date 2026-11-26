@@ -76,9 +76,9 @@ export async function measure(
   })
 
   const record = await transport.list()
-  const base = `${DEFAULT_PREFIX}.${listKey}`
+  const base = `${DEFAULT_PREFIX}-${listKey}`
   const listEntries = Object.entries(record).filter(
-    ([key]) => key === base || key.startsWith(`${base}.`),
+    ([key]) => key === base || key.startsWith(`${base}-`),
   )
   const chunkEntries = listEntries.filter(([key]) => key !== base)
   const metaText = record[base] ?? ''
@@ -105,7 +105,7 @@ export async function measure(
 
 /** The chunk values of one slot, sorted by their index. */
 function chunkValuesInOrder(entries: [string, string][], slot: 'a' | 'b'): string[] {
-  const marker = `.${slot}.`
+  const marker = `-${slot}-`
   return entries
     .map(([key, value]) => ({ key, value }))
     .filter(({ key }) => key.includes(marker))
@@ -115,7 +115,7 @@ function chunkValuesInOrder(entries: [string, string][], slot: 'a' | 'b'): strin
 
 /** The index at the end of a chunk key. */
 function indexOf(key: string): number {
-  return Number(key.slice(key.lastIndexOf('.') + 1))
+  return Number(key.slice(key.lastIndexOf('-') + 1))
 }
 
 /** mulberry32: a small seeded generator, the same numbers in every runtime. */

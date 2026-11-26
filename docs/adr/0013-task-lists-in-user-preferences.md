@@ -20,8 +20,8 @@ of each before it is applied. Done, ignored and skipped tasks must be remembered
   feature with tags at a geometry (`create`), or delete the task's nodes and ways (`delete`). Moving features and
   changing their geometry are left out for now.
 - **Teams use MapRoulette** (Tobias, 2026-10-27). A MapRoulette integration is not part of this work.
-- **Layout of the preferences** (`packages/osm-prefs`): a meta key `maid.tasks.<listKey>` (JSON: slot, chunk count, task count, revision, last change, order hash, generation) and the statuses as a 2-bit field per task, deflated when shorter,
-  base64url, split into values of 255 characters under `maid.tasks.<listKey>.<a|b>.<i>`. A save writes the inactive
+- **Layout of the preferences** (`packages/osm-prefs`): a meta key `maid-tasks-<listKey>` (JSON: slot, chunk count, task count, revision, last change, order hash, generation) and the statuses as a 2-bit field per task, deflated when shorter,
+  base64url, split into values of 255 characters under `maid-tasks-<listKey>-<a|b>-<i>` (no dots: the OSM website's route for one preference answers 404 for a key with a dot, found 2026-11-26; the keys had dots until then and no save to the real server went through). A save writes the inactive
   slot first and the meta last, so a failed save leaves the previous state readable.
 - **Never `PUT /api/0.6/user/preferences`**: it replaces every preference of the user, also those of other apps. Only
   single keys are set and deleted.

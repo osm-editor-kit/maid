@@ -42,9 +42,9 @@ const put = (key: string, value: string) => fetch(`${PREFS}/${key}`, { method: '
 // before the page opens: the preferences hold one list nobody touched for 40 days (3 open tasks)
 await fetch(`${MOCK}/prefs/reset`)
 const staleSeconds = Math.floor(Date.now() / 1000) - 40 * 24 * 3600
-await put('maid.tasks.stale001.a.0', 'bAA')
+await put('maid-tasks-stale001-a-0', 'bAA')
 await put(
-  'maid.tasks.stale001',
+  'maid-tasks-stale001',
   JSON.stringify({ v: 1, s: 'a', n: 1, c: 3, r: 1, u: staleSeconds, h: 'abcd1234' }),
 )
 
@@ -84,7 +84,7 @@ const code = await runCheck(
       1,
       await byId('tasks-cleanup-row-stale001').count(),
     )
-    report('nothing is deleted before the click', true, 'maid.tasks.stale001' in (await prefs()))
+    report('nothing is deleted before the click', true, 'maid-tasks-stale001' in (await prefs()))
     await byId('tasks-cleanup-delete-stale001').click()
     await page.waitForTimeout(500)
     const afterCleanup = Object.keys(await prefs()).filter((key) => key.includes('stale001'))
@@ -184,7 +184,7 @@ const code = await runCheck(
     await waitSaved().catch(() => undefined)
     report('the sync says saved', 'saved', await byId('tasks-sync').getAttribute('data-sync-kind'))
     const stored = await prefs()
-    const ours = Object.entries(stored).filter(([key]) => key.startsWith('maid.tasks.'))
+    const ours = Object.entries(stored).filter(([key]) => key.startsWith('maid-tasks-'))
     report('the progress is a meta key and chunks', true, ours.length >= 2)
     report(
       'every key and value is within 255 characters',
@@ -413,7 +413,7 @@ const code = await runCheck(
         }),
     )
     await waitSaved().catch(() => undefined)
-    const bigKeys = Object.keys(await prefs()).filter((k) => k.startsWith('maid.tasks.'))
+    const bigKeys = Object.keys(await prefs()).filter((k) => k.startsWith('maid-tasks-'))
     timings.prefKeysAfter = bigKeys.length
     report(
       '20 000 tasks: a status change is saved',

@@ -4,6 +4,14 @@
  * replaces every preference of the user, including those of other apps.
  */
 
+/**
+ * Whether the OSM website can address this key on its own: its routes for one preference do not match a key with a
+ * dot or a question mark (Rails' default segment), so a PUT, GET or DELETE of such a key answers 404.
+ */
+export function addressableKey(key: string): boolean {
+  return !/[.?/]/.test(key)
+}
+
 /** The OSM limits on a preference key and on a value, in characters. */
 export const PREF_LIMITS = { keyMax: 255, valueMax: 255 } as const
 

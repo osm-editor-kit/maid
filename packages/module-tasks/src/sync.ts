@@ -142,7 +142,7 @@ export function createSync(deps: SyncDeps): Sync {
     let saved = false
     try {
       const all = await transport.list()
-      const remoteText = all[`${prefix}.${list.listKey}`]
+      const remoteText = all[`${prefix}-${list.listKey}`]
       if (remoteText !== undefined) {
         const meta = parseMeta(remoteText)
         if (meta.h !== list.orderHash || meta.c !== statuses.length) {

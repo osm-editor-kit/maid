@@ -14,6 +14,7 @@ import {
 } from './progress.ts'
 import { messageOf } from './test-support.ts'
 import {
+  addressableKey,
   memoryTransport,
   PREF_LIMITS,
   validatePref,
@@ -23,7 +24,7 @@ import {
 
 const NOW_MS = 1_700_000_000_000
 const LIST = listKeyOf('changeset-list-1')
-const META_KEY = `maid.tasks.${LIST}`
+const META_KEY = `maid-tasks-${LIST}`
 const ids = (count: number): string[] =>
   Array.from({ length: count }, (_, index) => `task-${index}`)
 const HASH = orderHashOf(ids(10))
@@ -37,7 +38,7 @@ function fixture(): { transport: MemoryTransport; store: ProgressStore } {
 /** All keys of one list, sorted. */
 async function listKeys(transport: PrefsTransport, listKey = LIST): Promise<string[]> {
   return Object.keys(await transport.list())
-    .filter((key) => key === `maid.tasks.${listKey}` || key.startsWith(`maid.tasks.${listKey}.`))
+    .filter((key) => key === `maid-tasks-${listKey}` || key.startsWith(`maid-tasks-${listKey}-`))
     .sort()
 }
 
@@ -208,7 +209,7 @@ describe('save and load', () => {
     await recorded.remove(LIST)
     expect(written.length).toBeGreaterThan(0)
     for (const { key, value } of written) {
-      expect(key.startsWith('maid.tasks.')).toBe(true)
+      expect(key.startsWith('maid-tasks-')).toBe(true)
       expect(() => validatePref(key, value)).not.toThrow()
     }
     // a GET lists the whole collection (key null); every write names one key
@@ -233,7 +234,7 @@ describe('save and load', () => {
     const keys = await listKeys(transport)
     const expected = [
       META_KEY,
-      ...Array.from({ length: short.n }, (_, index) => `${META_KEY}.${short.s}.${index}`),
+      ...Array.from({ length: short.n }, (_, index) => `${META_KEY}-${short.s}-${index}`),
     ].sort()
     expect(keys).toEqual(expected)
   })
@@ -289,7 +290,7 @@ describe('crash safety', () => {
       expect(keys).toEqual(
         [
           META_KEY,
-          ...Array.from({ length: retried.n }, (_, index) => `${META_KEY}.${retried.s}.${index}`),
+          ...Array.from({ length: retried.n }, (_, index) => `${META_KEY}-${retried.s}-${index}`),
         ].sort(),
       )
     }
@@ -334,7 +335,7 @@ describe('remove', () => {
       .filter((call) => call.method === 'DELETE')
       .map((call) => call.key)
     expect(deletes.at(-1)).toBe(META_KEY)
-    expect(deletes.slice(0, -1).every((key) => key?.startsWith(`${META_KEY}.`))).toBe(true)
+    expect(deletes.slice(0, -1).every((key) => key?.startsWith(`${META_KEY}-`))).toBe(true)
     expect(await listKeys(transport)).toEqual([])
     expect((await transport.list())['iD.foo']).toBe('bar')
   })
@@ -369,7 +370,7 @@ describe('listAll', () => {
     await store.save(LIST, sampleStatuses(10, 'random'), { orderHash: HASH })
     const other = listKeyOf('other-list')
     await store.save(other, sampleStatuses(3, 'all-open'), { orderHash: HASH })
-    const brokenKey = `maid.tasks.${listKeyOf('broken-list')}`
+    const brokenKey = `maid-tasks-${listKeyOf('broken-list')}`
     await transport.set(brokenKey, 'not a meta')
     transport.calls.length = 0
 
@@ -436,5 +437,15 @@ describe('reconcile', () => {
   it('without an agreed generation only the revision counts', () => {
     expect(reconcile({ localRevision: 0, ackedRevision: 0 }, { r: 3, g: 'gen00002' })).toBe('pull')
     expect(reconcile({ localRevision: 4, ackedRevision: 4 }, { r: 3, g: 'gen00002' })).toBe('same')
+  })
+})
+
+describe('keys the OSM website can address', () => {
+  it('writes no key with a dot: its route for one preference answers 404 for one', async () => {
+    const { transport, store } = fixture()
+    await store.save(LIST, sampleStatuses(2000, 'random'), { orderHash: HASH })
+    const written = transport.calls.flatMap((call) => (call.key ? [call.key] : []))
+    expect(written.length).toBeGreaterThan(1)
+    expect(written.every((key) => addressableKey(key))).toBe(true)
   })
 })
