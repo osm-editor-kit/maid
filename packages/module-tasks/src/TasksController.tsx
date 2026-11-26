@@ -129,6 +129,7 @@ export function createTasksController(
       syncRef.current = sync
       progressRef.current = progress
       shared.retry = () => void sync.retry()
+      shared.replaceRemote = () => void sync.replaceRemote()
       const unsubscribe = store.subscribe((state, previous) => {
         if (state.statuses !== previous.statuses && state.localRevision > state.ackedRevision) {
           sync.schedule()
@@ -169,6 +170,7 @@ export function createTasksController(
         syncRef.current = undefined
         progressRef.current = undefined
         shared.retry = undefined
+        shared.replaceRemote = undefined
       }
     }, [list, endpoint, editor])
 

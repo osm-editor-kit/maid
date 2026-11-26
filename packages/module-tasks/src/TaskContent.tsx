@@ -27,6 +27,7 @@ import {
   deleteTaskFeatures,
   type DeleteOutcome,
 } from './apply.ts'
+import { type LinkKind, linkKind } from './links.ts'
 import { entityIdOfRef } from './list.ts'
 import { m } from './messages.ts'
 import { type AppliedTask, type TasksStore, useTasks } from './store.ts'
@@ -38,25 +39,46 @@ const STATUS_BUTTON =
 const ICON_LINK =
   'grid size-7 place-items-center rounded-md text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
 
-/** The links of a task (and its Mapillary images) as small icon buttons, for the heading of a task */
+/** A link of a task as a small labelled chip: what it points to is readable without opening it */
+const LINK_CHIP =
+  'inline-flex max-w-56 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white'
+
+/** The short word before a link's label: where it goes */
+const LINK_PREFIX: Record<LinkKind['kind'], string | undefined> = {
+  osm: 'OSM',
+  wiki: 'Wiki',
+  other: undefined,
+}
+
+/**
+ * The links of a task (and its Mapillary images) for the heading of a task: an OSM element as "OSM way 123", a wiki
+ * page as "Wiki Key:oneway", anything else by its host; the whole address is the tooltip (Tobias, 2026-11-26).
+ */
 export function TaskLinks({ task }: { task: Task }) {
   const { links = [], mapillary = [] } = task.properties
   if (links.length === 0 && mapillary.length === 0) return null
   return (
-    <span className="flex items-center" data-testid="tasks-links">
-      {links.map((link) => (
-        <a
-          key={link}
-          href={link}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={link}
-          aria-label={m.tasks_open_link({ link })}
-          className={ICON_LINK}
-        >
-          <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-4" />
-        </a>
-      ))}
+    <span className="flex flex-wrap items-center justify-end" data-testid="tasks-links">
+      {links.map((link) => {
+        const { kind, label } = linkKind(link)
+        const prefix = LINK_PREFIX[kind]
+        return (
+          <a
+            key={link}
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={link}
+            aria-label={m.tasks_open_link({ link })}
+            data-link-kind={kind}
+            className={LINK_CHIP}
+          >
+            {prefix && <span className="font-semibold">{prefix}</span>}
+            <span className="truncate">{label}</span>
+            <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-3.5 shrink-0" />
+          </a>
+        )
+      })}
       {mapillary.map((id) => (
         <a
           key={id}

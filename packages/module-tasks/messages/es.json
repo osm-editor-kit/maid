@@ -93,5 +93,11 @@
   "tasks_hint_open": "Abrir en la lista de tareas",
   "tasks_carried": "Nueva versión de esta lista: se tomaron {count} estados de la versión anterior, por id de tarea.",
   "tasks_recent": "Listas anteriores en este navegador",
-  "tasks_recent_open": "abierta"
+  "tasks_recent_open": "abierta",
+  "tasks_recent_delete": "Borrar",
+  "tasks_recent_delete_confirm": "¿Borrar de verdad?",
+  "tasks_recent_delete_hint": "Borra el archivo y su progreso de este navegador. La copia en tu cuenta de OSM se queda.",
+  "tasks_sync_replace": "Usar esta versión en mi cuenta",
+  "tasks_sync_replace_confirm": "¿Reemplazar la copia de la cuenta?",
+  "tasks_sync_replace_hint": "Tu cuenta guarda esta lista para otra versión del archivo. Esto reemplaza esa copia por esta versión y los estados de este navegador; los estados de la otra versión en la cuenta se pierden."
 }

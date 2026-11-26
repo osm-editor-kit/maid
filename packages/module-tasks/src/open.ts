@@ -6,7 +6,7 @@ import type { ModuleStorage } from '@osm-editor-kit/maid-core'
 import { listKeyOf } from '@osm-editor-kit/maid-osm-prefs'
 import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 import { orderHash, parseTaskFileText, type TaskFile } from '@osm-editor-kit/maid-tasks'
-import { type FileCache, LAST_LIST_KEY, readMirror } from './local.ts'
+import { type FileCache, LAST_LIST_KEY, mirrorKey, readMirror } from './local.ts'
 import type { SavedProgress, TasksStore } from './store.ts'
 
 export type OpenDeps = {
@@ -101,6 +101,16 @@ export async function openCachedList(deps: OpenDeps, listKey: string): Promise<b
   if (!cached) return false
   const request = deps.store.getState().actions.start(cached.fileName)
   return openTaskText(deps, cached.text, cached.fileName, { request })
+}
+
+/**
+ * Forgets a list in this browser: its file and its progress. The copy in the person's OSM account stays (the cleanup
+ * dialog deletes that). Not for the open list: the menu does not offer it.
+ */
+export async function forgetList(deps: Pick<OpenDeps, 'storage' | 'cache'>, listKey: string) {
+  await deps.cache.remove(listKey)
+  deps.storage.removeItem(mirrorKey(listKey))
+  if (deps.storage.getItem(LAST_LIST_KEY) === listKey) deps.storage.removeItem(LAST_LIST_KEY)
 }
 
 /** Opens the list of the last visit from the cache. Returns whether one was found. */

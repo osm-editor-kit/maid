@@ -5,4 +5,6 @@ export type Shared = {
   engine?: MaidEngine
   /** Set by the controller while a sync runs; the dock's retry button calls it */
   retry?: () => void
+  /** Set by the controller while a sync runs; the dock's "use this version in the account" calls it (mismatch) */
+  replaceRemote?: () => void
 }

@@ -56,6 +56,33 @@ function downloadText(name: string, text: string) {
   URL.revokeObjectURL(url)
 }
 
+/**
+ * "Use this version in the account", for a mismatch: the account's copy of the list belongs to another version of the
+ * file and cannot be read with this one. The second click replaces it (the account's statuses of the other version are
+ * then gone), so the first one only asks.
+ */
+function ReplaceRemoteButton({ onReplace }: { onReplace: () => void }) {
+  const [asking, setAsking] = useState(false)
+  return (
+    <button
+      type="button"
+      data-testid="tasks-sync-replace"
+      title={m.tasks_sync_replace_hint()}
+      onClick={() => {
+        if (!asking) {
+          setAsking(true)
+          return
+        }
+        setAsking(false)
+        onReplace()
+      }}
+      className={asking ? `${SMALL_BUTTON} bg-red-600 text-white hover:bg-red-700` : SMALL_BUTTON}
+    >
+      {asking ? m.tasks_sync_replace_confirm() : m.tasks_sync_replace()}
+    </button>
+  )
+}
+
 /** The sync state as the short text the dock head shows */
 export function syncText(kind: SyncKind, server: 'mock' | 'osm' | 'dev' | undefined): string {
   switch (kind) {
@@ -261,6 +288,9 @@ function Head({ store, shared }: { store: TasksStore; shared: Shared }) {
           >
             {m.tasks_sync_retry()}
           </button>
+        )}
+        {sync.kind === 'mismatch' && (
+          <ReplaceRemoteButton onReplace={() => shared.replaceRemote?.()} />
         )}
         {sync.kind === 'conflict' && (
           <button

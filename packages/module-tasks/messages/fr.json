@@ -93,5 +93,11 @@
   "tasks_hint_open": "Ouvrir dans la liste de tâches",
   "tasks_carried": "Nouvelle version de cette liste : {count} statuts repris de la version précédente, par identifiant de tâche.",
   "tasks_recent": "Listes précédentes dans ce navigateur",
-  "tasks_recent_open": "ouverte"
+  "tasks_recent_open": "ouverte",
+  "tasks_recent_delete": "Supprimer",
+  "tasks_recent_delete_confirm": "Vraiment supprimer ?",
+  "tasks_recent_delete_hint": "Supprime le fichier et sa progression de ce navigateur. La copie dans votre compte OSM reste.",
+  "tasks_sync_replace": "Utiliser cette version dans mon compte",
+  "tasks_sync_replace_confirm": "Remplacer la copie du compte ?",
+  "tasks_sync_replace_hint": "Votre compte contient cette liste pour une autre version du fichier. Ceci remplace cette copie par cette version et les statuts de ce navigateur ; les statuts de l'autre version dans le compte sont alors perdus."
 }

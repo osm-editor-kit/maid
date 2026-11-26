@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'bun:test'
 import type { ModuleStorage } from '@osm-editor-kit/maid-core'
 import { createFileCache, LAST_LIST_KEY, mirrorKey, readMirror, writeMirror } from './local.ts'
-import { openTaskText, restoreLastList } from './open.ts'
+import { forgetList, openTaskText, restoreLastList } from './open.ts'
 import { createTasksStore } from './store.ts'
 import { makeFile } from './test-support.ts'
 
@@ -142,6 +142,19 @@ describe('opening a file', () => {
     const again = createTasksStore()
     await openTaskText({ store: again, storage, cache }, changed, 'a.geojson')
     expect(again.getState().statuses).toEqual(['open', 'open', 'open', 'open'])
+  })
+
+  it('forgets a list: its file, its progress and the pointer to it', async () => {
+    const storage = memoryStorage()
+    const cache = createFileCache(cacheName(), true)
+    const store = createTasksStore()
+    await openTaskText({ store, storage, cache }, text, 'a.geojson')
+    const { listKey } = store.getState().list!
+    storage.setItem(mirrorKey(listKey), '{}')
+    await forgetList({ storage, cache }, listKey)
+    expect(await cache.load(listKey)).toBeUndefined()
+    expect(storage.getItem(mirrorKey(listKey))).toBeNull()
+    expect(storage.getItem(LAST_LIST_KEY)).toBeNull()
   })
 
   it('lists the kept files newest first, without their text', async () => {
