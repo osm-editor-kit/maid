@@ -31,6 +31,11 @@ export type StreetInput = {
   ways: readonly StreetWay[]
   /** [lon, lat] of a node; undefined for a node not loaded (the way is drawn through the others) */
   loc(nodeId: string): readonly [number, number] | undefined
+  /**
+   * [lon, lat] of the metric frame the drawing is worked out in; the first node by default. Give the same origin to
+   * drawings of parts of one area, so they agree to the millimetre.
+   */
+  origin?: readonly [number, number]
 }
 
 export type LonLat = [number, number]

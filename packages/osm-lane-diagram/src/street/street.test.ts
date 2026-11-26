@@ -25,7 +25,8 @@ function lanes(spec: string, width = 3): StreetLane[] {
   }))
 }
 
-function build(nodes: Record<string, [number, number]>, ways: Omit<StreetWay, 'tags'> & { tags?: StreetWay['tags'] }[]) {
+type TestWay = Omit<StreetWay, 'tags'> & { tags?: StreetWay['tags'] }
+function build(nodes: Record<string, [number, number]>, ways: TestWay[]) {
   return streetGeometry({
     ways: ways.map((way) => ({ tags: { highway: 'secondary' }, ...way })),
     loc: (id) => (nodes[id] ? toLoc(...nodes[id]!) : undefined),

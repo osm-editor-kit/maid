@@ -115,6 +115,7 @@ export function crossSection(wayId: string, tags: Tags): { lanes: StreetLane[]; 
 export function streetOf(
   entities: Iterable<StreetEntity>,
   nodeOf: (id: string) => StreetEntity | undefined,
+  origin?: readonly [number, number],
 ): { geometry: StreetGeometry; assumed: Set<string> } {
   const ways: StreetWay[] = []
   const assumed = new Set<string>()
@@ -127,6 +128,7 @@ export function streetOf(
   }
   const geometry = streetGeometry({
     ways,
+    ...(origin ? { origin } : {}),
     loc: (id) => {
       const loc = nodeOf(id)?.loc
       return loc && loc.length >= 2 ? [loc[0]!, loc[1]!] : undefined
@@ -135,21 +137,47 @@ export function streetOf(
   return { geometry, assumed }
 }
 
-/** The drawing as GeoJSON: polygons (lanes, junctions), lines (lane lines, kerbs), points (arrows, one per turn token) */
-export function streetFeatures(
+/** The features of one way (its lanes, lines, arrows) or one junction node (its surface and kerbs) */
+export type StreetParts = { areas: Feature[]; lines: Feature[]; arrows: Feature[] }
+
+const emptyParts = (): StreetParts => ({ areas: [], lines: [], arrows: [] })
+
+function partsOf(map: Map<string, StreetParts>, id: string): StreetParts {
+  let parts = map.get(id)
+  if (!parts) {
+    parts = emptyParts()
+    map.set(id, parts)
+  }
+  return parts
+}
+
+/**
+ * The drawing as GeoJSON, by what each feature belongs to: polygons (lanes, junctions), lines (lane lines, kerbs),
+ * points (arrows, one per turn token). Every way and junction node of the drawing has an entry, empty or not.
+ */
+export function streetParts(
   geometry: StreetGeometry,
   assumed: ReadonlySet<string>,
-): { areas: FeatureCollection; lines: FeatureCollection; arrows: FeatureCollection } {
-  const areas: Feature[] = []
+): { byWay: Map<string, StreetParts>; byNode: Map<string, StreetParts> } {
+  const byWay = new Map<string, StreetParts>()
+  const byNode = new Map<string, StreetParts>()
   for (const junction of geometry.junctions) {
-    areas.push({
+    const parts = partsOf(byNode, junction.nodeId)
+    parts.areas.push({
       type: 'Feature',
       geometry: { type: 'Polygon', coordinates: [[...junction.ring, junction.ring[0]!]] },
       properties: { part: 'junction', nodeId: junction.nodeId },
     })
+    for (const kerb of junction.kerbs) {
+      parts.lines.push({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: kerb },
+        properties: { kind: 'kerb', nodeId: junction.nodeId },
+      })
+    }
   }
   for (const lane of geometry.lanes) {
-    areas.push({
+    partsOf(byWay, lane.wayId).areas.push({
       type: 'Feature',
       geometry: { type: 'Polygon', coordinates: [[...lane.ring, lane.ring[0]!]] },
       properties: {
@@ -163,33 +191,39 @@ export function streetFeatures(
       },
     })
   }
-  const lines: Feature[] = []
   for (const line of geometry.lines) {
-    lines.push({
+    partsOf(byWay, line.wayId).lines.push({
       type: 'Feature',
       geometry: { type: 'LineString', coordinates: line.line },
       properties: { kind: line.kind, wayId: line.wayId, assumed: assumed.has(line.wayId) },
     })
   }
-  for (const junction of geometry.junctions) {
-    for (const kerb of junction.kerbs) {
-      lines.push({
-        type: 'Feature',
-        geometry: { type: 'LineString', coordinates: kerb },
-        properties: { kind: 'kerb', nodeId: junction.nodeId },
-      })
-    }
-  }
-  const arrows: Feature[] = []
   for (const arrow of geometry.arrows) {
     for (const token of arrow.turn.split(';').map((t) => t.trim().toLowerCase())) {
       const angle = TURN_ANGLE[token]
       if (angle === undefined) continue
-      arrows.push({
+      partsOf(byWay, arrow.wayId).arrows.push({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: arrow.loc },
         properties: { rotate: arrow.bearing + angle, laneId: arrow.laneId, token },
       })
+    }
+  }
+  return { byWay, byNode }
+}
+
+export type StreetCollections = { areas: FeatureCollection; lines: FeatureCollection; arrows: FeatureCollection }
+
+/** Parts put together into one collection each; junctions first, so the lanes draw over them in one layer too */
+export function collect(groups: Iterable<Iterable<StreetParts>>): StreetCollections {
+  const areas: Feature[] = []
+  const lines: Feature[] = []
+  const arrows: Feature[] = []
+  for (const group of groups) {
+    for (const parts of group) {
+      for (const f of parts.areas) areas.push(f)
+      for (const f of parts.lines) lines.push(f)
+      for (const f of parts.arrows) arrows.push(f)
     }
   }
   return {
@@ -197,4 +231,10 @@ export function streetFeatures(
     lines: { type: 'FeatureCollection', features: lines },
     arrows: { type: 'FeatureCollection', features: arrows },
   }
+}
+
+/** The drawing as GeoJSON in one go */
+export function streetFeatures(geometry: StreetGeometry, assumed: ReadonlySet<string>): StreetCollections {
+  const { byWay, byNode } = streetParts(geometry, assumed)
+  return collect([byNode.values(), byWay.values()])
 }

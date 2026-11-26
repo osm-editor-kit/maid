@@ -34,6 +34,12 @@ for (const [i, place] of places.entries()) {
   await page.evaluate(() => window.__bench.ready())
   await page.evaluate(() => window.__bench.settled())
   await page.waitForTimeout(3000)
+  if (process.env.STREET_KEY) {
+    await page.mouse.click(900, 500)
+    await page.keyboard.press('Escape')
+    await page.keyboard.press(process.env.STREET_KEY)
+    await page.waitForTimeout(800)
+  }
   if (process.env.STREET_HIDE) {
     await page.evaluate(() => {
       const map = (window as unknown as { __maid: { map: { getStyle(): { layers: { id: string }[] }; setLayoutProperty(id: string, k: string, v: string): void } } }).__maid.map

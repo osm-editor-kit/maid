@@ -6,10 +6,10 @@
  * The layers go below the lines of the OSM data (see BEFORE).
  */
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
-import { useCallback, useMemo, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 import { Layer, Source, useMap, type LayerProps } from 'react-map-gl/maplibre'
 import { BAND_COLOURS } from './layers.ts'
-import { streetFeatures, streetOf, type StreetEntity } from './street.ts'
+import { streetCollector, type StreetGraph } from './street-collect.ts'
 
 /**
  * Below the lines of the OSM data (the first line layer of the editor, renderer layers.ts), as Lane Studio draws its
@@ -18,14 +18,7 @@ import { streetFeatures, streetOf, type StreetEntity } from './street.ts'
 const BEFORE = ['line-casing--1', 'line-casing-0', 'label-line', 'highlight-midpoint']
 export const STREET_MIN_ZOOM = 16
 
-type Entities = ReadonlyMap<string, StreetEntity | undefined>
-type GraphLike = {
-  readonly base: { readonly entities: Entities }
-  readonly local: { readonly entities: Entities }
-  hasEntity(id: string): StreetEntity | undefined
-}
-
-function useStagingGraph(history: MapContentProps['editor']['history']): GraphLike {
+function useStagingGraph(history: MapContentProps['editor']['history']): StreetGraph {
   const subscribe = useCallback(
     (listener: () => void) => {
       const stops = [
@@ -39,18 +32,7 @@ function useStagingGraph(history: MapContentProps['editor']['history']): GraphLi
     },
     [history],
   )
-  return useSyncExternalStore(subscribe, () => history.staging.graph) as unknown as GraphLike
-}
-
-/** The ways of the graph: the base's, with the edits' over them (an undefined edit deletes) */
-function* waysOf(graph: GraphLike): Generator<StreetEntity> {
-  for (const [id, entity] of graph.base.entities) {
-    if (!id.startsWith('w') || graph.local.entities.has(id)) continue
-    if (entity) yield entity
-  }
-  for (const [id, entity] of graph.local.entities) {
-    if (id.startsWith('w') && entity) yield entity
-  }
+  return useSyncExternalStore(subscribe, () => history.staging.graph) as unknown as StreetGraph
 }
 
 function useBeforeId() {
@@ -146,10 +128,9 @@ const SOURCES: Record<string, 'areas' | 'lines' | 'arrows'> = {
 export function StreetOnMap({ editor }: MapContentProps) {
   const graph = useStagingGraph(editor.history)
   const beforeId = useBeforeId()
-  const data = useMemo(() => {
-    const { geometry, assumed } = streetOf(waysOf(graph), (id) => graph.hasEntity(id))
-    return streetFeatures(geometry, assumed)
-  }, [graph])
+  // one collector per map: it keeps the drawing and draws again only around what changed (street-collect.ts)
+  const [collector] = useState(streetCollector)
+  const data = useMemo(() => collector.update(graph), [collector, graph])
   // nothing until there is something to draw (as LanesOnMap): a source added empty and then copied over by a rebuild of
   // the map's style keeps its empty data
   if (data.areas.features.length === 0) return null

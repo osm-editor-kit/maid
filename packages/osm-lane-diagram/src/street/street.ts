@@ -716,8 +716,8 @@ export function streetGeometry(input: StreetInput): StreetGeometry {
     cuts: new Set(),
   }
   // one frame for the area, at its first node
-  let origin: readonly [number, number] | undefined
-  for (const way of input.ways) {
+  let origin: readonly [number, number] | undefined = input.origin
+  if (!origin) for (const way of input.ways) {
     for (const id of way.nodes) {
       origin = input.loc(id)
       if (origin) break
