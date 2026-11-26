@@ -164,11 +164,18 @@ type Marks = { left: number; right: number; lanes: number }
 
 const armKey = (wayId: string, index: number, alongWay: boolean) => `${wayId}:${index}:${alongWay}`
 
-function toWayLine(way: StreetWay, input: StreetInput, frame: MetricFrame): WayLine | undefined {
+function toWayLine(
+  way: StreetWay,
+  input: StreetInput,
+  frame: MetricFrame,
+  same: ReadonlyMap<string, string> = new Map(),
+): WayLine | undefined {
   if (way.lanes.length === 0) return undefined
   const points: Vec2[] = []
   const nodeIds: string[] = []
-  for (const id of way.nodes) {
+  for (const node of way.nodes) {
+    // a node in the same place as the one before it on some way stands for it, so a way ending there still meets it
+    const id = same.get(node) ?? node
     const loc = input.loc(id)
     if (!loc) continue
     const p = frame.toMetres(loc)
@@ -1502,9 +1509,29 @@ export function streetGeometry(input: StreetInput): StreetGeometry {
   if (!origin) return { ...out, junctions: [] }
   const frame = metricFrame(origin)
 
+  // nodes within a centimetre of the node before them on a way are one node: the way drops the second point (a
+  // segment without direction), and every other way at it then meets the first
+  const same = new Map<string, string>()
+  for (const way of input.ways) {
+    let previous: { id: string; loc: readonly [number, number] } | undefined
+    for (const node of way.nodes) {
+      const id = same.get(node) ?? node
+      const loc = input.loc(id)
+      if (!loc) continue
+      if (
+        previous &&
+        previous.id !== id &&
+        len(sub(frame.toMetres(loc), frame.toMetres(previous.loc))) < 0.01
+      ) {
+        same.set(id, previous.id)
+        continue
+      }
+      previous = { id, loc }
+    }
+  }
   const lines: WayLine[] = []
   for (const way of input.ways) {
-    const line = toWayLine(way, input, frame)
+    const line = toWayLine(way, input, frame, same)
     if (line) lines.push(line)
   }
   // the nodes used more than once (by two ways, or twice by one): where roads meet

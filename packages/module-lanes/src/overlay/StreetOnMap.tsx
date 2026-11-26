@@ -18,7 +18,33 @@ import { streetCollector, type StreetGraph } from './street-collect.ts'
 const BEFORE = ['line-casing--1', 'line-casing-0', 'label-line', 'highlight-midpoint']
 export const STREET_MIN_ZOOM = 16
 
-function useStagingGraph(history: MapContentProps['editor']['history']): StreetGraph {
+type History = MapContentProps['editor']['history']
+
+/**
+ * A counter per edit history that moves whenever the data moves: an edit, undo or redo, and arriving data. Arriving
+ * data (`merge`) adds to the graph's base in place, so the staging graph stays the same object and cannot be the
+ * snapshot (as in shell route-overview/data-version.ts). Its own listener is added first, so it has moved before a
+ * component's listener reads it.
+ */
+const versions = new WeakMap<History, { value: number }>()
+function versionOf(history: History) {
+  let counter = versions.get(history)
+  if (!counter) {
+    const created = { value: 0 }
+    const bump = () => {
+      created.value++
+    }
+    history.on('merge', bump)
+    history.on('stagingchange', bump)
+    history.on('historyjump', bump)
+    versions.set(history, created)
+    counter = created
+  }
+  return counter
+}
+
+function useDataVersion(history: History): number {
+  const counter = versionOf(history)
   const subscribe = useCallback(
     (listener: () => void) => {
       const stops = [
@@ -32,7 +58,7 @@ function useStagingGraph(history: MapContentProps['editor']['history']): StreetG
     },
     [history],
   )
-  return useSyncExternalStore(subscribe, () => history.staging.graph) as unknown as StreetGraph
+  return useSyncExternalStore(subscribe, () => counter.value)
 }
 
 function useBeforeId() {
@@ -145,24 +171,32 @@ const SOURCES: Record<string, 'areas' | 'lines' | 'arrows'> = {
 
 /** Every lane road of the loaded data, drawn as its street */
 export function StreetOnMap({ editor }: MapContentProps) {
-  const graph = useStagingGraph(editor.history)
+  const version = useDataVersion(editor.history)
   const beforeId = useBeforeId()
   // one collector per map: it keeps the drawing and draws again only around what changed (street-collect.ts)
   const [collector] = useState(streetCollector)
-  const data = useMemo(() => collector.update(graph), [collector, graph])
-  // nothing until there is something to draw (as LanesOnMap): a source added empty and then copied over by a rebuild of
-  // the map's style keeps its empty data
-  if (data.areas.features.length === 0) return null
+  // the version is the cache key, passed in so that the React Compiler sees the dependency: the graph object alone does
+  // not change when data arrives
+  const data = useMemo(
+    () => collector.update(editor.history.staging.graph as unknown as StreetGraph, version),
+    [collector, version, editor.history],
+  )
+  // a source only once it has something to draw (as LanesOnMap): a source added empty and then copied over by a rebuild
+  // of the map's style keeps its empty data
   return (
     <>
-      {Object.entries(SOURCES).map(([source, part]) => (
-        <Source key={source} id={source} type="geojson" data={data[part]}>
-          {LAYERS.filter((layer) => layer.source === source).map((layer) => {
-            const { source: _, ...rest } = layer
-            return <Layer key={layer.id} beforeId={beforeId} {...(rest as unknown as LayerProps)} />
-          })}
-        </Source>
-      ))}
+      {Object.entries(SOURCES)
+        .filter(([, part]) => data[part].features.length > 0)
+        .map(([source, part]) => (
+          <Source key={source} id={source} type="geojson" data={data[part]}>
+            {LAYERS.filter((layer) => layer.source === source).map((layer) => {
+              const { source: _, ...rest } = layer
+              return (
+                <Layer key={layer.id} beforeId={beforeId} {...(rest as unknown as LayerProps)} />
+              )
+            })}
+          </Source>
+        ))}
     </>
   )
 }

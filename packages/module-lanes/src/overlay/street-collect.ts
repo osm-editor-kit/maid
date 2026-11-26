@@ -6,9 +6,10 @@
  * nodes, and a junction on every way at its node, so the ways at the nodes of the changed ways are drawn again, and
  * the junctions at those nodes. A junction of several nodes close together (`StreetJunction.nodeIds`) is drawn again
  * as a whole, with every way at one of its nodes: the nodes drawn again are widened to whole junctions, those of the
- * kept drawing and those of the new one. Context is two rings of ways round the ways drawn again: one for the
- * junctions at their far ends, one more because whether a node there is a junction (three roads or more) decides
- * whether it belongs to a junction of several nodes. Their features replace the kept ones; everything else is kept.
+ * kept drawing and those of the new one, and to every node of the ways at them (a fork depends on how far its roads
+ * run to their next junction). Context is three rings of ways round the ways drawn again: one for the junctions at
+ * their far ends, one because whether a node there is a junction decides junctions of several nodes, one because
+ * whether a node one further is a fork decides the same. Their features replace the kept ones; everything else is kept.
  */
 import { isLaneRoad } from '../roads.ts'
 import {
@@ -99,8 +100,11 @@ export function streetCollector() {
   }
 
   return {
-    /** The drawing of the graph; the same object as last time when nothing it draws changed */
-    update(graph: StreetGraph): StreetCollections {
+    /**
+     * The drawing of the graph; the same object as last time when nothing it draws changed. `_version`: the caller's
+     * cache key, unused here (a load adds to the graph in place; the ways are compared one by one anyway).
+     */
+    update(graph: StreetGraph, _version?: number): StreetCollections {
       const ways = laneWays(graph)
       const now = new Map<string, Kept>()
       const dirty = new Set<string>()
@@ -144,15 +148,20 @@ export function streetCollector() {
           nodes.add(node)
           for (const member of groupAt.get(node) ?? []) nodes.add(member)
         }
-        for (const id of dirty) {
-          for (const source of [kept.get(id), now.get(id)])
-            for (const node of source?.entity.nodes ?? []) widen(node)
-        }
+        const nodesOf = (id: string) =>
+          [kept.get(id), now.get(id)].flatMap((source) => source?.entity.nodes ?? [])
+        for (const id of dirty) for (const node of nodesOf(id)) widen(node)
+        // the junctions along the ways at those nodes too: a fork's shape depends on how far its roads run to their
+        // next junction, which a road added or removed at another node of theirs changes
+        for (const node of [...nodes])
+          for (const id of waysAt(node)) for (const other of nodesOf(id)) widen(other)
         let done = false
         for (let pass = 0; pass < 4 && !done; pass++) {
           const redrawn = new Set<string>(dirty)
           for (const node of nodes) for (const id of waysAt(node)) redrawn.add(id)
-          const context = neighbours(neighbours(redrawn))
+          // three rings of context: the far ends' junctions, whether a node there is a junction at all (it decides
+          // junctions of several nodes), and whether a node one further is a fork (it decides the same)
+          const context = neighbours(neighbours(neighbours(redrawn)))
           const input = [...context].flatMap((id) => {
             const way = ways.get(id)
             return way ? [way] : []

@@ -160,6 +160,35 @@ describe('streetGeometry: roads running on', () => {
   })
 })
 
+describe('streetGeometry: nodes in one place', () => {
+  it('a junction at a node a millimetre from the node before it on the way through is still a junction', () => {
+    const g = build(
+      { a: [-100, 0], b: [0, 0], b2: [0.001, 0], c: [100, 0], d: [0, 100], e: [0, -100] },
+      [
+        {
+          id: 'we',
+          nodes: ['a', 'b', 'b2', 'c'],
+          lanes: lanes('bf'),
+          tags: { highway: 'primary', name: 'Main' },
+        },
+        {
+          id: 'n',
+          nodes: ['b2', 'd'],
+          lanes: lanes('bf'),
+          tags: { highway: 'tertiary', name: 'Cross' },
+        },
+        {
+          id: 's',
+          nodes: ['b2', 'e'],
+          lanes: lanes('bf'),
+          tags: { highway: 'tertiary', name: 'Cross' },
+        },
+      ],
+    )
+    expect(g.junctions).toHaveLength(1)
+  })
+})
+
 describe('streetGeometry: junctions', () => {
   const tJunction = () =>
     build({ a: [-100, 0], b: [0, 0], c: [100, 0], d: [0, 100] }, [
