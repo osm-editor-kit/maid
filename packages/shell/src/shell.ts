@@ -2,7 +2,7 @@ import { createEditor, isAutomated, isLocalUrl, type EditorConfig } from '@osm-e
 import { createFilterSet } from '@osm-editor-kit/maid-filters'
 import type { Locale } from '@osm-editor-kit/maid-i18n'
 import { connectLenses } from '@osm-editor-kit/maid-module-lenses'
-import { MaidEngine } from '@osm-editor-kit/maid-renderer'
+import { MaidEngine, type MapDisplay } from '@osm-editor-kit/maid-renderer'
 import {
   getSettings,
   settingsActions,
@@ -46,6 +46,12 @@ export type AppConfig = {
    * automation, which is always English.
    */
   defaultLocale?: Locale
+  /**
+   * What the map shows of the data when the link and the stored choice name nothing: `normal` (default), or
+   * `wireframe` for an editor whose own drawing is the point (Maid Lanes: the street drawing). Not used under
+   * automation, which starts on the normal look.
+   */
+  defaultDisplay?: MapDisplay
   /**
    * Who the app is. The top bar shows the logo; its name and detail appear on hover, as the buttons' labels do.
    * The browser tab shows the favicon and the name. The name is also the changeset's `created_by` (with `version`).
@@ -107,6 +113,9 @@ export function createShell(app: AppConfig) {
     stored: getSettings().server,
     deployed: DEPLOYED,
     servers: app.osm?.servers,
+    // the person's last W or G (stored by chooseDisplay), so a reload keeps it
+    shown: getSettings().shown.display,
+    ...(app.defaultDisplay ? { defaultDisplay: app.defaultDisplay } : {}),
   })
 
   /** The editor's data and modules. What this editor is comes from the app's config. */

@@ -10,7 +10,7 @@ import { canBeArea, lazyPresets, type MaidModule } from '@osm-editor-kit/maid-co
 import { defaultFilters, type FilterState } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
-import { laneRules, lanes, lanesLens } from '@osm-editor-kit/maid-module-lanes'
+import { laneRules, lanes, lanesLens, streetPoints } from '@osm-editor-kit/maid-module-lanes'
 import { lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
@@ -104,7 +104,9 @@ function editorConfig(config: Config) {
 
 /**
  * The filters of the lanes editor: roads and paths editable, the rest locked or hidden, so the map stays on the street
- * (Tobias, 2026-11-12). The person can change them in the filter panel as in any Maid.
+ * (Tobias, 2026-11-12). Points and shops hidden, but the points about the road (signs, stops, signals, crossings,
+ * traffic calming, barriers: `streetPoints`, read-only) stay (Tobias, 2026-11-26). The person can change them in the
+ * filter panel as in any Maid.
  */
 const LANES_FILTER_STATES: Record<string, FilterState> = {
   past_future: 'readonly',
@@ -118,14 +120,17 @@ const LANES_FILTER_STATES: Record<string, FilterState> = {
   buildings: 'readonly',
   boundaries: 'hidden',
   landuse: 'readonly',
-  shops: 'readonly',
-  points: 'readonly',
+  shops: 'hidden',
+  points: 'hidden',
   others: 'readonly',
 }
-const lanesFilters = defaultFilters.map((filter) => ({
-  ...filter,
-  state: LANES_FILTER_STATES[filter.id] ?? filter.state,
-}))
+const lanesFilters = [
+  streetPoints,
+  ...defaultFilters.map((filter) => ({
+    ...filter,
+    state: LANES_FILTER_STATES[filter.id] ?? filter.state,
+  })),
+]
 
 /** The app: its name, its login to OpenStreetMap and its development server, and the editor above */
 export const app: AppConfig = {
@@ -134,6 +139,9 @@ export const app: AppConfig = {
   version,
   // German unless the URL (`?lang=`), the stored choice or the browser names a language; automation stays English
   defaultLocale: 'de',
+  // the wireframe (W) on the first visit: the street drawing of the lanes module is the map here, the OSM lines thin on
+  // top of it (Tobias, 2026-11-26); W gives the normal look back, and the choice is kept
+  defaultDisplay: 'wireframe',
   osm: {
     servers: ['osm', 'dev'],
     clientId: import.meta.env.VITE_OSM_CLIENT_ID || undefined,

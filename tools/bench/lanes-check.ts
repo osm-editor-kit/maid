@@ -55,17 +55,19 @@ const failed = await runCheck(
     // --- the focused filters of the lanes editor ---
     const states = await page.evaluate(() => window.__maid.engine.filters.states())
     report(
-      'the lanes editor starts focused: roads editable, buildings and points locked, boundaries hidden',
+      'the lanes editor starts focused: roads editable, buildings locked, points but those about the road hidden, boundaries hidden',
       {
         traffic_roads: 'editable',
         buildings: 'readonly',
-        points: 'readonly',
-        shops: 'readonly',
+        street_points: 'readonly',
+        points: 'hidden',
+        shops: 'hidden',
         boundaries: 'hidden',
       },
       {
         traffic_roads: states.traffic_roads,
         buildings: states.buildings,
+        street_points: states.street_points,
         points: states.points,
         shops: states.shops,
         boundaries: states.boundaries,

@@ -46,3 +46,4 @@ export { addLane, laneCounts, removeLane, setLaneValue, type LaneProp } from './
 export { laneScene, neighbourAt } from './scene.ts'
 export { laneRules, LANE_RULE_IDS } from './rules/lane-rules.ts'
 export { VALUE_RULE_IDS } from './rules/value-rules.ts'
+export { isStreetPoint, streetPoints } from './filters.ts'

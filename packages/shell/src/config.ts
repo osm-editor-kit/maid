@@ -112,10 +112,14 @@ function readFilters(search: string) {
   return readParams({ filters: stateParams.filters }, search).filters || null
 }
 
-/** The display a link names, else the stored choice (`shown.display`, the URL's notation), else the normal look */
-function readDisplay(search: string, stored: string | undefined): MapDisplay {
+/**
+ * The display a link names, else the stored choice (`shown.display`, the URL's notation), else the app's
+ * `defaultDisplay` (not under automation, whose runs start on the normal look), else the normal look
+ */
+function readDisplay(search: string, stored: string | undefined, fallback: MapDisplay = 'normal'): MapDisplay {
   const url = readParams({ display: stateParams.display }, search).display
-  return displayOf(startShown({ url, stored, fallback: '' }).value)
+  const start = fallback === 'normal' || isAutomated() ? '' : fallback
+  return displayOf(startShown({ url, stored, fallback: start }).value)
 }
 
 export function readConfig(
@@ -126,6 +130,8 @@ export function readConfig(
     servers?: readonly Server[]
     /** The stored display, in the URL's notation (`shown.display`) */
     shown?: string | undefined
+    /** The app's `defaultDisplay` */
+    defaultDisplay?: MapDisplay
   } = {
     stored: getSettings().server,
     deployed: DEPLOYED,
@@ -160,7 +166,7 @@ export function readConfig(
         : source === 'mock'
           ? `http://localhost:${PORTS.mockApi}/postpass/api/interpreter`
           : undefined,
-    display: readDisplay(location.search, choice.shown),
+    display: readDisplay(location.search, choice.shown, choice.defaultDisplay),
     ui: setup.ui,
     labels: setup.labels,
     icons: setup.icons,
