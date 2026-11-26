@@ -8,10 +8,10 @@ import {
   gapAnswerCategory,
   gapUpdate,
   mergeSides,
-  onewayChoices,
   openChoices,
   openCount,
   toTagChange,
+  valueForTwin,
   type TildaCheck,
 } from './cards.ts'
 
@@ -186,44 +186,43 @@ test('toTagChange splits sets and removals', () => {
   expect(toTagChange({ a: '1', b: undefined })).toEqual({ set: { a: '1' }, remove: ['b'] })
 })
 
-describe('onewayChoices', () => {
-  const attributes = (tags: Record<string, string>, side: string) =>
-    buildCards(tags, options).find((card) => card.side === side)?.attributes ?? []
+describe('oneway options (the package decides, Maid writes)', () => {
+  const card = (tags: Record<string, string>, side: string) =>
+    buildCards(tags, options).find((entry) => entry.side === side)
   const oneway = (tags: Record<string, string>, side: string) =>
-    attributes(tags, side).find((attribute) => attribute.id === 'oneway')
+    card(tags, side)?.attributes.find((attribute) => attribute.id === 'oneway')
+  const twoWay = {
+    highway: 'secondary',
+    'cycleway:both': 'lane',
+    'cycleway:both:lane': 'exclusive',
+  }
 
   test('a way of its own: yes and no, never -1', () => {
-    const attribute = oneway({ highway: 'cycleway', is_sidepath: 'no' }, 'self')
-    expect(attribute).toBeDefined()
-    if (!attribute) return
-    expect(onewayChoices(attribute, 'self')?.map((choice) => choice.value)).toEqual(['yes', 'no'])
+    expect(oneway({ highway: 'cycleway', is_sidepath: 'no' }, 'self')?.options).toEqual([
+      'yes',
+      'no',
+    ])
   })
 
-  test('the left side of a two-way road: both ways, or a left lane ridden with the line', () => {
+  test('on a merged card, both ways goes to both sides, left with the line only to the left', () => {
+    const left = oneway(twoWay, 'left')
+    const right = oneway(twoWay, 'right')
+    if (!left || !right) throw new Error('no oneway row')
+    expect(valueForTwin(left, right, 'no')).toBe(true)
+    expect(valueForTwin(left, right, 'yes')).toBe(false)
+  })
+
+  test('the contraflow side of a one-way road open for bicycles offers its contraflow value, alone', () => {
     const tags = {
       highway: 'secondary',
+      oneway: 'yes',
+      'oneway:bicycle': 'no',
       'cycleway:both': 'lane',
-      'cycleway:both:lane': 'exclusive',
     }
     const left = oneway(tags, 'left')
     const right = oneway(tags, 'right')
     if (!left || !right) throw new Error('no oneway row')
-    expect(onewayChoices(left, 'left')).toEqual([
-      { value: 'no', meaning: 'both' },
-      { value: 'yes', meaning: 'left_with_line' },
-    ])
-    expect(onewayChoices(right, 'right')).toEqual([{ value: 'no', meaning: 'both' }])
-  })
-
-  test('the left side of a one-way road runs with the line: only both ways', () => {
-    const tags = {
-      highway: 'secondary',
-      oneway: 'yes',
-      'cycleway:both': 'lane',
-      'cycleway:both:lane': 'exclusive',
-    }
-    const left = oneway(tags, 'left')
-    if (!left) throw new Error('no oneway row')
-    expect(onewayChoices(left, 'left')).toEqual([{ value: 'no', meaning: 'both' }])
+    expect(left.options).toContain('-1')
+    expect(valueForTwin(left, right, '-1')).toBe(false)
   })
 })

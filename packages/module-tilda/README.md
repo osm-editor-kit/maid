@@ -45,7 +45,7 @@ tilda(),
 ## More
 
 - Steps and the feature list it comes from: [docs/build-out/steps.md](../../docs/build-out/steps.md) (entry "TILDA section", 2026-11-10) and [docs/build-out/radnetz-features.md](../../docs/build-out/radnetz-features.md), rows 8 and 32.
-- The one-way options for TILDA: [docs/upstream/tilda-tagging-oneway-options.md](../../docs/upstream/tilda-tagging-oneway-options.md).
+- The one-way options and their words come from the package (`RequiredAttribute.optionMeanings`, `optionMeaningText`, since tagging 0.8.0); Maid only decides on a merged "both sides" card which values go to both sides (`valueForTwin`).
 - The sides and the sidepaths: [docs/research/sidepaths.md](../../docs/research/sidepaths.md).
 
 Open (from the steps):

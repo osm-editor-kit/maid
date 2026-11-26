@@ -587,6 +587,7 @@ Tobias, 2026-11-10: bring the TILDA box of the iD Radnetz fork, now built on `@t
       **Test for Tobias:** <https://osm-editor-kit.github.io/maid/maid-bicycle/#map=18/52.38900/13.40000&id=w30084962> (Bahnhofstraße, Lichtenrade, bike lane on the right), section "TILDA bike infrastructure" below the tags: the right side shows its category and the open rows; press "Checked" on a default, then the pencil on "This way" and choose a kind under "Change to".
 - [x] 2026-11-11: the bicycle editor's default look, module `bike-infrastructure` (`packages/module-bike-infrastructure`): every highway classified by TILDA's processing and drawn over iD's style, blue for bicycles alone and pink where people on foot share it (the groups of tilda-geo's styles "Führungsform einfach/detailliert"); road sides beside the road, sidepaths with two thin kerb lines, separately mapped sides dotted, the traffic sign images on the line; a lens "Bicycle infrastructure" with the legend; 20 presets for the categories and subcategories. Made-up scene `bicycle` with 39 cases (`bun run fixtures-bicycle`), `check-bike-style` 45 ok, 55 unit tests.
       **Test for Tobias:** <https://osm-editor-kit.github.io/maid/maid-bicycle/?lens=none&bg=Berlin-2026&overlays=none&map=19.00/52.538108/13.634771&id=w896061943> (the sidewalk with `bicycle=yes` and `DE:239,1022-10`): pink dashed with two kerb lines and the sign, named "Sidewalk, bicycles allowed".
+- [x] 2026-11-25: `@tilda-geo/bicycle-infrastructure` 0.6.0 and `-tagging` 0.8.0, which take over Maid's two drafts: the oneway row offers the package's values with its words (`optionMeanings`; a way of its own `yes`/`no`, a road side `no`, on the left of a two-way road also `yes`, the contraflow side of a one-way road open for bicycles also its contraflow value), and the arrows read `_lineReversed` for the way itself too. The kind select of a road side offers "Separate (own line)" (`groupMappingKinds(side)`). Not used yet: the crossing extraction (`plainLanes`) and `TagFix.reverseWay` (Maid does not run the package's rules).
 - [ ] Field titles coloured by the checklist and "add below" links to the fields (needs a way for a section to point at a field).
 - [ ] The validation rules of `@tilda-geo/bicycle-infrastructure-tagging/validation` as Maid rules.
 - [ ] "Checked" and "Verified" shared through the project's key-value DB (needs the account).
@@ -822,8 +823,9 @@ for `-1`. Decision and reasons: [ADR 0015](../adr/0015-oneway-minus-one-hook-arr
       directional field the line "Against the line's direction". Two-way:
       https://osm-editor-kit.github.io/maid/maid-bicycle/?map=19/52.47753/13.43857&id=w47508565 (Karl-Marx-Straße):
       hooks on the left lane, arrows on the right.
-- [ ] Next: `_lineReversed` for the way itself in the TILDA package
-      ([draft](../upstream/tilda-self-line-direction.md)); the iD-Radnetz port of the style, with a performance test.
+- [x] 2026-11-25: `_lineReversed` for the way itself is in the TILDA package (0.6.0); Maid's arrows read only TILDA's
+      result now.
+- [ ] Next: the iD-Radnetz port of the style, with a performance test.
 
 ### A line drawn from a way takes its tags (2026-10-28, on main 2026-11-25)
 

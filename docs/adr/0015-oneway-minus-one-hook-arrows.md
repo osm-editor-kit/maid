@@ -25,9 +25,9 @@ tilda-geo turns the line of a `-1` way round when it publishes it. An editor can
   tagged two-way. The hook of a road side turns away from the road. The arrows are line patterns of the renderer
   (`maid-line-arrow-*`), because a pattern follows the layer's `line-offset` and a symbol does not.
 - **The direction comes from TILDA, not from a list in Maid.** A road side uses TILDA's `oneway` (one direction or
-  not) and `_lineReversed` (against the line), which is the port of tilda-geo's `side_line_reversed.lua`. For the way
-  itself TILDA gives `oneway=yes` also for `-1` and no `_lineReversed`, so Maid reads `oneway:bicycle` / `oneway`
-  there (draft for the package: [docs/upstream/tilda-self-line-direction.md](../upstream/tilda-self-line-direction.md)).
+  not) and `_lineReversed` (against the line), which is the port of tilda-geo's `line_direction.lua`. Since
+  `@tilda-geo/bicycle-infrastructure` 0.6.0 (2026-11-25) the way itself has `_lineReversed` too (`oneway=-1` or
+  `oneway:bicycle=-1`), so Maid reads no tag of its own for the direction.
   TILDA's guessed one-way (`implicit_yes`) gives no arrows on a way of its own: its drawing direction says nothing.
 - **Left and right do not flip.** `:left`, `:right`, `:forward` and `:backward` always follow the drawing direction,
   with `oneway=-1` too (OSM wiki, "Forward & backward, left & right"). The fields and the side overlay on hover stay as
