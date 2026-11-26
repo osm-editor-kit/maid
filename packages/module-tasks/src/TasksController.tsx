@@ -10,6 +10,7 @@ import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { isApplied } from '@osm-editor-kit/maid-tasks'
 import { Dialog, openDockView, usePrefsEndpoint } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef, useState } from 'react'
+import { shapeSignature } from './apply.ts'
 import { cleanupOffers } from './cleanup.ts'
 import { DOCK_VIEW } from './LoadTasksItem.tsx'
 import { m } from './messages.ts'
@@ -101,6 +102,8 @@ export function createTasksController(
         store.getState().actions.followApplied(({ change }) => {
           if (change.kind === 'delete') return change.entityIds.every((id) => !graph.hasEntity(id))
           if (change.kind === 'create') return graph.hasEntity(change.entityId) !== undefined
+          if (change.kind === 'shape')
+            return shapeSignature(graph, change.entityIds) === change.signature
           return change.entityIds.every((id) => {
             const entity = graph.hasEntity(id)
             return entity !== undefined && isApplied(entity.tags, change.option)

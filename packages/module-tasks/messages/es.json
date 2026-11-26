@@ -99,5 +99,7 @@
   "tasks_recent_delete_hint": "Borra el archivo y su progreso de este navegador. La copia en tu cuenta de OSM se queda.",
   "tasks_sync_replace": "Usar esta versión en mi cuenta",
   "tasks_sync_replace_confirm": "¿Reemplazar la copia de la cuenta?",
-  "tasks_sync_replace_hint": "Tu cuenta guarda esta lista para otra versión del archivo. Esto reemplaza esa copia por esta versión y los estados de este navegador; los estados de la otra versión en la cuenta se pierden."
+  "tasks_sync_replace_hint": "Tu cuenta guarda esta lista para otra versión del archivo. Esto reemplaza esa copia por esta versión y los estados de este navegador; los estados de la otra versión en la cuenta se pierden.",
+  "tasks_apply_none": "Elegir",
+  "tasks_operations": "Ejecuta primero:"
 }

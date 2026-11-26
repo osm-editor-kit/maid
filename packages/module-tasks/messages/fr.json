@@ -99,5 +99,7 @@
   "tasks_recent_delete_hint": "Supprime le fichier et sa progression de ce navigateur. La copie dans votre compte OSM reste.",
   "tasks_sync_replace": "Utiliser cette version dans mon compte",
   "tasks_sync_replace_confirm": "Remplacer la copie du compte ?",
-  "tasks_sync_replace_hint": "Votre compte contient cette liste pour une autre version du fichier. Ceci remplace cette copie par cette version et les statuts de ce navigateur ; les statuts de l'autre version dans le compte sont alors perdus."
+  "tasks_sync_replace_hint": "Votre compte contient cette liste pour une autre version du fichier. Ceci remplace cette copie par cette version et les statuts de ce navigateur ; les statuts de l'autre version dans le compte sont alors perdus.",
+  "tasks_apply_none": "Choisir",
+  "tasks_operations": "Exécute d'abord :"
 }

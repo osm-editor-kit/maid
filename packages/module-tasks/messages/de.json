@@ -99,5 +99,7 @@
   "tasks_recent_delete_hint": "Löscht die Datei und ihren Fortschritt aus diesem Browser. Die Kopie in deinem OSM-Konto bleibt.",
   "tasks_sync_replace": "Diese Version ins Konto übernehmen",
   "tasks_sync_replace_confirm": "Kopie im Konto ersetzen?",
-  "tasks_sync_replace_hint": "Dein Konto hat diese Liste für eine andere Version der Datei. Das ersetzt diese Kopie durch diese Version und die Status dieses Browsers; die Status der anderen Version im Konto sind dann weg."
+  "tasks_sync_replace_hint": "Dein Konto hat diese Liste für eine andere Version der Datei. Das ersetzt diese Kopie durch diese Version und die Status dieses Browsers; die Status der anderen Version im Konto sind dann weg.",
+  "tasks_apply_none": "Wählen",
+  "tasks_operations": "Führt zuerst aus:"
 }

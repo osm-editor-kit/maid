@@ -23,6 +23,9 @@ import { Markdown, type MarkdownContext, type OnOsmRef } from '@osm-editor-kit/m
 import { useState } from 'react'
 import {
   applyTaskOption,
+  operationLabel,
+  operationsRefusal,
+  shapeSignature,
   createTaskFeature,
   deleteTaskFeatures,
   type DeleteOutcome,
@@ -237,6 +240,12 @@ export function TaskContent({
 
   const apply = (option: TaskOption) => {
     const action = actionOf(option)
+    // an answer without a change: the choice is the result
+    if (action === 'none') {
+      setMessage(undefined)
+      setStatus('done')
+      return
+    }
     if (action === 'create') {
       const geometry = createGeometryOf(task, option)
       if (!geometry) return
@@ -274,8 +283,22 @@ export function TaskContent({
       locked,
       entity ? [entity.id] : undefined,
     )
-    if (outcome.ok) done({ kind: 'tag', entityIds: ids, option }, option)
-    else refuse(outcome.reason)
+    if (!outcome.ok) {
+      if (outcome.reason === 'operation') setMessage(outcome.message)
+      else refuse(outcome.reason)
+      return
+    }
+    // an option with operations is followed by the shape it gave, a plain one by its tags
+    if (option.operations?.length) {
+      done(
+        {
+          kind: 'shape',
+          entityIds: ids,
+          signature: shapeSignature(editor.history.staging.graph, ids),
+        },
+        option,
+      )
+    } else done({ kind: 'tag', entityIds: ids, option }, option)
   }
   /** Whether this session applied a create or delete option of this task and it is still done */
   const appliedHere = (option: TaskOption) =>
@@ -491,10 +514,17 @@ function OptionCard({
     loaded[0]
   const before = action === 'tag' ? (shown?.tags ?? {}) : {}
   const changes = action === 'delete' ? [] : diffOption(before, option)
+  const operations = option.operations ?? []
+  // an option with operations is applied when this session applied it: its shape cannot be read from the tags
   const applied =
-    action === 'tag'
+    action === 'tag' && operations.length === 0
       ? loaded.length > 0 && loaded.every((each) => isApplied(each.tags, option))
       : appliedHere
+  // why its operations cannot run on the features now (iD's sentence), asked on a copy of the graph
+  const refusal =
+    operations.length > 0 && loaded.length === tagIds.length
+      ? operationsRefusal(editor.history.staging.graph, tagIds, operations)
+      : undefined
   const blocked = action !== 'tag' && !applied && taskDone
   const canApply = action !== 'tag' || (tagIds.length > 0 && loaded.length === tagIds.length)
   // the features named beside the label: what a tag option changes, what a delete option deletes
@@ -584,13 +614,17 @@ function OptionCard({
       type="button"
       data-testid={`tasks-apply-${option.id}`}
       onClick={onApply}
+      disabled={refusal !== undefined}
+      title={refusal}
       className={`shrink-0 self-start ${action === 'delete' ? DANGER : PRIMARY}`}
     >
       {action === 'create'
         ? m.tasks_apply_create()
         : action === 'delete'
           ? m.tasks_apply_delete()
-          : m.tasks_apply()}
+          : action === 'none'
+            ? m.tasks_apply_none()
+            : m.tasks_apply()}
     </button>
   )
   return (
@@ -625,6 +659,17 @@ function OptionCard({
             ))}
           </ul>
         </div>
+      )}
+      {operations.length > 0 && (
+        <p data-testid={`tasks-operations-${option.id}`} className="text-xs">
+          <span className="text-zinc-500 dark:text-zinc-400">{m.tasks_operations()} </span>
+          <span className="font-medium">
+            {operations.map(({ op }) => operationLabel(op)).join(', ')}
+          </span>
+          {refusal !== undefined && (
+            <span className="block text-red-700 dark:text-red-300">{refusal}</span>
+          )}
+        </p>
       )}
       {blocked && (
         <p

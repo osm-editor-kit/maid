@@ -1,6 +1,6 @@
 # Task options that run editor operations (draft)
 
-Date: 2026-11-26. Asked for by Tobias through the session "One-Way Geometrien im Seitenraum" (infravelo-radnetz):
+Date: 2026-11-26. Built the same day as described here (`packages/tasks/FORMAT.md`, `packages/module-tasks/src/apply.ts`). Asked for by Tobias through the session "One-Way Geometrien im Seitenraum" (infravelo-radnetz):
 a task list of separate cycleways in Berlin that are drawn the wrong way round needs the answer "Reverse the way".
 Tobias wants this to be general: an option that runs editor operations, for example Reverse and Square (iD's
 Orthogonalize, key Q), without a new format for each one. Not built yet; this is the concept to settle first.

@@ -50,6 +50,8 @@ export type AppliedTask = {
   optionId: string
   change:
     | { kind: 'tag'; entityIds: string[]; option: Pick<TaskOption, 'set' | 'remove'> }
+    /** An option with operations: done while the features keep the shape it gave them (`shapeSignature`) */
+    | { kind: 'shape'; entityIds: string[]; signature: string }
     | { kind: 'create'; entityId: string }
     | { kind: 'delete'; entityIds: string[] }
   /** The status before Apply */

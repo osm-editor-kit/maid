@@ -4,30 +4,104 @@ import {
   actionAddEntity,
   actionChangeTags,
   actionDeleteMultiple,
+  Graph,
   OsmNode,
   OsmWay,
   type Action,
 } from '@osm-editor-kit/maid-model'
-import { deleteReason } from '@osm-editor-kit/maid-operations'
+import {
+  circularizeOperation,
+  deleteReason,
+  type Operation,
+  reverseOperation,
+  squareOperation,
+  straightenOperation,
+} from '@osm-editor-kit/maid-operations'
 import {
   applyOption,
   type CreateGeometry,
   isApplied,
+  type TaskOperation,
   type TaskOption,
 } from '@osm-editor-kit/maid-tasks'
 
-export type ApplyOutcome = { ok: true } | { ok: false; reason: 'read-only' | 'missing' | 'applied' }
+export type ApplyOutcome =
+  | { ok: true }
+  | { ok: false; reason: 'read-only' | 'missing' | 'applied' }
+  /** One of the option's operations cannot run on the features: iD's sentence why */
+  | { ok: false; reason: 'operation'; message: string }
+
+/** The editor's operations an option names (FORMAT.md `operations`): the edit menu's own, so they behave the same */
+const OPERATIONS: Record<TaskOperation, Operation> = {
+  reverse: reverseOperation,
+  square: squareOperation,
+  straighten: straightenOperation,
+  circularize: circularizeOperation,
+}
+
+/** The label of an option's operation, as the edit menu says it */
+export function operationLabel(op: TaskOperation): string {
+  return OPERATIONS[op].label
+}
 
 /**
- * Sets and removes the tags of the option on the features (one, or the several a tag option names), as one undo step
- * (`perform` for each, then `commit` with the annotation). Afterwards `selectedIDs` is selected, else the features.
- * Nothing is changed when one of them is read-only (a filter) or not in the data, or when all of them already have
- * the option's tags; one that has them is left alone.
+ * Why an option's operations cannot run on these features, or undefined when they all can: each is asked on the
+ * graph the ones before it leave, on a copy, so nothing changes in part (all or nothing, as FORMAT.md says).
+ */
+export function operationsRefusal(
+  graph: Graph,
+  ids: readonly string[],
+  operations: TaskOption['operations'],
+): string | undefined {
+  if (!operations || operations.length === 0) return undefined
+  if (ids.some((id) => !graph.hasEntity(id))) return undefined
+  // an action may change the graph it gets: run them on a copy
+  let copy = new Graph(graph)
+  for (const { op } of operations) {
+    const operation = OPERATIONS[op]
+    const context = { graph: copy, selected: ids }
+    if (!operation.applies(context)) return `${operation.label}: not for this feature`
+    const reason = operation.disabled(context)
+    if (reason !== undefined) return reason
+    for (const action of operation.run(context).actions) copy = action(copy)
+  }
+  return undefined
+}
+
+/**
+ * What the features look like after an option with operations: their node order and positions. Undo is followed by
+ * comparing with it (the tags alone cannot tell, a reverse may change none).
+ */
+export function shapeSignature(graph: Graph, ids: readonly string[]): string {
+  return ids
+    .map((id) => {
+      const entity = graph.hasEntity(id)
+      if (entity instanceof OsmWay) {
+        return `${id}:${entity.nodes
+          .map((node) => {
+            const loc = (graph.hasEntity(node) as OsmNode | undefined)?.loc
+            return `${node}@${loc?.join(',') ?? ''}`
+          })
+          .join(';')}`
+      }
+      if (entity instanceof OsmNode)
+        return `${id}@${entity.loc?.join(',') ?? ''}:${JSON.stringify(entity.tags)}`
+      return `${id}:-`
+    })
+    .join('|')
+}
+
+/**
+ * Runs the option's operations and then sets and removes its tags on the features (one, or the several a tag option
+ * names), as one undo step (`perform` for each, then `commit` with the annotation). Afterwards `selectedIDs` is
+ * selected, else the features. Nothing is changed when one of them is read-only (a filter) or not in the data, when an
+ * operation cannot run on them, or (without operations) when all of them already have the option's tags; one that
+ * has them is left alone.
  */
 export function applyTaskOption(
   history: Editor['history'],
   ids: string | readonly string[],
-  option: Pick<TaskOption, 'set' | 'remove'>,
+  option: Pick<TaskOption, 'set' | 'remove' | 'operations'>,
   annotation: string,
   readOnly: boolean | ((id: string) => boolean),
   selectedIDs?: readonly string[],
@@ -37,10 +111,22 @@ export function applyTaskOption(
   if (all.some(locked)) return { ok: false, reason: 'read-only' }
   const entities = all.map((id) => history.staging.graph.hasEntity(id))
   if (entities.some((entity) => !entity)) return { ok: false, reason: 'missing' }
-  const open = entities.filter((entity) => entity && !isApplied(entity.tags, option))
-  if (open.length === 0) return { ok: false, reason: 'applied' }
-  for (const entity of open) {
-    if (entity) history.perform(actionChangeTags(entity.id, applyOption(entity.tags, option)))
+  const operations = option.operations ?? []
+  if (operations.length === 0) {
+    const open = entities.filter((entity) => entity && !isApplied(entity.tags, option))
+    if (open.length === 0) return { ok: false, reason: 'applied' }
+  }
+  const refusal = operationsRefusal(history.staging.graph, all, operations)
+  if (refusal !== undefined) return { ok: false, reason: 'operation', message: refusal }
+  // the operations first, each on the graph the one before left, then the tags of what they made
+  for (const { op } of operations) {
+    const { actions } = OPERATIONS[op].run({ graph: history.staging.graph, selected: all })
+    history.perform(...actions)
+  }
+  for (const id of all) {
+    const entity = history.staging.graph.hasEntity(id)
+    if (entity && !isApplied(entity.tags, option))
+      history.perform(actionChangeTags(entity.id, applyOption(entity.tags, option)))
   }
   history.commit({ annotation, selectedIDs: [...(selectedIDs ?? all)] })
   return { ok: true }
