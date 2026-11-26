@@ -103,6 +103,11 @@ describe('the display at the start', () => {
   test("the app's default display comes after the link and the stored choice", () => {
     const lanesApp = { ...local, defaultDisplay: 'wireframe' as const }
     expect(readConfig(at(''), lanesApp).display).toBe('wireframe')
+    // a link names the normal look: it wins over the app's default
+    expect(readConfig(at('?display=normal'), lanesApp).display).toBe('normal')
+    // the URL leaves out the app's default look, and names every other
+    expect(readConfig(at(''), lanesApp).defaultDisplay).toBe('wireframe')
+    expect(readConfig(at(''), local).defaultDisplay).toBe('normal')
     // the person chose the normal look (W): stored as '', which is a choice
     expect(readConfig(at(''), { ...lanesApp, shown: '' }).display).toBe('normal')
     expect(readConfig(at(''), { ...lanesApp, shown: 'edits' }).display).toBe('edits')

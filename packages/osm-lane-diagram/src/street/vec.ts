@@ -175,3 +175,28 @@ export function signedArea2(ring: readonly Vec2[]): number {
   }
   return area
 }
+
+/**
+ * The polyline with the corner of every bend sharper than `minTurn` degrees cut: the vertex is replaced by two points
+ * `cut` metres back along each segment (less on short segments), which halves the bend. A road's offsets round a
+ * hairpin then stay near it instead of reaching out along a long mitre.
+ */
+export function cutSharpBends(points: readonly Vec2[], cut: number, minTurn = 100): Vec2[] {
+  if (points.length < 3 || cut <= 0) return [...points]
+  const out: Vec2[] = [points[0]!]
+  for (let i = 1; i < points.length - 1; i++) {
+    const p = points[i]!
+    const before = sub(p, points[i - 1]!)
+    const after = sub(points[i + 1]!, p)
+    const u1 = unit(before)
+    const u2 = unit(after)
+    if (angleBetween(u1, u2) <= minTurn) {
+      out.push(p)
+      continue
+    }
+    const c = Math.min(cut, len(before) * 0.4, len(after) * 0.4)
+    out.push(sub(p, scale(u1, c)), add(p, scale(u2, c)))
+  }
+  out.push(points[points.length - 1]!)
+  return out
+}

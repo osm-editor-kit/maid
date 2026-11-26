@@ -89,6 +89,11 @@ export type Config = {
   serverChoice: boolean
   /** What the map shows of the data at the start: the URL's `display`, else the person's choice, else the look */
   display: MapDisplay
+  /**
+   * The look this app starts on without a link or a choice: the app's `defaultDisplay`, the normal look under
+   * automation. The URL leaves `display` out for it and names every other look, `normal` included.
+   */
+  defaultDisplay: MapDisplay
   /** Inspector, controls and status bar. `ui=0` leaves only the map. */
   ui: boolean
   labels: boolean
@@ -112,6 +117,11 @@ function readFilters(search: string) {
   return readParams({ filters: stateParams.filters }, search).filters || null
 }
 
+/** The app's default look, but the normal look under automation */
+function startDisplay(fallback: MapDisplay = 'normal'): MapDisplay {
+  return isAutomated() ? 'normal' : fallback
+}
+
 /**
  * The display a link names, else the stored choice (`shown.display`, the URL's notation), else the app's
  * `defaultDisplay` (not under automation, whose runs start on the normal look), else the normal look
@@ -122,7 +132,7 @@ function readDisplay(
   fallback: MapDisplay = 'normal',
 ): MapDisplay {
   const url = readParams({ display: stateParams.display }, search).display
-  const start = fallback === 'normal' || isAutomated() ? '' : fallback
+  const start = startDisplay(fallback) === 'normal' ? '' : fallback
   return displayOf(startShown({ url, stored, fallback: start }).value)
 }
 
@@ -171,6 +181,7 @@ export function readConfig(
           ? `http://localhost:${PORTS.mockApi}/postpass/api/interpreter`
           : undefined,
     display: readDisplay(location.search, choice.shown, choice.defaultDisplay),
+    defaultDisplay: startDisplay(choice.defaultDisplay),
     ui: setup.ui,
     labels: setup.labels,
     icons: setup.icons,

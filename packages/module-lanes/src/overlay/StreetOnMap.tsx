@@ -5,9 +5,9 @@
  *
  * The layers go below the lines of the OSM data (see BEFORE).
  */
-import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
+import { IncrementalSource, type MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
-import { Layer, Source, useMap, type LayerProps } from 'react-map-gl/maplibre'
+import { Layer, useMap, type LayerProps } from 'react-map-gl/maplibre'
 import { BAND_COLOURS } from './layers.ts'
 import { streetCollector, type StreetGraph } from './street-collect.ts'
 
@@ -188,14 +188,16 @@ export function StreetOnMap({ editor }: MapContentProps) {
       {Object.entries(SOURCES)
         .filter(([, part]) => data[part].features.length > 0)
         .map(([source, part]) => (
-          <Source key={source} id={source} type="geojson" data={data[part]}>
+          // only what changed goes to MapLibre (renderer IncrementalSource): the collector keeps the features of every
+          // way it did not draw again as the same objects
+          <IncrementalSource key={source} id={source} data={data[part]}>
             {LAYERS.filter((layer) => layer.source === source).map((layer) => {
               const { source: _, ...rest } = layer
               return (
                 <Layer key={layer.id} beforeId={beforeId} {...(rest as unknown as LayerProps)} />
               )
             })}
-          </Source>
+          </IncrementalSource>
         ))}
     </>
   )

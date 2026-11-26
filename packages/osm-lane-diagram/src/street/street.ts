@@ -50,6 +50,7 @@ import {
   add,
   angleBetween,
   cornerCurve,
+  cutSharpBends,
   cross,
   cumulative,
   dot,
@@ -68,6 +69,14 @@ import {
   type MetricFrame,
   type Vec2,
 } from './vec'
+
+/**
+ * Two roads whose directions away from the node are closer than this (degrees) meet at a sharp corner: a bend of more
+ * than 100°, where a mitre would reach past twice the road's half width
+ */
+const SHARP_CORNER = 80
+/** A bend inside a way sharper than this (degrees of turn) has its corner cut, so its offsets need no long mitre */
+const SHARP_BEND = 100
 
 /** A side road is pulled back at most this far from the node */
 const MAX_CLEARANCE = 30
@@ -636,11 +645,14 @@ function junctionAt(
   result: Junctions,
   grouped = false,
 ) {
-  if (arms.length === 2) {
+  // two roads meeting at a sharp angle (a hairpin between two ways) are not cut on the bisector: their mitre would throw
+  // a spike far past the node. They end where their inner kerbs meet, and a small junction joins them round the outside
+  const sharp = arms.length === 2 && angleBetween(arms[0]!.direction, arms[1]!.direction) < SHARP_CORNER
+  if (arms.length === 2 && !sharp) {
     partnerUp(arms[0]!, arms[1]!, result)
     return
   }
-  if (arms.length < 3) return
+  if (arms.length < 2) return
   result.cuts.add(nodeId)
   const through = throughPair(arms)
   const onMain = (i: number) => through !== null && (through[0] === i || through[1] === i)
@@ -1331,7 +1343,11 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
       if (run.fork) breaks.push(from, from + runLength)
       else for (let s = 0; s <= runLength; s += 2) breaks.push(from + s)
     }
-    const sliced = slicePolyline(centre, trimStart, length - trimEnd, breaks)
+    const sliced = cutSharpBends(
+      slicePolyline(centre, trimStart, length - trimEnd, breaks),
+      Math.max(Math.abs(line.left), Math.abs(line.right)),
+      SHARP_BEND,
+    )
     const local = cumulative(sliced).map((s) => s + trimStart)
     const pieceStart = trimStart
     const pieceEnd = length - trimEnd

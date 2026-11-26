@@ -324,7 +324,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     bicycle: 0,
     parking: 0,
     indoor: 0,
-    lanes: 29,
+    lanes: 31,
     golf: 0,
     climbing: 0,
     buildings: 0,

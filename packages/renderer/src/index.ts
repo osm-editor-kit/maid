@@ -62,6 +62,7 @@ export {
   lineArrowImageId,
   type LineArrowShape,
 } from './direction'
+export { IncrementalSource } from './IncrementalSource'
 export { ModuleLayers } from './ModuleLayers'
 export { OsmLayers } from './OsmLayers'
 export { OsmData, type MergeResult } from './data'

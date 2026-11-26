@@ -96,6 +96,8 @@ describe('display=: wireframe or edits, none for the normal look (fill is gone)'
   test('the two values parse, anything else is no value', () => {
     expect(stateParams.display.parseServerSide('wireframe')).toBe('wireframe')
     expect(stateParams.display.parseServerSide('edits')).toBe('edits')
+    // the normal look is named where an app starts on another (Maid Lanes: the wireframe)
+    expect(stateParams.display.parseServerSide('normal')).toBe('normal')
     expect(stateParams.display.parseServerSide('full')).toBeNull()
     expect(stateParams.display.parseServerSide(undefined)).toBeNull()
   })

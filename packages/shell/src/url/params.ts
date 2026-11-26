@@ -89,10 +89,11 @@ export const stateParams = {
   /** Filter states that differ from the editor's own, e.g. `buildings:readonly,boundaries:hidden` */
   filters: parseAsString,
   /**
-   * What the map shows of the data, as iD's wireframe (W) and highlight changes (G): `wireframe` or `edits`. Absent is the
-   * normal look. The engine holds it; the URL follows it (url/display.ts).
+   * What the map shows of the data, as iD's wireframe (W) and highlight changes (G): `wireframe`, `edits` or `normal`.
+   * Absent is the app's own default look (the normal look in most apps, the wireframe in Maid Lanes); the URL names any
+   * other. The engine holds it; the URL follows it (url/display.ts).
    */
-  display: parseAsStringLiteral(['wireframe', 'edits']),
+  display: parseAsStringLiteral(['wireframe', 'edits', 'normal']),
   /** The language of this page. The account menu's choice writes it too, so the address and the stored choice agree */
   lang: parseAsLang,
   /**

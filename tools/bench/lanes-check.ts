@@ -264,7 +264,8 @@ const failed = await runCheck(
 
     // --- the whole street: every loaded road with its lanes, joined at junctions (overlay/StreetOnMap.tsx) ---
     let street: { lanes: string[]; junctions: number } = { lanes: [], junctions: 0 }
-    for (let i = 0; i < 40 && street.lanes.length < 2; i++) {
+    // until the map shows the bands' lanes: an update of the street re-tiles only what changed, a little later
+    for (let i = 0; i < 40 && JSON.stringify(street.lanes) !== JSON.stringify(bands); i++) {
       street = await page.evaluate((number) => {
         const features = window.__maid.map.querySourceFeatures('maid-street-areas') as any[]
         return {
@@ -280,7 +281,7 @@ const failed = await runCheck(
           junctions: features.filter((f) => f.properties?.part === 'junction').length,
         }
       }, wayNumber)
-      if (street.lanes.length < 2) await page.waitForTimeout(250)
+      if (JSON.stringify(street.lanes) !== JSON.stringify(bands)) await page.waitForTimeout(250)
     }
     report(
       'the street drawing has the lanes of the selected road, as its bands',
@@ -288,6 +289,33 @@ const failed = await runCheck(
       street.lanes,
     )
     report('and the junctions of the roads around', true, street.junctions > 0)
+
+    // an edit reaches the map as an update of what changed (renderer IncrementalSource): a lane more on the road
+    const streetLanes = () =>
+      page.evaluate((number) => {
+        const features = window.__maid.map.querySourceFeatures('maid-street-areas') as any[]
+        return new Set(
+          features
+            .filter((f) => f.properties?.part === 'lane' && f.properties?.wayId === `w${number}` && !f.properties?.taper)
+            .map((f) => String(f.properties?.laneId)),
+        ).size
+      }, wayNumber)
+    await page.evaluate((id) => window.__maid.engine.setTag(id, 'lanes:forward', '2'), road)
+    await page.evaluate((id) => window.__maid.engine.setTag(id, 'lanes', '3'), road)
+    let more = 0
+    for (let i = 0; i < 40 && more !== street.lanes.length + 1; i++) {
+      await page.waitForTimeout(150)
+      more = await streetLanes()
+    }
+    report('an edit redraws the street: a lane more on the road', street.lanes.length + 1, more)
+    await page.evaluate(() => window.__maid.engine.undo())
+    await page.evaluate(() => window.__maid.engine.undo())
+    let back = 0
+    for (let i = 0; i < 40 && back !== street.lanes.length; i++) {
+      await page.waitForTimeout(150)
+      back = await streetLanes()
+    }
+    report('and undo takes it back', street.lanes.length, back)
 
     // --- a lane rule in the Issues dock, and its fix ---
     await page.evaluate((id) => window.__maid.engine.setTag(id, 'lanes', '5'), road)

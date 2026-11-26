@@ -82,6 +82,19 @@ describe('what each case is about', () => {
     expect(tapers(geometry)).toHaveLength(0)
   })
 
+  test('L03 a sharp bend: nothing reaches past the corner by more than the road’s half width', () => {
+    const { geometry, metres, data } = draw('L03')
+    // the corner is the node both ways share; the road is 6 m wide
+    const shared = data.ways[0]!.nodes.find((n) => data.ways[1]!.nodes.includes(n))!
+    const corner = metres(data.nodes[shared]!.loc)
+    const reach = Math.max(
+      ...[...geometry.lanes.map((l) => l.ring), ...geometry.junctions.map((j) => j.ring)].flatMap((ring) =>
+        ring.map((p) => metres(p)[0] - corner[0]),
+      ),
+    )
+    expect(reach).toBeLessThan(3.5)
+  })
+
   test('L04 a right-turn lane added: one lane narrows to nothing on each road with two lanes', () => {
     const { geometry } = draw('L04')
     expect(tapers(geometry)).toHaveLength(2)
