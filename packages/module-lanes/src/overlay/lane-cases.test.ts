@@ -147,9 +147,16 @@ describe('what each case is about', () => {
       expect(geometry.lanes.filter((l) => l.wayId === id).length).toBeGreaterThan(0)
   })
 
-  test('L18 staggered junction: one junction of both side streets', () => {
-    const { geometry } = draw('L18')
+  test('L18 staggered junction: one junction of both side streets, a guide line across, none along the main road', () => {
+    const { geometry, metres } = draw('L18')
     expect(geometry.junctions).toHaveLength(1)
+    const guides = geometry.junctions[0]!.guides ?? []
+    expect(guides.length).toBeGreaterThan(0)
+    // each guide goes from one side of the main road to the other (north to south or back)
+    for (const guide of guides) {
+      const ys = guide.map((p) => metres(p)[1])
+      expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThan(5)
+    }
   })
 
   test('L13 a roundabout: every arm stops outside the ring (radius 30 m, lanes 3 m either side)', () => {

@@ -902,9 +902,17 @@ function guidesAt(
           if (!best || off < best.off) best = { j, off }
         })
         if (!best) continue
-        // the main road straight through is drawn through the junction
-        if (token === 'through' && onMain(i) && onMain(best.j)) continue
         const to = arms[best.j]!
+        // the main road straight through is drawn through the junction; in a group of nodes, a road that carries on in
+        // its own line needs no guide either (a side road across, offset, does: a staggered junction)
+        if (token === 'through' && onMain(i) && onMain(best.j)) continue
+        if (
+          token === 'through' &&
+          !through &&
+          Math.abs(angleTo(to)) < 15 &&
+          Math.abs(cross(heading, sub(to.points[0]!, from.points[0]!))) < 2
+        )
+          continue
         const cycle = lane.kind === 'bicycle'
         // going out, in the driver's order from the left: the arm frame's left is the driver's left
         const going = lanesOf(to, false)
@@ -1411,12 +1419,16 @@ function groupJunction(
   const holes = faces.slice(1).filter((face) => Math.sign(face.area) !== Math.sign(outside.area))
   const kept = holes.filter((face) => Math.abs(face.area) > MIN_HOLE)
   const toLocs = (line: Vec2[]) => line.map((p) => frame.toLoc(p))
+  // guide lines between the roads that leave the group, as at a junction of one node; no road runs through it drawn
+  const leaving = boxes.flatMap((box) => box.arms.filter((arm) => !across(arm)))
+  const guides = guidesAt(leaving, result, null)
   result.junctions.push({
     nodeId: nodeIds[0]!,
     nodeIds: [...nodeIds],
     ring: toLocs(outside.points),
     ...(kept.length > 0 ? { holes: kept.map((face) => toLocs(face.points)) } : {}),
     kerbs: [outside, ...kept].flatMap((face) => face.kerbs.map(toLocs)),
+    ...(guides.length ? { guides: guides.map(toLocs) } : {}),
   })
 }
 
