@@ -76,7 +76,23 @@ const LAYERS = [
     filter: ['==', ['get', 'part'], 'lane'],
     paint: {
       'fill-color': laneColour,
-      'fill-opacity': ['case', ['get', 'assumed'], 0.55, 0.9],
+      // a lane narrowing to nothing (a lane added or dropped where roads join) lighter, so it reads as running out
+      'fill-opacity': ['case', ['get', 'taper'], 0.45, ['get', 'assumed'], 0.55, 0.9],
+    },
+  },
+  {
+    // the edge of a lane narrowing to nothing, dashed, as a painted taper is
+    id: 'maid-street-tapers',
+    type: 'line',
+    source: AREAS_SOURCE,
+    minzoom: 17,
+    filter: ['all', ['==', ['get', 'part'], 'lane'], ['get', 'taper']],
+    layout: { 'line-join': 'round' },
+    paint: {
+      'line-color': '#ffffff',
+      'line-opacity': 0.8,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 17, 0.5, 20, 1.5],
+      'line-dasharray': [2, 2],
     },
   },
   {
