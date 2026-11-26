@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { actionForKey, type SheetKeyEvent, type SheetKeyResult } from './keys.ts'
+import { actionForKey, togglesRow, type SheetKeyEvent, type SheetKeyResult } from './keys.ts'
 import { initialSheetState, shapeOf } from './reducer.ts'
 import type { SheetCellData, SheetColumn, SheetRow, SheetShape, SheetState } from './types.ts'
 
@@ -366,7 +366,6 @@ describe('edit mode', () => {
       ev('a', { metaKey: true }),
       ev('z', { metaKey: true }),
       ev('v', { metaKey: true }),
-      ev('Enter', { metaKey: true }),
     ]) {
       expect(actionForKey(event, edit('a', 'value'), shape, mac)).toEqual(native)
     }
@@ -382,5 +381,67 @@ describe('edit mode', () => {
     expect(
       actionForKey({ ...ev('Enter'), isComposing: true }, edit('a', 'value'), shape, mac),
     ).toEqual({ kind: 'native' })
+  })
+})
+
+describe('Cmd/Ctrl+Enter: an empty row under the active one', () => {
+  const insert: SheetKeyResult = {
+    kind: 'action',
+    action: { type: 'insertBelow' },
+    prevent: true,
+  }
+
+  it('Cmd+Enter on a Mac and Ctrl+Enter elsewhere insert below, with the default prevented', () => {
+    expect(actionForKey(ev('Enter', { metaKey: true }), nav('a', 'value'), shape, mac)).toEqual(
+      insert,
+    )
+    expect(actionForKey(ev('Enter', { ctrlKey: true }), nav('a', 'value'), shape, other)).toEqual(
+      insert,
+    )
+  })
+
+  it('the other modifier is not the shortcut: Ctrl+Enter on a Mac, Cmd+Enter elsewhere', () => {
+    const native: SheetKeyResult = { kind: 'native' }
+    expect(actionForKey(ev('Enter', { ctrlKey: true }), nav('a', 'value'), shape, mac)).toEqual(
+      native,
+    )
+    expect(actionForKey(ev('Enter', { metaKey: true }), nav('a', 'value'), shape, other)).toEqual(
+      native,
+    )
+  })
+
+  it('Shift+Cmd+Enter is not it, and a read-only cell does not matter', () => {
+    expect(
+      actionForKey(ev('Enter', { metaKey: true, shiftKey: true }), nav('a', 'key'), shape, mac),
+    ).toEqual({ kind: 'native' })
+    expect(actionForKey(ev('Enter', { metaKey: true }), nav('r', 'value'), shape, mac)).toEqual(
+      insert,
+    )
+  })
+
+  it('while editing it commits and then inserts below', () => {
+    expect(actionForKey(ev('Enter', { metaKey: true }), edit('a', 'key'), shape, mac)).toEqual({
+      kind: 'commit',
+      after: 'insertBelow',
+      prevent: true,
+    })
+    expect(actionForKey(ev('Enter', { ctrlKey: true }), edit('a', 'key'), shape, other)).toEqual({
+      kind: 'commit',
+      after: 'insertBelow',
+      prevent: true,
+    })
+  })
+})
+
+describe('togglesRow: the click that picks single rows', () => {
+  it('Cmd+click on a Mac, Ctrl+click elsewhere', () => {
+    expect(togglesRow({ metaKey: true, ctrlKey: false }, mac)).toBe(true)
+    expect(togglesRow({ metaKey: false, ctrlKey: true }, other)).toBe(true)
+  })
+
+  it('Ctrl+click on a Mac is the right click, Cmd+click elsewhere is not it', () => {
+    expect(togglesRow({ metaKey: false, ctrlKey: true }, mac)).toBe(false)
+    expect(togglesRow({ metaKey: true, ctrlKey: false }, other)).toBe(false)
+    expect(togglesRow({ metaKey: false, ctrlKey: false }, mac)).toBe(false)
   })
 })

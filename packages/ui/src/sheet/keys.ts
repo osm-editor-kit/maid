@@ -22,6 +22,17 @@ export type SheetKeyEvent = {
 export type SheetKeyOptions = { mac: boolean }
 
 /**
+ * A click that adds a row to the selection or takes it out (Cmd+click on a Mac, Ctrl+click elsewhere). On a Mac
+ * Ctrl+click is a right click, so it is not this.
+ */
+export function togglesRow(
+  event: { metaKey: boolean; ctrlKey: boolean },
+  options: SheetKeyOptions,
+): boolean {
+  return options.mac ? event.metaKey : event.ctrlKey
+}
+
+/**
  * What a key means.
  * - `action`: dispatch it to sheetReducer. `prevent` false for a key that must also reach the input (typing).
  * - `commit`: edit mode: commitEdit with the draft, then `endEdit(after)`. `prevent` false when the browser
@@ -73,10 +84,12 @@ function startsText(key: string): boolean {
  *
  * Navigation: arrows move (Shift extends, Cmd/Ctrl goes to the edge), Tab and Shift+Tab move and wrap, leaving
  * the sheet at its two ends; Enter, F2 and typing edit; Escape collapses a range; Delete and Backspace clear;
- * Home and End go to the row's ends; Shift+Space selects the row; Cmd/Ctrl+A, C, X, V, Z and Y as in the design.
+ * Home and End go to the row's ends; Shift+Space selects the row; Cmd/Ctrl+A, C, X, V, Z and Y as in the design;
+ * Cmd/Ctrl+Enter makes an empty row under the active one.
  *
  * Edit: Enter and Shift+Enter commit and go down or up; Tab and Shift+Tab commit and move; Up and Down
- * are the list's or commit and move; Escape drops the draft. Everything else is the input's.
+ * are the list's or commit and move; Escape drops the draft; Cmd/Ctrl+Enter commits and makes an empty row under this
+ * one. Everything else is the input's.
  */
 export function actionForKey(
   event: SheetKeyEvent,
@@ -92,7 +105,12 @@ export function actionForKey(
   const key = event.key.length === 1 ? event.key.toLowerCase() : event.key
 
   if (state.mode === 'edit') {
-    if (mod || state.active === null) return NATIVE
+    if (state.active === null) return NATIVE
+    // Cmd/Ctrl+Enter: the draft is committed and an empty row opens under this one
+    if (mod && key === 'Enter' && !event.shiftKey) {
+      return { kind: 'commit', after: 'insertBelow', prevent: true }
+    }
+    if (mod) return NATIVE
     return editKey(key, event.shiftKey, state, shape)
   }
   return navigateKey(event, key, mod, state, shape, options)
@@ -150,6 +168,10 @@ function navigateKey(
       }
     }
     switch (key) {
+      case 'Enter':
+        // an empty row under this one, with the focus in its key cell (Cmd+Enter on a Mac, Ctrl+Enter elsewhere)
+        if (shift) return NATIVE
+        return { kind: 'action', action: { type: 'insertBelow' }, prevent: true }
       case 'c':
         return { kind: 'clipboard', op: 'copy' }
       case 'x':

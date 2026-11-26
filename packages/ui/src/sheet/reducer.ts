@@ -26,6 +26,8 @@ export function initialSheetState(): SheetState {
     mode: 'navigate',
     editStart: 'replace',
     tabOrigin: null,
+    extraRows: [],
+    inserted: null,
     trailingId: 't0',
     nextId: 1,
   }
@@ -39,13 +41,18 @@ export function initialSheetState(): SheetState {
 export function shapeOf(
   rows: SheetRow[],
   columns: SheetColumn[],
-  options: { trailingId?: RowId; sheetReadOnly?: boolean } = {},
+  options: { trailingId?: RowId; sheetReadOnly?: boolean; inserted?: SheetState['inserted'] } = {},
 ): SheetShape {
   const rowById = new Map<RowId, SheetRow>(rows.map((row): [RowId, SheetRow] => [row.id, row]))
   const colById = new Map<ColId, SheetColumn>(
     columns.map((col): [ColId, SheetColumn] => [col.id, col]),
   )
-  const rowIds = rows.map((row) => row.id)
+  // an inserted row sits right under its row; when that row is gone it is not in the grid
+  const rowIds: RowId[] = []
+  for (const row of rows) {
+    rowIds.push(row.id)
+    if (options.inserted?.after === row.id) rowIds.push(options.inserted.id)
+  }
   if (options.trailingId !== undefined) rowIds.push(options.trailingId)
   return {
     rowIds,
@@ -103,6 +110,23 @@ export function selectedCells(state: SheetState, shape: SheetShape): CellRef[] {
   return cells
 }
 
+/**
+ * The rows of the selection in table order: the rows of the range and the extra rows (Cmd/Ctrl+click). The trailing
+ * and the inserted row have no data and are never in it.
+ */
+export function selectedRowIds(state: SheetState, shape: SheetShape): RowId[] {
+  const rect = selectionRect(state, shape)
+  if (rect === undefined) return []
+  const wanted = new Set<RowId>(state.extraRows)
+  for (let r = rect.r0; r <= rect.r1; r++) {
+    const id = shape.rowIds[r]
+    if (id !== undefined) wanted.add(id)
+  }
+  return shape.rowIds.filter(
+    (id) => wanted.has(id) && id !== state.trailingId && id !== state.inserted?.id,
+  )
+}
+
 /** One step of the cursor: by columns (`dx`) or rows (`dy`); `wrap` lets `dx` continue on the next or previous row; `edge` goes to the end of the row or column. */
 export type Step = { dx: -1 | 0 | 1; dy: -1 | 0 | 1; wrap?: boolean; edge?: boolean }
 
@@ -138,18 +162,64 @@ function textOf(cell: SheetCellData | undefined): string | undefined {
 }
 
 /**
+ * An empty row under `row`, with the focus in its first cell (the key). Nothing happens on the trailing row and on the
+ * inserted one, which are empty already, or for a row that is not in the grid. An earlier inserted row is replaced.
+ */
+function insertBelow(state: SheetState, shape: SheetShape, row: RowId): SheetState {
+  const col = shape.colIds[0]
+  if (col === undefined || !shape.rowIds.includes(row)) return state
+  if (row === state.trailingId || row === state.inserted?.id) return state
+  const id = `t${state.nextId}`
+  return {
+    ...state,
+    active: { row: id, col },
+    anchor: null,
+    rowsSelected: false,
+    extraRows: [],
+    mode: 'navigate',
+    tabOrigin: null,
+    inserted: { id, after: row },
+    nextId: state.nextId + 1,
+  }
+}
+
+/**
+ * The inserted row goes as soon as the focus is not on it: it was never data, only a place to type. A range that
+ * began on it loses its anchor.
+ */
+function settle(state: SheetState): SheetState {
+  const inserted = state.inserted
+  if (inserted === null || state.active?.row === inserted.id) return state
+  const anchor = state.anchor?.row === inserted.id ? null : state.anchor
+  return {
+    ...state,
+    inserted: null,
+    anchor,
+    rowsSelected: anchor === null ? false : state.rowsSelected,
+  }
+}
+
+/**
  * Leaves edit mode: the mode becomes navigate, the range collapses, and the focus moves as `after` says.
  * `down` and `up` (Enter) go in the column the Tab run began in; `arrowDown` and `arrowUp` go in the active
  * column. A move that cannot happen (the last row) keeps the active cell.
  */
 function finishEdit(state: SheetState, shape: SheetShape, after: EndThen): SheetState {
-  const base: SheetState = { ...state, mode: 'navigate', anchor: null, rowsSelected: false }
+  const base: SheetState = {
+    ...state,
+    mode: 'navigate',
+    anchor: null,
+    rowsSelected: false,
+    extraRows: [],
+  }
   const at = state.active
   if (at === null) return { ...base, tabOrigin: null }
   const origin = state.tabOrigin ?? at.col
   switch (after) {
     case 'stay':
       return base
+    case 'insertBelow':
+      return insertBelow(base, shape, at.row)
     case 'down':
     case 'up': {
       const dy = after === 'down' ? 1 : -1
@@ -185,6 +255,10 @@ export function sheetReducer(
   action: SheetAction,
   shape: SheetShape,
 ): SheetState {
+  return settle(step(state, action, shape))
+}
+
+function step(state: SheetState, action: SheetAction, shape: SheetShape): SheetState {
   switch (action.type) {
     case 'activate': {
       if (!inShape(shape, action.cell)) return state
@@ -195,6 +269,8 @@ export function sheetReducer(
         active: action.cell,
         anchor: extend ? (state.anchor ?? from) : null,
         rowsSelected: extend ? state.rowsSelected : false,
+        // a Shift range keeps the rows picked before it, a plain click starts over
+        extraRows: extend ? state.extraRows : [],
         mode: 'navigate',
         tabOrigin: null,
       }
@@ -211,6 +287,7 @@ export function sheetReducer(
         active: target ?? from,
         anchor: extend ? (state.anchor ?? from) : null,
         rowsSelected: extend ? state.rowsSelected : false,
+        extraRows: extend ? state.extraRows : [],
         mode: 'navigate',
         tabOrigin: action.wrap === true ? (state.tabOrigin ?? from.col) : null,
       }
@@ -226,10 +303,52 @@ export function sheetReducer(
         anchor: { row: action.from, col: first },
         active: { row: to, col: last },
         rowsSelected: true,
+        extraRows: [],
         mode: 'navigate',
         tabOrigin: null,
       }
     }
+    case 'toggleRow': {
+      const row = action.row
+      if (!shape.rowIds.includes(row) || row === state.trailingId || row === state.inserted?.id)
+        return state
+      const col = action.col ?? state.active?.col ?? shape.colIds[0]
+      if (col === undefined) return state
+      const selected = selectedRowIds(state, shape)
+      const picked = {
+        anchor: null,
+        rowsSelected: false,
+        mode: 'navigate' as const,
+        tabOrigin: null,
+      }
+      if (!selected.includes(row)) {
+        // The rows so far stay selected as extra rows; the clicked cell is the active one, as in Google Sheets.
+        return { ...state, ...picked, active: { row, col }, extraRows: selected }
+      }
+      const rest = selected.filter((id) => id !== row)
+      const last = rest[rest.length - 1]
+      // The only selected row cannot be taken out: the sheet always has a selection once it has the focus.
+      if (last === undefined) return state
+      return {
+        ...state,
+        ...picked,
+        active: { row: last, col },
+        extraRows: rest.filter((id) => id !== last),
+      }
+    }
+    case 'insertBelow': {
+      const row = action.row ?? state.active?.row
+      return row === undefined ? state : insertBelow(state, shape, row)
+    }
+    case 'leave':
+      return {
+        ...state,
+        anchor: null,
+        rowsSelected: false,
+        extraRows: [],
+        tabOrigin: null,
+        inserted: null,
+      }
     case 'selectAll': {
       // Not the trailing row: it has no data to select.
       const rows = shape.rowIds.filter((id) => id !== state.trailingId)
@@ -250,27 +369,40 @@ export function sheetReducer(
         anchor: { row: firstRow, col: firstCol },
         active: { row: lastRow, col: lastCol },
         rowsSelected: false,
+        extraRows: [],
         mode: 'navigate',
         tabOrigin: null,
       }
     }
     case 'collapse':
-      return { ...state, anchor: null, rowsSelected: false, tabOrigin: null }
+      return { ...state, anchor: null, rowsSelected: false, extraRows: [], tabOrigin: null }
     case 'startEdit': {
       const at = state.active
       if (at === null || state.mode === 'edit' || !inShape(shape, at) || shape.readOnly(at))
         return state
-      return { ...state, mode: 'edit', editStart: action.how, anchor: null, rowsSelected: false }
+      return {
+        ...state,
+        mode: 'edit',
+        editStart: action.how,
+        anchor: null,
+        rowsSelected: false,
+        extraRows: [],
+      }
     }
     case 'endEdit':
       if (state.mode !== 'edit') return state
       return finishEdit(state, shape, action.after)
     case 'rowsChanged': {
+      // rows that are gone leave the selection; an inserted row whose row is gone leaves with it
+      const extraRows = state.extraRows.filter((id) => shape.rowIds.includes(id))
+      const inserted =
+        state.inserted !== null && shape.rowIds.includes(state.inserted.id) ? state.inserted : null
+      const kept: SheetState = { ...state, extraRows, inserted }
       const at = state.active
-      if (at === null) return state
+      if (at === null) return kept
       if (shape.rowIds.length === 0) {
         return {
-          ...state,
+          ...kept,
           active: null,
           anchor: null,
           rowsSelected: false,
@@ -281,16 +413,16 @@ export function sheetReducer(
       if (shape.rowIds.includes(at.row)) {
         const anchorKept = state.anchor !== null && shape.rowIds.includes(state.anchor.row)
         return {
-          ...state,
+          ...kept,
           anchor: anchorKept ? state.anchor : null,
           rowsSelected: anchorKept && state.rowsSelected,
         }
       }
       const index = Math.max(0, action.previousRowIds.indexOf(at.row))
       const newRow = shape.rowIds[Math.min(index, shape.rowIds.length - 1)]
-      if (newRow === undefined) return state
+      if (newRow === undefined) return kept
       return {
-        ...state,
+        ...kept,
         active: { row: newRow, col: at.col },
         anchor: null,
         rowsSelected: false,
@@ -333,12 +465,18 @@ export function commitEdit(
   const at = state.active
   if (at === null || state.mode !== 'edit') return { state }
   const col = columns.find((c) => c.id === at.col)
-  if (col === undefined || shape.readOnly(at)) return { state: finishEdit(state, shape, after) }
+  if (col === undefined || shape.readOnly(at)) {
+    return { state: settle(finishEdit(state, shape, after)) }
+  }
 
   const row = rows.find((r) => r.id === at.row)
   const isTrailing =
     row === undefined && at.row === state.trailingId && shape.rowIds.includes(at.row)
-  if (row === undefined && !isTrailing) return { state: finishEdit(state, shape, after) }
+  const isInserted =
+    row === undefined && state.inserted?.id === at.row && shape.rowIds.includes(at.row)
+  if (row === undefined && !isTrailing && !isInserted) {
+    return { state: settle(finishEdit(state, shape, after)) }
+  }
 
   const cleaned = col.clean !== undefined ? col.clean(text) : text
   const subject: SheetRow = row ?? { id: at.row, label: '', cells: {} }
@@ -350,14 +488,15 @@ export function commitEdit(
       const colIndex = columns.indexOf(col)
       const focus: CellRef = { row: other.id, col: columns[colIndex + 1]?.id ?? col.id }
       return {
-        state: {
+        state: settle({
           ...state,
           active: focus,
           anchor: null,
           rowsSelected: false,
+          extraRows: [],
           mode: 'navigate',
           tabOrigin: null,
-        },
+        }),
         refused: `${col.header} "${cleaned}" is already on another row`,
         focus,
         invalid,
@@ -375,6 +514,17 @@ export function commitEdit(
       working = { ...state, trailingId: newTrailing, nextId: state.nextId + 1 }
       nextShape = { ...shape, rowIds: [...shape.rowIds, newTrailing] }
     }
+  } else if (isInserted) {
+    // The row stays where it was made: it keeps its id, and the host puts it under `after`.
+    if (cleaned !== '' && state.inserted !== null) {
+      change = {
+        type: 'insert',
+        row: at.row,
+        cells: { [col.id]: cleaned },
+        after: state.inserted.after,
+      }
+      working = { ...state, inserted: null }
+    }
   } else if (row !== undefined) {
     const previous = textOf(row.cells[col.id])
     const unchanged =
@@ -389,13 +539,27 @@ export function commitEdit(
 
   const batch: SheetBatch | undefined =
     change === undefined ? undefined : { cause: 'edit', changes: [change] }
-  return { state: finishEdit(working, nextShape, after), batch, invalid }
+  return { state: settle(finishEdit(working, nextShape, after)), batch, invalid }
+}
+
+/**
+ * One batch that removes these rows. Read-only rows, the trailing row and ids that are not rows are skipped.
+ * Undefined when nothing would change.
+ */
+export function removeRows(rowIds: readonly RowId[], rows: SheetRow[]): SheetBatch | undefined {
+  const changes: SheetChange[] = []
+  for (const rowId of rowIds) {
+    const row = rows.find((candidate) => candidate.id === rowId)
+    if (row !== undefined && row.readOnly !== true) changes.push({ type: 'remove', row: rowId })
+  }
+  return changes.length === 0 ? undefined : { cause: 'delete', changes }
 }
 
 /**
  * Delete on the selection: one batch for the whole range. Cells are cleared when they hold a value (a mixed
- * cell is always cleared). With `rowsSelected`, the rows are removed. Read-only rows and cells are skipped, and
- * the trailing row is never part of the batch. Undefined when nothing would change.
+ * cell is always cleared). With `rowsSelected` or extra rows, the rows (the range's and the extra ones) are
+ * removed. Read-only rows and cells are skipped, and the trailing row is never part of the batch. Undefined when
+ * nothing would change.
  */
 export function clearSelection(
   state: SheetState,
@@ -405,15 +569,14 @@ export function clearSelection(
 ): SheetBatch | undefined {
   const rect = selectionRect(state, shape)
   if (rect === undefined) return undefined
+  if (state.rowsSelected || state.extraRows.length > 0) {
+    return removeRows(selectedRowIds(state, shape), rows)
+  }
   const changes: SheetChange[] = []
   for (let r = rect.r0; r <= rect.r1; r++) {
     const rowId = shape.rowIds[r]
     const row = rows.find((candidate) => candidate.id === rowId)
     if (rowId === undefined || row === undefined) continue
-    if (state.rowsSelected) {
-      if (row.readOnly !== true) changes.push({ type: 'remove', row: rowId })
-      continue
-    }
     for (let c = rect.c0; c <= rect.c1; c++) {
       const colId = shape.colIds[c]
       if (colId === undefined || shape.readOnly({ row: rowId, col: colId })) continue

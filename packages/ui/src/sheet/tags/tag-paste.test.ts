@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import type { Tags } from '@osm-editor-kit/maid-presets'
-import type { SheetRow } from '../types.ts'
+import { selectedRowIds, shapeOf, sheetReducer, initialSheetState } from '../reducer.ts'
+import type { SheetRow, SheetState } from '../types.ts'
 import { planTagsPaste, serializeTagCells, tagPasteRoute } from './tag-paste.ts'
 import { rowsFromTags, NO_TAG_ROWS, TAG_COLUMNS } from './tags.ts'
 
@@ -127,5 +128,24 @@ describe('serializeTagCells: what a copy of some cells writes', () => {
   })
   it('the value column alone: the values', () => {
     expect(serializeTagCells(rows, ['value'])).toBe('residential\nA\nasphalt')
+  })
+})
+
+describe('copy of rows picked one by one (Cmd/Ctrl+click)', () => {
+  const rows = sheetRows({ highway: 'residential', name: 'A', surface: 'asphalt', ref: '7' })
+
+  it('writes the picked rows in table order, not in the order of the clicks', () => {
+    const shape = shapeOf(rows, TAG_COLUMNS, { trailingId: 't0' })
+    const [first, , third, fourth] = rows.map((row) => row.id)
+    if (first === undefined || third === undefined || fourth === undefined) throw new Error('rows')
+    let state: SheetState = { ...initialSheetState(), active: { row: fourth, col: 'key' } }
+    state = sheetReducer(state, { type: 'toggleRow', row: first, col: 'key' }, shape)
+    state = sheetReducer(state, { type: 'toggleRow', row: third, col: 'key' }, shape)
+    const ids = selectedRowIds(state, shape)
+    expect(ids).toEqual([first, third, fourth])
+    const picked = rows.filter((row) => ids.includes(row.id))
+    expect(serializeTagCells(picked, shape.colIds)).toBe(
+      'highway=residential\nref=7\nsurface=asphalt',
+    )
   })
 })

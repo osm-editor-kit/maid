@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
   useEffect,
@@ -8,19 +9,23 @@ import {
   type FocusEvent as ReactFocusEvent,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import { ContextMenu, type MenuItem } from '../ContextMenu.tsx'
 import { UI_SPRING } from '../motion.tsx'
 import { counterText, rangeEdges } from './cell-look.ts'
 import { planPositionalPaste, serializeTsv } from './clipboard.ts'
 import { newRowIds } from './ids.ts'
-import { actionForKey } from './keys.ts'
+import { actionForKey, togglesRow } from './keys.ts'
 import { takeFallback } from './paste-path.ts'
 import {
   clearSelection,
   commitEdit,
   initialSheetState,
+  removeRows,
   selectedCells,
+  selectedRowIds,
   selectionRect,
   sheetReducer,
   shapeOf,
@@ -62,7 +67,11 @@ type Track = {
   lastRow?: RowId
   /** The press was on a cell's list button: the click opens the cell with all of its suggestions */
   browse?: boolean
+  /** A Cmd/Ctrl+click that picked a row: the click does not open the cell */
+  toggle?: boolean
 }
+/** The row menu: where it opened and what it offers */
+type RowMenu = { at: { x: number; y: number }; items: MenuItem[] }
 type StatusInfo = { text: string; refused: PasteReport['refused'] }
 
 function cellText(cell: SheetCellData | undefined): string {
@@ -140,6 +149,7 @@ export function Sheet(props: SheetProps) {
   const shape: SheetShape = shapeOf(rows, columns, {
     trailingId: showTrailing ? state.trailingId : undefined,
     sheetReadOnly: !editable,
+    inserted: showTrailing ? state.inserted : null,
   })
   const [seenIds, setSeenIds] = useState<RowId[]>(shape.rowIds)
   const [mintRowId] = useState(newRowIds)
@@ -148,6 +158,8 @@ export function Sheet(props: SheetProps) {
   /** The cell opened with its list button: it lists all suggestions until something is typed */
   const [browsing, setBrowsing] = useState<CellRef | null>(null)
   const [seenNote, setSeenNote] = useState(note)
+  const [menu, setMenu] = useState<RowMenu | null>(null)
+  const root = useRef<HTMLDivElement>(null)
   const grid = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<CellRef | null>(null)
   const track = useRef<Track | undefined>(undefined)
@@ -158,7 +170,19 @@ export function Sheet(props: SheetProps) {
     () => ({ id: state.trailingId, label: 'new row', cells: {} }),
     [state.trailingId],
   )
-  const all: SheetRow[] = showTrailing ? [...rows, blankRow] : rows
+  const insertedId = showTrailing ? state.inserted?.id : undefined
+  const insertedRow = useMemo<SheetRow>(
+    () => ({ id: insertedId ?? '', label: 'new row', cells: {} }),
+    [insertedId],
+  )
+  // The inserted row sits under its row, the trailing row at the end (the order shapeOf gives the grid).
+  const all: SheetRow[] = []
+  for (const row of rows) {
+    all.push(row)
+    if (insertedId !== undefined && state.inserted?.after === row.id) all.push(insertedRow)
+  }
+  if (showTrailing) all.push(blankRow)
+  const picked = state.extraRows.length > 0 ? new Set(selectedRowIds(state, shape)) : undefined
   const at = state.active
   const rect = selectionRect(state, shape)
   // A single cell is only the active cell (its ring); the fill is for a range of two or more cells
@@ -238,17 +262,24 @@ export function Sheet(props: SheetProps) {
     setState(sheetReducer(state, { type: 'startEdit', how }, shape))
   }
 
-  /** The selected rows and columns, in the order shown; the trailing row is never part of a copy. */
+  /** The rows with these ids, in the order shown. */
+  function rowsById(ids: readonly RowId[]): SheetRow[] {
+    const byId = new Map(rows.map((row): [RowId, SheetRow] => [row.id, row]))
+    return ids.map((id) => byId.get(id)).filter((row): row is SheetRow => row !== undefined)
+  }
+
+  /**
+   * The selected rows and columns, in the order shown; the trailing and the inserted row are never part of a copy.
+   * Rows picked one by one (Cmd/Ctrl+click) are copied whole, with the rows of the range, in table order.
+   */
   function selectionSlice(): { rows: SheetRow[]; cols: ColId[] } | undefined {
     const range = selectionRect(state, shape)
     if (range === undefined) return undefined
-    const byId = new Map(all.map((row): [RowId, SheetRow] => [row.id, row]))
-    const picked = shape.rowIds
-      .slice(range.r0, range.r1 + 1)
-      .filter((id) => id !== state.trailingId)
-      .map((id) => byId.get(id))
-      .filter((row): row is SheetRow => row !== undefined)
-    return { rows: picked, cols: shape.colIds.slice(range.c0, range.c1 + 1) }
+    if (state.extraRows.length > 0) {
+      return { rows: rowsById(selectedRowIds(state, shape)), cols: shape.colIds }
+    }
+    const ids = shape.rowIds.slice(range.r0, range.r1 + 1)
+    return { rows: rowsById(ids), cols: shape.colIds.slice(range.c0, range.c1 + 1) }
   }
 
   function selectionText(): string {
@@ -356,6 +387,8 @@ export function Sheet(props: SheetProps) {
       case 'native':
         return
       case 'action':
+        // an empty row in the middle needs a host that takes `insert` with `after`: the sheets with a trailing row
+        if (result.action.type === 'insertBelow' && !showTrailing) return
         if (result.prevent) event.preventDefault()
         if (result.action.type === 'startEdit') {
           beginEdit(input, result.action.how)
@@ -365,7 +398,13 @@ export function Sheet(props: SheetProps) {
         return
       case 'commit':
         if (result.prevent) event.preventDefault()
-        moveTo(leaveEdit(input, result.after, state))
+        moveTo(
+          leaveEdit(
+            input,
+            result.after === 'insertBelow' && !showTrailing ? 'stay' : result.after,
+            state,
+          ),
+        )
         return
       case 'arrow':
         event.preventDefault()
@@ -460,6 +499,8 @@ export function Sheet(props: SheetProps) {
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>): void {
     if (event.button !== 0 || !(event.target instanceof Element)) return
+    // Ctrl+click is the right click on a Mac: the menu handles it (onContextMenu), the selection stays as it is
+    if (MAC && event.ctrlKey) return
     const target = event.target
     const open = openInput(grid.current)
     // The caret of an open edit is the input's own
@@ -472,6 +513,11 @@ export function Sheet(props: SheetProps) {
       const rowId = handle.closest<HTMLElement>('[data-row]')?.dataset.row
       if (rowId === undefined) return
       event.preventDefault()
+      if (togglesRow(event, { mac: MAC })) {
+        track.current = undefined
+        toggleRow(base, rowId, undefined)
+        return
+      }
       const from = event.shiftKey && base.active !== null ? base.active.row : rowId
       track.current = {
         kind: event.pointerType,
@@ -496,6 +542,18 @@ export function Sheet(props: SheetProps) {
       event.preventDefault()
       cellInput(grid.current, cell)?.focus({ preventScroll: true })
     }
+    if (togglesRow(event, { mac: MAC })) {
+      track.current = {
+        kind: event.pointerType,
+        cell,
+        wasActive: false,
+        shift: false,
+        moved: false,
+        toggle: true,
+      }
+      toggleRow(base, cell.row, cell.col)
+      return
+    }
     const browse = target.closest('[data-suggest-button]') !== null
     track.current = {
       kind: event.pointerType,
@@ -511,11 +569,24 @@ export function Sheet(props: SheetProps) {
     listen()
   }
 
+  /** Cmd/Ctrl+click on a row: it joins the selection, or leaves it; the focus goes to the active cell. */
+  function toggleRow(base: SheetState, row: RowId, col: ColId | undefined): void {
+    const next = sheetReducer(base, { type: 'toggleRow', row, col }, shape)
+    if (next === base) return
+    moveTo(next)
+  }
+
   /** A click on the active cell edits it; a tap (touch, pen) edits at once. */
   function onClick(): void {
     const current = track.current
     track.current = undefined
-    if (current === undefined || current.moved || current.shift || current.cell === undefined)
+    if (
+      current === undefined ||
+      current.moved ||
+      current.shift ||
+      current.toggle === true ||
+      current.cell === undefined
+    )
       return
     if (current.kind === 'mouse' && !current.wasActive) return
     const input = cellInput(grid.current, current.cell)
@@ -535,12 +606,15 @@ export function Sheet(props: SheetProps) {
 
   function onBlur(event: ReactFocusEvent<HTMLDivElement>): void {
     const next = event.relatedTarget
-    const leaving = !(next instanceof Node) || grid.current?.contains(next) !== true
+    // the row menu is part of the sheet: its focus is not leaving
+    const leaving =
+      !(next instanceof Node) ||
+      (grid.current?.contains(next) !== true && root.current?.contains(next) !== true)
     let base = state
     const input = event.target
     if (input instanceof HTMLTextAreaElement && !input.readOnly)
       base = leaveEdit(input, 'stay', state)
-    if (leaving) base = sheetReducer(base, { type: 'collapse' }, shape)
+    if (leaving) base = sheetReducer(base, { type: 'leave' }, shape)
     if (base !== state) setState(base)
   }
 
@@ -550,10 +624,68 @@ export function Sheet(props: SheetProps) {
     setDraftNote(counterText(input.value))
   }
 
-  const trailingIndex = showTrailing ? rows.length : -1
+  /**
+   * A right click on a row opens the row menu. A row outside the selection is selected first, as in a spreadsheet.
+   * The trailing and the inserted row have no data (the browser's menu), and so does the caret of an open edit.
+   */
+  function onContextMenu(event: ReactMouseEvent<HTMLDivElement>): void {
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const rowId = target.closest<HTMLElement>('[data-row]')?.dataset.row
+    if (rowId === undefined || rowId === insertedId || (showTrailing && rowId === state.trailingId))
+      return
+    const open = openInput(grid.current)
+    if (open !== null && open === target) return
+    event.preventDefault()
+    const base = open !== null ? leaveEdit(open, 'stay', state) : state
+    let next = base
+    if (!selectedRowIds(base, shape).includes(rowId)) {
+      next = sheetReducer(base, { type: 'selectRows', from: rowId }, shape)
+    }
+    // The focus goes into the row before the menu opens: the menu gives it back there when it closes.
+    const focus = next.active ?? { row: rowId, col: shape.colIds[0] ?? '' }
+    cellInput(grid.current, focus)?.focus({ preventScroll: true })
+    setState(next)
+    setMenu({
+      at: { x: event.clientX, y: event.clientY },
+      items: rowMenuItems(rowId, selectedRowIds(next, shape), next),
+    })
+  }
+
+  /**
+   * The items of the row menu, made when it opens (an event, not a render), for the state it opens with: the menu
+   * holds the focus, so nothing changes under it.
+   */
+  function rowMenuItems(row: RowId, rowIds: RowId[], from: SheetState): MenuItem[] {
+    const items: MenuItem[] = []
+    if (editable && showTrailing) {
+      items.push({
+        id: 'insert-below',
+        label: m.ui_sheet_insert_below(),
+        run: () => moveTo(sheetReducer(from, { type: 'insertBelow', row }, shape)),
+      })
+    }
+    items.push({
+      id: 'copy-rows',
+      label: m.ui_sheet_copy_rows(),
+      run: () =>
+        writeClipboard((clipboard?.serialize ?? defaultSerialize)(rowsById(rowIds), shape.colIds)),
+    })
+    if (editable) {
+      items.push({
+        id: 'delete-rows',
+        label: m.ui_sheet_delete_rows(),
+        run: () => {
+          const batch = removeRows(rowIds, rows)
+          if (batch !== undefined) onChange?.(batch)
+        },
+      })
+    }
+    return items
+  }
 
   return (
-    <div className="flex flex-col">
+    <div ref={root} className="flex flex-col">
       <div
         ref={grid}
         role="grid"
@@ -566,6 +698,7 @@ export function Sheet(props: SheetProps) {
         onKeyDown={onKeyDown}
         onPointerDown={onPointerDown}
         onClick={onClick}
+        onContextMenu={onContextMenu}
         onFocus={onFocus}
         onBlur={onBlur}
         onInput={onInput}
@@ -596,7 +729,10 @@ export function Sheet(props: SheetProps) {
         </div>
         <AnimatePresence initial={false}>
           {all.map((row, r) => {
-            const isTrailing = r === trailingIndex
+            // no data yet: the trailing row and the inserted row
+            const isTrailing =
+              row.id === insertedId || (showTrailing && row.id === state.trailingId)
+            const whole = picked?.has(row.id) === true
             const inRange = rect !== undefined && r >= rect.r0 && r <= rect.r1
             const motionProps = reduced
               ? {}
@@ -622,7 +758,7 @@ export function Sheet(props: SheetProps) {
                   aria-hidden="true"
                   data-row-handle="true"
                   className={`border-r border-b border-zinc-950/10 dark:border-white/10 ${
-                    inRange && state.rowsSelected
+                    (inRange && state.rowsSelected) || whole
                       ? 'bg-blue-500'
                       : 'hover:bg-zinc-950/5 dark:hover:bg-white/10'
                   }`}
@@ -631,7 +767,8 @@ export function Sheet(props: SheetProps) {
                   const ref = { row: row.id, col: column.id }
                   const active = sameCell(at, ref)
                   const selected =
-                    ranged && rect !== undefined && inRange && c >= rect.c0 && c <= rect.c1
+                    whole ||
+                    (ranged && rect !== undefined && inRange && c >= rect.c0 && c <= rect.c1)
                   return (
                     <SheetCell
                       key={column.id}
@@ -642,7 +779,13 @@ export function Sheet(props: SheetProps) {
                       active={active}
                       editing={active && state.mode === 'edit'}
                       selected={selected}
-                      edges={selected && rect !== undefined ? rangeEdges(r, c, rect) : 0}
+                      edges={
+                        whole
+                          ? rangeEdges(r, c, { r0: r, r1: r, c0: 0, c1: columns.length - 1 })
+                          : selected && rect !== undefined
+                            ? rangeEdges(r, c, rect)
+                            : 0
+                      }
                       readOnly={shape.readOnly(ref)}
                       tabIndex={sameCell(tabStop, ref) ? 0 : -1}
                       browsing={sameCell(browsing, ref)}
@@ -665,6 +808,14 @@ export function Sheet(props: SheetProps) {
         refused={status?.refused ?? []}
         onClose={status === undefined ? undefined : () => setStatus(undefined)}
       />
+      {menu !== null && (
+        <ContextMenu
+          at={menu.at}
+          label={m.ui_sheet_row_menu()}
+          items={menu.items}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   )
 }
