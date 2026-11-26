@@ -9,6 +9,7 @@ import type { Fix, Issue, Rule } from '@osm-editor-kit/maid-validation'
 import { isOneway, parseWayLanes, type LaneSlot, type LaneWarning } from '@osm-editor-kit/osm-lanes'
 import { m } from '../messages.ts'
 import { isLaneRoad } from '../roads.ts'
+import { valueRules } from './value-rules.ts'
 
 type Entity = Parameters<Rule['validate']>[0]
 type Tags = Readonly<Record<string, string>>
@@ -221,4 +222,5 @@ export const laneRules: Rule[] = [
   lanesPipeCountMismatch,
   lanesPipeLengthMismatch,
   lanesPlacementOutOfRange,
+  ...valueRules,
 ]

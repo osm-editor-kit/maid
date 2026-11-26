@@ -11,7 +11,7 @@ The lanes editor of Maid Lanes (`apps/maid-lanes`). A road's lanes are edited as
 - A status line that says what is missing for the road's colour in the "Lanes" lens.
 - On the map: the lanes of the selected road as bands beside its line from zoom 17, turn arrows from zoom 18. The chosen lane is blue, the lane under the pointer amber.
 - A map style "Lanes" (top bar): values per lane green, lane count only amber, a main road without lane tags pink, a residential or service road without them grey.
-- Four Issues rules (`src/rules/lane-rules.ts`): the lane count does not add up, the number of values differs from the count, values of different length, and a placement on a lane the road does not have.
+- Seven Issues rules. In `src/rules/lane-rules.ts`: the lane count does not add up, the number of values differs from the count, values of different length, and a placement on a lane the road does not have. In `src/rules/value-rules.ts`, adopted from Lane Studio (ISC, [comparison](../../docs/research/lane-studio-comparison.md)): a `turn` value the wiki does not know (fix for clear misspellings), a deprecated `change` value (fix), and a `width` narrower than lanes, parking and buffers add up to.
 
 ## Using it in an editor's config
 
@@ -40,6 +40,7 @@ Only `maid-lanes` switches it on. The lens and the rules are wired by the app as
 | `src/overlay/` | `LanesOnMap.tsx` (on `map.content`), the bands and layers (`layers.ts`, `scene-bands.ts`) and the arrows (`arrows.ts`) |
 | `src/lens.ts` | The "Lanes" lens and `laneStatus`, which reads the lens's own rules |
 | `src/rules/lane-rules.ts` | The four Issues rules, on the findings of osm-lanes |
+| `src/rules/value-rules.ts` | Three rules on the values: unknown turn, deprecated change, width too narrow (from Lane Studio) |
 | `src/hover-store.ts` | The lane chosen or hovered, shared by the table, the diagram and the map |
 | `messages/`, `src/messages.ts` | The module's texts in en, de, fr and es |
 
@@ -49,7 +50,7 @@ Only `maid-lanes` switches it on. The lens and the rules are wired by the app as
 
 ## More
 
-- Research and decisions: [docs/research/lanes-ux.md](../../docs/research/lanes-ux.md) (the options and the recommendation, option D).
+- Research and decisions: [docs/research/lanes-ux.md](../../docs/research/lanes-ux.md) (the options and the recommendation, option D); [docs/research/lane-studio-comparison.md](../../docs/research/lane-studio-comparison.md) (Lane Studio side by side, what was adopted).
 - Steps: [docs/build-out/steps.md](../../docs/build-out/steps.md), section "Lanes".
 
 Open (from the steps and the research doc):
