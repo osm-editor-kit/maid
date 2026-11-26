@@ -19,7 +19,8 @@ import {
   actionStraightenNodes,
   actionStraightenWay,
 } from '@osm-editor-kit/maid-model'
-import type { Action, DisconnectAction, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
+import { Graph } from '@osm-editor-kit/maid-model'
+import type { Action, DisconnectAction, OsmEntity } from '@osm-editor-kit/maid-model'
 import { continueOperation } from './continue.ts'
 import { deleteSegmentOperation } from './delete-segment.ts'
 import { isTooLargeToEdit } from './extent.ts'
@@ -74,6 +75,11 @@ function notApplicable(operationID: string): never {
 
 // Reverse
 
+function sameTags(a: Readonly<Record<string, string>>, b: Readonly<Record<string, string>>) {
+  const keys = Object.keys(a)
+  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key])
+}
+
 /** Lines (not areas) and nodes whose direction tags would change. iD offers nothing else. */
 function reverseTargets(context: OperationContext) {
   const graph = context.graph
@@ -95,6 +101,24 @@ export const reverseOperation: Operation = {
   group: 'structure',
   applies: (context) => reverseTargets(context).length > 0,
   disabled: () => undefined,
+  // the direction tags it turns (`:left` to `:right`, `forward` to `backward`, …), on the lines and on their nodes
+  changes: (context) => {
+    const before = context.graph
+    // an action may change the graph it gets (the editor passes a head graph): run it on a copy
+    let after = new Graph(before)
+    for (const entity of reverseTargets(context)) after = actionReverse(entity.id)(after)
+    // the targets and the nodes of the lines: what reverse can touch
+    const ids = reverseTargets(context).flatMap((entity) =>
+      entity instanceof OsmWay ? [...new Set(entity.nodes), entity.id] : [entity.id],
+    )
+    const features = ids.flatMap((id) => {
+      const was = before.hasEntity(id)
+      const now = after.hasEntity(id)
+      if (!was || !now || sameTags(was.tags, now.tags)) return []
+      return [{ id, label: id, before: was.tags, after: now.tags }]
+    })
+    return { title: 'Reverse changes these tags', features, submit: 'Reverse' }
+  },
   run: (context) => {
     const targets = reverseTargets(context)
     const nodes = targets.filter((entity) => entity instanceof OsmNode).length

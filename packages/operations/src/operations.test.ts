@@ -116,6 +116,33 @@ describe('reverse', () => {
     expect(result.annotation).toBe('Reversed a line')
   })
 
+  it('says which tags it changes, and nothing for a line without direction tags', () => {
+    const tagged = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0, { highway: 'stop', direction: 'forward' }),
+      node('n3', 0.002, 0),
+      way('w1', ['n1', 'n2', 'n3'], {
+        highway: 'residential',
+        'cycleway:left': 'lane',
+        oneway: 'yes',
+      }),
+    )
+    const changes = reverseOperation.changes?.(at(['w1'], new Graph(tagged)))
+    expect(changes?.features.map(({ id, before, after }) => ({ id, before, after }))).toEqual([
+      {
+        id: 'n2',
+        before: { highway: 'stop', direction: 'forward' },
+        after: { highway: 'stop', direction: 'backward' },
+      },
+      {
+        id: 'w1',
+        before: { highway: 'residential', 'cycleway:left': 'lane', oneway: 'yes' },
+        after: { highway: 'residential', 'cycleway:right': 'lane', oneway: 'yes' },
+      },
+    ])
+    expect(reverseOperation.changes?.(at(['w1'], new Graph(line)))?.features).toEqual([])
+  })
+
   it('reverses the direction tag of a node', () => {
     const signal = graphOf(node('n1', 0, 0, { direction: 'forward' }))
     const { after, result } = run(reverseOperation, signal, ['n1'])

@@ -112,6 +112,25 @@ export type OperationDetails = {
   rows: readonly { label: string; cells: readonly (string | undefined)[]; conflict?: boolean }[]
 }
 
+/**
+ * The tags an operation changes, feature by feature (`Operation.changes`): the tags now and after it. One source for
+ * both previews of the shell: beside the edit menu while the pointer is on the row (desktop), and as the confirm
+ * dialog before it runs on a touch device, which has no hover (Tobias, 2026-11-26).
+ */
+export type OperationChanges = {
+  /** The heading: what the operation does to the tags */
+  title: string
+  /** Only the features whose tags change; empty or undefined means no tag changes */
+  features: readonly {
+    id: string
+    label: string
+    before: Readonly<Record<string, string>>
+    after: Readonly<Record<string, string>>
+  }[]
+  /** The label of the confirm dialog's button that runs it */
+  submit: string
+}
+
 /** The groups of the command bar, in their order there (see `Operation.group`) */
 export const OPERATION_GROUPS = ['position', 'shape', 'structure', 'remove'] as const
 export type OperationGroup = (typeof OPERATION_GROUPS)[number]
@@ -165,6 +184,11 @@ export type Operation = {
    * there is nothing more to show than the sentence.
    */
   details?(context: OperationContext): OperationDetails | undefined
+  /**
+   * The tags it would change, for a preview: the shell shows them beside the edit menu on hover, and on a touch device
+   * asks with them before it runs. Undefined or no features: it changes no tags (or says nothing about them).
+   */
+  changes?(context: OperationContext): OperationChanges | undefined
   /**
    * Asks before it runs: when this returns something, the edit menu and the key open a dialog with it, and the
    * operation runs only on OK, with the picked values in `context.picks` (asked again with them, so the diff follows
