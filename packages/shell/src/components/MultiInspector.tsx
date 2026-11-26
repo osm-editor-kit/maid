@@ -199,7 +199,7 @@ export function MultiInspector({
             />
           )}
           {derived.fields.length > 0 && (
-            <SidebarDisclosure title="Fields" defaultOpen>
+            <SidebarDisclosure title="Fields" defaultOpen remember="fields">
               <PresetFields
                 // a new selection starts with no picked fields
                 key={selectionKey}
@@ -214,6 +214,7 @@ export function MultiInspector({
           )}
           <SidebarDisclosure
             title="Tags"
+            remember="tags"
             detail={Object.keys(derived.combined).length}
             defaultOpen
             actions={<CopyTagsButton combined={derived.combined} />}
