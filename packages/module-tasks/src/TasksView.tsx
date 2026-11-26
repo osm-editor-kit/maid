@@ -3,7 +3,6 @@ import {
   EllipsisHorizontalIcon,
   ViewfinderCircleIcon,
 } from '@heroicons/react/20/solid'
-import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
 import { type DockViewProps, Flyout, notify, TASKS_SURFACE } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
@@ -21,8 +20,9 @@ import { goToTask } from './navigate.ts'
 import { nextNearIndex, taskShape } from './next.ts'
 import { forgetList, type OpenDeps } from './open.ts'
 import { refreshKept, setBrowsing, useOverview } from './overview.ts'
+import type { TaskStatus } from './progress-codec.ts'
 import { type Shared, useSharedEngine } from './shared.ts'
-import { type SyncKind, type TasksStore, useTasks } from './store.ts'
+import { type TasksStore, useTasks } from './store.ts'
 import { StatusBadge, TaskContent, TaskLinks, statusLabel } from './TaskContent.tsx'
 
 /** Rows drawn at first and added by "Show more" (a list can hold 20 000 tasks) */
@@ -60,59 +60,7 @@ function downloadText(name: string, text: string) {
   URL.revokeObjectURL(url)
 }
 
-/**
- * "Use this version in the account", for a mismatch: the account's copy of the list belongs to another version of the
- * file and cannot be read with this one. The second click replaces it (the account's statuses of the other version are
- * then gone), so the first one only asks.
- */
-function ReplaceRemoteButton({ onReplace }: { onReplace: () => void }) {
-  const [asking, setAsking] = useState(false)
-  return (
-    <button
-      type="button"
-      data-testid="tasks-sync-replace"
-      title={m.tasks_sync_replace_hint()}
-      onClick={() => {
-        if (!asking) {
-          setAsking(true)
-          return
-        }
-        setAsking(false)
-        onReplace()
-      }}
-      className={asking ? `${SMALL_BUTTON} bg-red-600 text-white hover:bg-red-700` : SMALL_BUTTON}
-    >
-      {asking ? m.tasks_sync_replace_confirm() : m.tasks_sync_replace()}
-    </button>
-  )
-}
-
-/** The sync state as the short text the dock head shows */
-export function syncText(kind: SyncKind, server: 'mock' | 'osm' | 'dev' | undefined): string {
-  switch (kind) {
-    case 'local':
-      return m.tasks_sync_local()
-    case 'saved':
-      return server === 'mock'
-        ? m.tasks_sync_saved_mock()
-        : server === 'dev'
-          ? m.tasks_sync_saved_dev()
-          : m.tasks_sync_saved_osm()
-    case 'pending':
-    case 'saving':
-      return m.tasks_sync_saving()
-    case 'forbidden':
-      return m.tasks_sync_forbidden()
-    case 'failed':
-      return m.tasks_sync_failed()
-    case 'mismatch':
-      return m.tasks_sync_mismatch()
-    case 'conflict':
-      return m.tasks_sync_conflict()
-  }
-}
-
-/** The dock tab "Tasks": the list's head (title, progress, counts, filter, sync), the rows and the current task */
+/** The dock tab "Tasks": the list's head (title, progress, counts, filter), the rows and the current task */
 export function createTasksView(store: TasksStore, shared: Shared, deps?: OpenDeps) {
   return function TasksView({ editor, select, selected, readOnly }: DockViewProps) {
     const list = useTasks(store, (state) => state.list)
@@ -162,7 +110,7 @@ export function createTasksView(store: TasksStore, shared: Shared, deps?: OpenDe
           >
             {/* the head stays while the rows scroll under it */}
             <div className="shrink-0 border-b border-zinc-950/10 px-4 py-2.5 dark:border-white/15">
-              <Head store={store} shared={shared} deps={deps} />
+              <Head store={store} deps={deps} />
             </div>
             <div data-tasks-rows className="min-h-0 flex-1 overflow-y-auto px-2 py-2 md:px-3">
               <Rows store={store} shared={shared} select={select} />
@@ -222,21 +170,14 @@ function ErrorBanner({ store }: { store: TasksStore }) {
   )
 }
 
-function Head({ store, shared, deps }: { store: TasksStore; shared: Shared; deps?: OpenDeps }) {
+function Head({ store, deps }: { store: TasksStore; deps?: OpenDeps }) {
   const list = useTasks(store, (state) => state.list)
   const statuses = useTasks(store, (state) => state.statuses)
   const filter = useTasks(store, (state) => state.filter)
-  const sync = useTasks(store, (state) => state.sync)
   if (!list) return null
   const counts = countStatuses(statuses)
   const handled = counts.total - counts.open
   const setFilter = (next: TasksFilter) => store.getState().actions.setFilter(next)
-  // the sync states that need the person: shown as a callout, not as a quiet line
-  const trouble =
-    sync.kind === 'failed' ||
-    sync.kind === 'forbidden' ||
-    sync.kind === 'conflict' ||
-    sync.kind === 'mismatch'
   // compact: the head stays above the rows in a low dock, so it takes as few lines as it can
   return (
     <header data-testid="tasks-head" className="flex flex-col gap-1.5">
@@ -312,46 +253,6 @@ function Head({ store, shared, deps }: { store: TasksStore; shared: Shared; deps
             className={`ml-auto ${SMALL_BUTTON}`}
           >
             {m.tasks_filter_show_all()}
-          </button>
-        )}
-      </div>
-      <div
-        role={trouble ? 'alert' : 'status'}
-        data-testid="tasks-sync-box"
-        className={
-          trouble
-            ? `flex flex-wrap items-center gap-2 rounded-lg border p-2 text-xs ${
-                sync.kind === 'mismatch' || sync.kind === 'conflict'
-                  ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200'
-                  : 'border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'
-              }`
-            : 'flex flex-wrap items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300'
-        }
-      >
-        <span data-testid="tasks-sync" data-sync-kind={sync.kind}>
-          {syncText(sync.kind, sync.server)}
-        </span>
-        {(sync.kind === 'failed' || sync.kind === 'forbidden') && (
-          <button
-            type="button"
-            data-testid="tasks-sync-retry"
-            onClick={() => shared.retry?.()}
-            className={SMALL_BUTTON}
-          >
-            {m.tasks_sync_retry()}
-          </button>
-        )}
-        {sync.kind === 'mismatch' && (
-          <ReplaceRemoteButton onReplace={() => shared.replaceRemote?.()} />
-        )}
-        {sync.kind === 'conflict' && (
-          <button
-            type="button"
-            data-testid="tasks-sync-decide"
-            onClick={() => store.getState().actions.setConflictOpen(true)}
-            className={SMALL_BUTTON}
-          >
-            {m.tasks_sync_decide()}
           </button>
         )}
       </div>

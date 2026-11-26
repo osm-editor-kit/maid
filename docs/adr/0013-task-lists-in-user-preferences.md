@@ -3,6 +3,8 @@
 Date: 2026-10-27. Planned with Tobias in the project thread "Plan private task lists in MAID" (the Claude Doc
 "Private Aufgabenlisten in MAID: Recherche und Plan").
 
+> **Replaced in part (2026-11-26):** the progress is kept only in the browser and the preferences sync is removed, see [ADR 0016](0016-task-progress-only-in-the-browser.md). The file format and the options below still hold.
+
 ## Context
 
 Tobias wants to work through a list of features to check, as with MapRoulette, but alone and inside the editor. A task

@@ -5,7 +5,6 @@ import {
   ChevronDownIcon,
 } from '@heroicons/react/20/solid'
 import type { Editor } from '@osm-editor-kit/maid-core'
-import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
 import {
   actionOf,
@@ -32,6 +31,7 @@ import {
 import { type LinkKind, linkKind } from './links.ts'
 import { entityIdOfRef } from './list.ts'
 import { m } from './messages.ts'
+import type { TaskStatus } from './progress-codec.ts'
 import { type AppliedTask, type TasksStore, useTasks } from './store.ts'
 
 /** A status button in the closing bar: white on the olive, so it reads as a button */

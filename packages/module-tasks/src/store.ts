@@ -1,13 +1,7 @@
-import { listKeyOf, type TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 /**
- * The open task list: the file, the status of each task, the current task, the revisions the sync compares, and the
- * sync state. One store per module (the module makes it in its setup). Every transition is a pure function on the
- * state (`with...`); the store only applies them.
- *
- * Revisions: `ackedRevision` and `ackedGeneration` are the revision and generation of the account's list that this
- * state agrees with; `localRevision` is above it while there are changes the account has not got (reconcile in
- * maid-osm-prefs reads them). The generation tells a list that was removed and saved again, or another account's
- * list, from the one this browser agreed with.
+ * The open task list: the file, the status of each task and the current task. One store per module (the module makes
+ * it in its setup). Every transition is a pure function on the state (`with...`); the store only applies them. The
+ * statuses are kept in this browser only (local.ts).
  *
  * The store is private: components read it with the named hooks and act through `actions`.
  */
@@ -19,27 +13,7 @@ import {
 } from '@osm-editor-kit/maid-tasks'
 import { createStore, useStore } from 'zustand'
 import { buildRefIndex, mapData, nextOpenIndex, type RefIndex, type TasksFilter } from './list.ts'
-
-/** What the sync is doing; the dock head shows it as a short text */
-export type SyncKind =
-  | 'local' // not logged in: only in this browser
-  | 'saved'
-  | 'pending' // changed, waiting for the debounce
-  | 'saving'
-  | 'forbidden' // the login lacks permission to store preferences (401, 403)
-  | 'failed'
-  | 'mismatch' // the account holds this list for another version of the file: the local state is kept
-  | 'conflict'
-
-export type SyncServer = 'mock' | 'osm' | 'dev'
-
-/** The account's copy of the list, when both sides changed */
-export type Conflict = {
-  statuses: TaskStatus[]
-  revision: number
-  generation: string
-  savedAt: number
-}
+import { listKeyOf, type TaskStatus } from './progress-codec.ts'
 
 /**
  * A task set to done by Apply: undo takes the status back with the edit, redo sets it again. `change` says how to
@@ -85,13 +59,6 @@ export type TasksState = {
   /** The index of the current task */
   current: number | null
   filter: TasksFilter
-  localRevision: number
-  ackedRevision: number
-  ackedGeneration: string | undefined
-  sync: { kind: SyncKind; server?: SyncServer }
-  conflict: Conflict | undefined
-  /** Whether the conflict dialog is open (Escape closes it; the dock head can open it again) */
-  conflictOpen: boolean
   error: LoadError | undefined
   /** A file is being fetched or read */
   loading: string | undefined
@@ -107,12 +74,9 @@ export type TasksState = {
   descriptionsFolded: boolean
 }
 
-/** The saved state of a list this browser knew before: statuses and revisions */
+/** The saved state of a list this browser knew before */
 export type SavedProgress = {
   statuses: TaskStatus[]
-  localRevision: number
-  ackedRevision: number
-  ackedGeneration?: string
 }
 
 export type TasksActions = {
@@ -128,15 +92,6 @@ export type TasksActions = {
   setStatus: (index: number, status: TaskStatus) => void
   setCurrent: (index: number | null) => void
   setFilter: (filter: TasksFilter) => void
-  setSync: (kind: SyncKind, server?: SyncServer) => void
-  /** A save went through: the account is at `revision`; `revisionAtSave` is the local revision the save started from */
-  markSaved: (revision: number, generation: string, revisionAtSave: number) => void
-  /** Takes the account's statuses */
-  takeRemote: (statuses: TaskStatus[], revision: number, generation: string) => void
-  setConflict: (conflict: Conflict | undefined) => void
-  setConflictOpen: (open: boolean) => void
-  /** Keeps this browser's state against the account's revision: the next save overwrites it */
-  keepLocal: (remoteRevision: number, remoteGeneration: string) => void
   /** Apply set a task to done */
   addApplied: (applied: AppliedTask) => void
   /** Folds or unfolds the descriptions of every task of the list */
@@ -154,12 +109,6 @@ export const EMPTY_STATE: TasksState = {
   current: null,
   descriptionsFolded: false,
   filter: 'all',
-  localRevision: 0,
-  ackedRevision: 0,
-  ackedGeneration: undefined,
-  sync: { kind: 'local' },
-  conflict: undefined,
-  conflictOpen: false,
   error: undefined,
   loading: undefined,
   request: 0,
@@ -176,50 +125,7 @@ export function withStatus(
     return undefined
   const statuses = state.statuses.slice()
   statuses[index] = status
-  // always above the acked revision, also when a save is running
-  return { statuses, localRevision: Math.max(state.localRevision, state.ackedRevision) + 1 }
-}
-
-/** The state after a successful save: the account is at `revision`; changes made during the save still count */
-export function withMarkedSaved(
-  state: TasksState,
-  revision: number,
-  generation: string,
-  revisionAtSave: number,
-): Partial<TasksState> {
-  const changedDuring = state.localRevision !== revisionAtSave
-  return {
-    ackedRevision: revision,
-    ackedGeneration: generation,
-    localRevision: changedDuring ? revision + 1 : revision,
-  }
-}
-
-/** The state after taking the account's statuses */
-export function withRemote(
-  statuses: TaskStatus[],
-  revision: number,
-  generation: string,
-): Partial<TasksState> {
-  return {
-    statuses,
-    ackedRevision: revision,
-    ackedGeneration: generation,
-    localRevision: revision,
-    conflict: undefined,
-    conflictOpen: false,
-  }
-}
-
-/** The state after keeping this browser's statuses against the account's revision */
-export function withKeepLocal(revision: number, generation: string): Partial<TasksState> {
-  return {
-    ackedRevision: revision,
-    ackedGeneration: generation,
-    localRevision: revision + 1,
-    conflict: undefined,
-    conflictOpen: false,
-  }
+  return { statuses }
 }
 
 /** The state of a freshly opened list */
@@ -245,11 +151,6 @@ export function withOpened(
     statuses,
     current: nextOpenIndex(statuses, null) ?? (count > 0 ? 0 : null),
     filter: 'all',
-    localRevision: usable?.localRevision ?? 0,
-    ackedRevision: usable?.ackedRevision ?? 0,
-    ackedGeneration: usable?.ackedGeneration,
-    conflict: undefined,
-    conflictOpen: false,
     error: undefined,
     loading: undefined,
     applied: [],
@@ -296,7 +197,7 @@ export function withFollowedApplied(
     statuses[applied.index] = next
   }
   if (!statuses) return undefined
-  return { statuses, localRevision: Math.max(state.localRevision, state.ackedRevision) + 1 }
+  return { statuses }
 }
 
 /** Makes the store of one module */
@@ -323,20 +224,6 @@ export function createTasksStore() {
         set({ descriptionsFolded: folded })
       },
       setFilter: (filter) => set({ filter }),
-      setSync: (kind, server) =>
-        set((state) => {
-          const next = { kind, server: server ?? state.sync.server }
-          return state.sync.kind === next.kind && state.sync.server === next.server
-            ? state
-            : { sync: next }
-        }),
-      markSaved: (revision, generation, revisionAtSave) =>
-        set(withMarkedSaved(get(), revision, generation, revisionAtSave)),
-      takeRemote: (statuses, revision, generation) =>
-        set(withRemote(statuses, revision, generation)),
-      setConflict: (conflict) => set({ conflict, conflictOpen: conflict !== undefined }),
-      setConflictOpen: (conflictOpen) => set({ conflictOpen }),
-      keepLocal: (revision, generation) => set(withKeepLocal(revision, generation)),
       addApplied: (applied) =>
         set((state) => ({
           applied: [...state.applied.filter((a) => a.index !== applied.index), applied],

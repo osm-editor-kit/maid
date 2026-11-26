@@ -37,8 +37,7 @@ Maid is a public OAuth client with PKCE. It has no client secret; never put one 
    `https://master.apis.dev.openstreetmap.org/oauth2/applications`. Redirect URI: your Pages address plus `land.html`
    (for example `https://osm-editor-kit.github.io/maid/land.html`; to log in from local development add
    `http://127.0.0.1:<port>/land.html` for each app's port in `tools/ports.ts`, as the login popup hands its result
-   only to a tab of the same origin). Not confidential. Scopes `read_prefs`,
-   `write_prefs` (the task progress, ADR 0013), `write_api`, `write_notes`. Put the client ids in `OSM_CLIENT_ID` and `OSM_DEV_CLIENT_ID`.
+   only to a tab of the same origin). Not confidential. Scopes `read_prefs` (needed for `user/details`), `write_api`, `write_notes`. Put the client ids in `OSM_CLIENT_ID` and `OSM_DEV_CLIENT_ID`.
 4. Push to `main`, or run the workflow by hand.
 
 ## This repository's OAuth apps

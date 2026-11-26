@@ -1,8 +1,54 @@
 import { describe, expect, it } from 'bun:test'
 import { deflateSync } from 'node:zlib'
-import { decodeStatuses, encodeStatuses, TASK_STATUSES, type TaskStatus } from './codec.ts'
-import { sampleStatuses, STATUS_PATTERNS } from './measure.ts'
-import { messageOf } from './test-support.ts'
+import {
+  decodeStatuses,
+  encodeStatuses,
+  listKeyOf,
+  TASK_STATUSES,
+  type TaskStatus,
+} from './progress-codec.ts'
+
+type StatusPattern = 'all-open' | 'ten-percent-done' | 'random'
+const STATUS_PATTERNS: readonly StatusPattern[] = ['all-open', 'ten-percent-done', 'random']
+
+/** Repeatable random numbers in [0, 1) */
+function prng(seed: number): () => number {
+  let state = seed >>> 0
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0
+    let value = state
+    value = Math.imul(value ^ (value >>> 15), value | 1)
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61)
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/** Every task open; a tenth done at random places; or each task one of the four statuses at random */
+function sampleStatuses(count: number, pattern: StatusPattern, seed = 1): TaskStatus[] {
+  const next = prng(seed)
+  if (pattern === 'random') {
+    return Array.from(
+      { length: count },
+      () => TASK_STATUSES[Math.floor(next() * TASK_STATUSES.length)] ?? 'open',
+    )
+  }
+  const done = new Set<number>()
+  if (pattern === 'ten-percent-done') {
+    const target = Math.round(count / 10)
+    while (done.size < target) done.add(Math.floor(next() * count))
+  }
+  return Array.from({ length: count }, (_, index) => (done.has(index) ? 'done' : 'open'))
+}
+
+/** The message of the error a promise rejects with, or 'resolved' when it does not reject */
+async function messageOf(pending: Promise<unknown>): Promise<string> {
+  try {
+    await pending
+    return 'resolved'
+  } catch (error) {
+    return error instanceof Error ? error.message : 'a value that is not an Error'
+  }
+}
 
 const COUNTS = [0, 1, 3, 4, 5, 2000, 20_000]
 
@@ -94,5 +140,23 @@ describe('codec decoding refuses bad data', () => {
   it('refuses deflated data that expands beyond the task count', async () => {
     const bomb = `z${Buffer.from(deflateSync(Buffer.alloc(100_000))).toString('base64url')}`
     expect(await messageOf(decodeStatuses(bomb, 4))).toContain('expand')
+  })
+})
+
+describe('listKeyOf', () => {
+  it('gives 8 characters of base 36, the same every time', () => {
+    for (const text of ['a', 'changeset-list-1', '', 'ü']) {
+      expect(listKeyOf(text)).toMatch(/^[0-9a-z]{8}$/)
+      expect(listKeyOf(text)).toBe(listKeyOf(text))
+    }
+    expect(listKeyOf('list-1')).not.toBe(listKeyOf('list-2'))
+  })
+
+  it('keeps the keys of entries this browser already holds', () => {
+    // values of the first version: a change here would orphan the progress people saved
+    expect(listKeyOf('a')).toBe('01r9wi7g')
+    expect(listKeyOf('changeset-list-1')).toBe('01to9ons')
+    expect(listKeyOf('')).toBe('00ztntfp')
+    expect(listKeyOf('ü')).toBe('00xl30zf')
   })
 })

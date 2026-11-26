@@ -18,10 +18,9 @@ import { parseAsTasksUrl, TASKS_PARAM } from './url.ts'
  * Private task lists (packages/tasks/FORMAT.md): loaded in the dock tab "Task lists (n)", always there, or with
  * `tasks=<address>` in the link,
  * the dock tab "Tasks" with the list and, beside it, the current task and its options; a hint in the inspector; the geometries on the
- * map. The statuses stay in this browser and, while someone is logged in, in their OSM preferences (packages/osm-prefs).
+ * map. The statuses stay in this browser only (local.ts).
  *
- * Setup sends no request: a file is fetched after the map is up, by the controller (`map.content`), and the account is
- * asked only while a list is open.
+ * Setup sends no request: a file is fetched after the map is up, by the controller (`map.content`).
  */
 export function tasks() {
   return defineModule({
@@ -88,26 +87,13 @@ export function tasks() {
       let sequence = 0
       const unsubscribe = store.subscribe((state, previous) => {
         const { list } = state
-        if (
-          !list ||
-          (state.list === previous.list &&
-            state.statuses === previous.statuses &&
-            state.localRevision === previous.localRevision &&
-            state.ackedRevision === previous.ackedRevision &&
-            state.ackedGeneration === previous.ackedGeneration)
-        )
-          return
+        if (!list || (state.list === previous.list && state.statuses === previous.statuses)) return
         const mine = ++sequence
         void writeMirror(
           deps.storage,
           list.listKey,
           list.orderHash,
-          {
-            statuses: state.statuses,
-            localRevision: state.localRevision,
-            ackedRevision: state.ackedRevision,
-            ackedGeneration: state.ackedGeneration,
-          },
+          { statuses: state.statuses },
           () => mine === sequence,
         )
       })

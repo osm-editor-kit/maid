@@ -118,9 +118,9 @@ export function createAuth({ id, envFile, server, apiUrl, clientId, loginOrigin 
           import.meta.env.VITE_LOGIN_BASE || import.meta.env.BASE_URL,
           loginOrigin ?? window.location.origin,
         ),
-        // write_prefs: modules keep small data of the person in their user preferences (the task list's progress).
-        // A login from before it was asked for lacks it: the module says so and asks to log in again.
-        scopes: ['read_prefs', 'write_prefs', 'write_api', 'write_notes'],
+        // read_prefs: GET user/details (the name after the login) needs it; write_api: save changes; write_notes: comment
+        // on and close notes. No preferences are written (ADR 0016).
+        scopes: ['read_prefs', 'write_api', 'write_notes'],
       })
       // the token belongs to this server only: osm-api's own key would hand it to the other server's requests
       localStorage.removeItem(OSM_API_TOKEN_KEY)

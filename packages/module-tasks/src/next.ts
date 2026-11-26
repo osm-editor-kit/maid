@@ -6,9 +6,9 @@
  * the way it now runs, and lists loaded before this change follow it too.
  */
 import { type Graph, OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
-import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 import type { Task } from '@osm-editor-kit/maid-tasks'
 import { nextOpenIndex } from './list.ts'
+import type { TaskStatus } from './progress-codec.ts'
 
 /** A point as [lon, lat] */
 type Pos = readonly [number, number]

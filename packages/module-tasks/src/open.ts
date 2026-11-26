@@ -3,10 +3,9 @@
  * visit. No network here: the text comes from a file picker, the cache or `editor.fetch` (url.ts).
  */
 import type { ModuleStorage } from '@osm-editor-kit/maid-core'
-import { listKeyOf } from '@osm-editor-kit/maid-osm-prefs'
-import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 import { orderHash, parseTaskFileText, type TaskFile } from '@osm-editor-kit/maid-tasks'
 import { type FileCache, LAST_LIST_KEY, mirrorKey, readMirror } from './local.ts'
+import { listKeyOf, type TaskStatus } from './progress-codec.ts'
 import type { SavedProgress, TasksStore } from './store.ts'
 
 export type OpenDeps = {
@@ -45,11 +44,7 @@ export async function carryOver(
   const statuses = file.features.map((task) => byId.get(task.properties.task_id) ?? 'open')
   const count = statuses.filter((status) => status !== 'open').length
   if (count === 0) return undefined
-  // a change of this browser, not yet in the account (which holds the other version)
-  return {
-    progress: { statuses, localRevision: saved.localRevision + 1, ackedRevision: 0 },
-    count,
-  }
+  return { progress: { statuses }, count }
 }
 
 /**
@@ -104,8 +99,7 @@ export async function openCachedList(deps: OpenDeps, listKey: string): Promise<b
 }
 
 /**
- * Forgets a list in this browser: its file and its progress. The copy in the person's OSM account stays (the cleanup
- * dialog deletes that). Not for the open list: the menu does not offer it.
+ * Forgets a list in this browser: its file and its progress. Not for the open list: the menu does not offer it.
  */
 export async function forgetList(deps: Pick<OpenDeps, 'storage' | 'cache'>, listKey: string) {
   await deps.cache.remove(listKey)

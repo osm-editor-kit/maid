@@ -111,7 +111,7 @@ describe('TasksView', () => {
     expect(out).toContain('No task list loaded')
   })
 
-  it('shows the counts, the rows, the sync state and the current task without a feature', () => {
+  it('shows the counts, the rows and the current task without a feature', () => {
     const store = openedStore(file)
     store.getState().actions.setStatus(1, 'done')
     const Tasks = View(store)
@@ -120,8 +120,6 @@ describe('TasksView', () => {
     expect(out).toContain('data-testid="tasks-row-plain"')
     expect(out).toMatch(/data-testid="tasks-count-open"[^>]*>1</)
     expect(out).toMatch(/data-testid="tasks-count-done"[^>]*>1</)
-    expect(out).toContain('data-sync-kind="local"')
-    expect(out).toContain('Only in this browser')
     // the current task (the first open one) names an OSM element that is not selected: shown here, options without Apply
     expect(out).toContain('data-testid="tasks-current"')
     expect(out).not.toContain('tasks-apply-fix')

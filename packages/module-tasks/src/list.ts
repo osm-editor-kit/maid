@@ -1,9 +1,9 @@
-import { TASK_STATUSES, type TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 /**
  * Pure helpers over a loaded task list: counts, the filter, the next open task, the index from OSM elements to tasks
  * and the map data. No React, no store, no network.
  */
 import { type Task, type TaskFile } from '@osm-editor-kit/maid-tasks'
+import { TASK_STATUSES, type TaskStatus } from './progress-codec.ts'
 
 /** Which tasks the list shows: all, or those with one status */
 export type TasksFilter = 'all' | TaskStatus

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'bun:test'
 import type { ModuleStorage } from '@osm-editor-kit/maid-core'
 import { createFileCache, LAST_LIST_KEY, mirrorKey, readMirror, writeMirror } from './local.ts'
 import { forgetList, openTaskText, restoreLastList } from './open.ts'
+import { encodeStatuses } from './progress-codec.ts'
 import { createTasksStore } from './store.ts'
 import { makeFile } from './test-support.ts'
 
@@ -23,28 +24,35 @@ const file = makeFile([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
 const text = JSON.stringify(file)
 
 describe('the local mirror', () => {
-  it('writes and reads statuses and revisions', async () => {
+  it('writes and reads the statuses', async () => {
     const storage = memoryStorage()
-    await writeMirror(storage, 'key12345', 'hash1234', {
-      statuses: ['done', 'open', 'skipped'],
-      localRevision: 4,
-      ackedRevision: 3,
-    })
+    await writeMirror(storage, 'key12345', 'hash1234', { statuses: ['done', 'open', 'skipped'] })
     expect(storage.map.has(mirrorKey('key12345'))).toBe(true)
+    expect(JSON.parse(storage.getItem(mirrorKey('key12345')) ?? '')).toEqual({
+      v: 1,
+      s: await encodeStatuses(['done', 'open', 'skipped']),
+      h: 'hash1234',
+    })
     expect(await readMirror(storage, 'key12345', 'hash1234', 3)).toEqual({
       statuses: ['done', 'open', 'skipped'],
-      localRevision: 4,
-      ackedRevision: 3,
     })
+  })
+
+  it('reads an entry of an earlier version, which also holds revisions and a generation', async () => {
+    const storage = memoryStorage()
+    const s = await encodeStatuses(['done', 'open'])
+    storage.setItem(
+      mirrorKey('k'),
+      JSON.stringify({ v: 1, s, l: 4, a: 3, h: 'hash1234', g: 'gen00001' }),
+    )
+    expect(await readMirror(storage, 'k', 'hash1234', 2)).toEqual({ statuses: ['done', 'open'] })
+    storage.setItem(mirrorKey('k'), JSON.stringify({ v: 1, s, l: 1, a: 0, h: 'hash1234' }))
+    expect(await readMirror(storage, 'k', 'hash1234', 2)).toEqual({ statuses: ['done', 'open'] })
   })
 
   it('ignores progress for another order, another size, or broken text', async () => {
     const storage = memoryStorage()
-    await writeMirror(storage, 'k', 'hash1234', {
-      statuses: ['done', 'open'],
-      localRevision: 1,
-      ackedRevision: 0,
-    })
+    await writeMirror(storage, 'k', 'hash1234', { statuses: ['done', 'open'] })
     expect(await readMirror(storage, 'k', 'other', 2)).toBeUndefined()
     expect(await readMirror(storage, 'k', 'hash1234', 5)).toBeUndefined()
     storage.setItem(mirrorKey('k'), '{not json')
@@ -54,13 +62,7 @@ describe('the local mirror', () => {
 
   it('drops an older write that ends after a newer one started', async () => {
     const storage = memoryStorage()
-    await writeMirror(
-      storage,
-      'k',
-      'h',
-      { statuses: ['done'], localRevision: 1, ackedRevision: 0 },
-      () => false,
-    )
+    await writeMirror(storage, 'k', 'h', { statuses: ['done'] }, () => false)
     expect(storage.map.size).toBe(0)
   })
 })
@@ -91,19 +93,14 @@ describe('opening a file', () => {
     const first = createTasksStore()
     expect(await openTaskText({ store: first, storage, cache }, text, 'my.geojson')).toBe(true)
     first.getState().actions.setStatus(1, 'done')
-    const { list, statuses, localRevision, ackedRevision } = first.getState()
-    await writeMirror(storage, list!.listKey, list!.orderHash, {
-      statuses,
-      localRevision,
-      ackedRevision,
-    })
+    const { list, statuses } = first.getState()
+    await writeMirror(storage, list!.listKey, list!.orderHash, { statuses })
     expect(storage.getItem(LAST_LIST_KEY)).toBe(list!.listKey)
 
     const second = createTasksStore()
     expect(await restoreLastList({ store: second, storage, cache })).toBe(true)
     expect(second.getState().list?.fileName).toBe('my.geojson')
     expect(second.getState().statuses).toEqual(['open', 'done', 'open'])
-    expect(second.getState().localRevision).toBe(1)
   })
 
   it('takes the statuses of the version before by task id when the tasks changed', async () => {
@@ -113,12 +110,8 @@ describe('opening a file', () => {
     await openTaskText({ store, storage, cache }, text, 'a.geojson')
     store.getState().actions.setStatus(0, 'done')
     store.getState().actions.setStatus(2, 'ignored')
-    const { list, statuses, localRevision, ackedRevision } = store.getState()
-    await writeMirror(storage, list!.listKey, list!.orderHash, {
-      statuses,
-      localRevision,
-      ackedRevision,
-    })
+    const { list, statuses } = store.getState()
+    await writeMirror(storage, list!.listKey, list!.orderHash, { statuses })
     // a regenerated list: b is gone, d is new, the order changed
     const changed = JSON.stringify(makeFile([{ id: 'd' }, { id: 'c' }, { id: 'a' }]))
     const again = createTasksStore()
@@ -130,8 +123,6 @@ describe('opening a file', () => {
     )
     expect(again.getState().statuses).toEqual(['open', 'ignored', 'done'])
     expect(told).toEqual([2])
-    // a change of this browser that the account does not have yet
-    expect(again.getState().localRevision).toBeGreaterThan(again.getState().ackedRevision)
   })
 
   it('starts all open when the version before had no progress', async () => {

@@ -1,23 +1,15 @@
 import { describe, expect, it } from 'bun:test'
 import { nextOpenIndex, countStatuses, visibleIndexes } from './list.ts'
-import {
-  createTasksStore,
-  withKeepLocal,
-  withMarkedSaved,
-  withRemote,
-  withStatus,
-  EMPTY_STATE,
-} from './store.ts'
+import { createTasksStore, withStatus, EMPTY_STATE } from './store.ts'
 import { makeFile, openedStore } from './test-support.ts'
 
 const file = makeFile([{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }])
 
 describe('open', () => {
-  it('starts all open on the first task, with revisions at 0', () => {
+  it('starts all open on the first task', () => {
     const state = openedStore(file).getState()
     expect(state.statuses).toEqual(['open', 'open', 'open', 'open'])
     expect(state.current).toBe(0)
-    expect([state.localRevision, state.ackedRevision]).toEqual([0, 0])
     expect(state.list?.listKey).toHaveLength(8)
     expect(state.list?.geojson.features).toHaveLength(4)
   })
@@ -26,21 +18,12 @@ describe('open', () => {
     const store = createTasksStore()
     store
       .getState()
-      .actions.open(
-        { file, fileName: 'x' },
-        { statuses: ['done', 'open', 'open', 'skipped'], localRevision: 3, ackedRevision: 2 },
-      )
+      .actions.open({ file, fileName: 'x' }, { statuses: ['done', 'open', 'open', 'skipped'] })
     const state = store.getState()
     expect(state.statuses[0]).toBe('done')
-    expect([state.localRevision, state.ackedRevision]).toEqual([3, 2])
     // the first open task is current
     expect(state.current).toBe(1)
-    store
-      .getState()
-      .actions.open(
-        { file, fileName: 'x' },
-        { statuses: ['done'], localRevision: 1, ackedRevision: 0 },
-      )
+    store.getState().actions.open({ file, fileName: 'x' }, { statuses: ['done'] })
     expect(store.getState().statuses).toEqual(['open', 'open', 'open', 'open'])
   })
 
@@ -55,13 +38,12 @@ describe('open', () => {
 })
 
 describe('status changes', () => {
-  it('copies the array and raises the local revision above the acked one', () => {
+  it('copies the array', () => {
     const state = openedStore(file).getState()
     const change = withStatus(state, 1, 'done')
     expect(change?.statuses).not.toBe(state.statuses)
     expect(change?.statuses?.[1]).toBe('done')
     expect(state.statuses[1]).toBe('open')
-    expect(change?.localRevision).toBe(1)
   })
 
   it('does nothing for the same status or an index outside the list', () => {
@@ -69,47 +51,6 @@ describe('status changes', () => {
     expect(withStatus(state, 1, 'open')).toBeUndefined()
     expect(withStatus(state, 9, 'done')).toBeUndefined()
     expect(withStatus(state, -1, 'done')).toBeUndefined()
-  })
-
-  it('counts every change, so a later one is always above the acked revision', () => {
-    const store = openedStore(file)
-    store.getState().actions.setStatus(0, 'done')
-    store.getState().actions.setStatus(1, 'ignored')
-    expect(store.getState().localRevision).toBe(2)
-    store.getState().actions.setStatus(1, 'ignored')
-    expect(store.getState().localRevision).toBe(2)
-  })
-
-  it('markSaved: the account is at the saved revision; a change during the save stays a local change', () => {
-    const store = openedStore(file)
-    store.getState().actions.setStatus(0, 'done')
-    const atSave = store.getState().localRevision
-    store.getState().actions.setStatus(1, 'done')
-    expect(withMarkedSaved(store.getState(), 4, 'gen00001', atSave)).toEqual({
-      ackedRevision: 4,
-      ackedGeneration: 'gen00001',
-      localRevision: 5,
-    })
-    expect(
-      withMarkedSaved({ ...store.getState(), localRevision: atSave }, 4, 'gen00001', atSave),
-    ).toEqual({
-      ackedRevision: 4,
-      ackedGeneration: 'gen00001',
-      localRevision: 4,
-    })
-  })
-
-  it('takeRemote and keepLocal settle the revisions and close the conflict', () => {
-    expect(withRemote(['done'], 7, 'gen00001')).toMatchObject({
-      ackedRevision: 7,
-      localRevision: 7,
-      conflict: undefined,
-    })
-    expect(withKeepLocal(7, 'gen00001')).toMatchObject({
-      ackedRevision: 7,
-      localRevision: 8,
-      conflictOpen: false,
-    })
   })
 })
 

@@ -46,7 +46,7 @@ reports/             output of benchmarks and checks (mostly git-ignored)
 | Map | `renderer`, `style` | Features to MapLibre layers, drawing and dragging (the engine), iD's look as data |
 | Interface | `ui`, `shell`, `i18n` | Components and inspector fields; the shell that mounts an app; Paraglide texts |
 | Modules | `module-*` | Imagery, street-level images, data layers, notes, lenses, parking, shapes, surface, traffic signs, turn restrictions, way table, reroute, osmchange, tasks, sidepaths, TILDA, bike infrastructure, golf, climbing, terrain, buildings, MapRoulette |
-| Task lists | `tasks`, `osm-prefs` | The task file format and its diff ([FORMAT.md](packages/tasks/FORMAT.md)); small data in the OSM user preferences, split into 255-character values ([ADR 0013](docs/adr/0013-task-lists-in-user-preferences.md)) |
+| Task lists | `tasks` | The task file format and its diff ([FORMAT.md](packages/tasks/FORMAT.md)); the progress stays in the browser ([ADR 0013](docs/adr/0013-task-lists-in-user-preferences.md), [ADR 0016](docs/adr/0016-task-progress-only-in-the-browser.md)) |
 
 All packages are named `@osm-editor-kit/maid-<folder>` ([why](docs/architecture/03-packages.md#package-names)) and are
 imported by that name, through the `exports` in their `package.json`. A package never imports another package's

@@ -1,13 +1,9 @@
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { useSyncExternalStore } from 'react'
 
-/** What the module's parts hand each other at run time: the map engine, once the map is up, and the retry of the sync */
+/** What the module's parts hand each other at run time: the map engine, once the map is up */
 export type Shared = {
   engine?: MaidEngine
-  /** Set by the controller while a sync runs; the dock's retry button calls it */
-  retry?: () => void
-  /** Set by the controller while a sync runs; the dock's "use this version in the account" calls it (mismatch) */
-  replaceRemote?: () => void
   /** Told when `engine` changes (setSharedEngine); a component reads the engine with useSharedEngine */
   engineListeners?: Set<() => void>
 }

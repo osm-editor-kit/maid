@@ -1,11 +1,11 @@
 /**
- * What this browser keeps of a list: the statuses and revisions in the module storage (`maid:tasks:<listKey>`, a small
+ * What this browser keeps of a list: the statuses in the module storage (`maid:tasks:<listKey>`, a small
  * text), and the file itself in IndexedDB so a reload finds the list again. Under automation (`isAutomated`) neither is
  * read or written: `moduleStorage()` is empty then, and the cache is off.
  */
 import { isAutomated, type ModuleStorage } from '@osm-editor-kit/maid-core'
-import { decodeStatuses, encodeStatuses, type TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 import Dexie, { type Table } from 'dexie'
+import { decodeStatuses, encodeStatuses, type TaskStatus } from './progress-codec.ts'
 import type { SavedProgress } from './store.ts'
 
 /** The storage key of a list's progress */
@@ -16,12 +16,15 @@ export function mirrorKey(listKey: string): string {
 /** The storage key that names the list to open again after a reload */
 export const LAST_LIST_KEY = 'maid:tasks-last'
 
-/** `g` is the generation of the account's list the revisions belong to; absent before the first agreement */
-type MirrorText = { v: 1; s: string; l: number; a: number; h: string; g?: string }
+/**
+ * What is stored: `s` the encoded statuses, `h` the order hash of the file they belong to. Entries of earlier versions also hold `l`, `a` and `g` (revisions of the removed sync with the OSM account): they are ignored on
+ * read and not written.
+ */
+type MirrorText = { v: 1; s: string; h: string }
 
 /**
- * Writes the progress of a list: the statuses encoded as for the account, the revisions and the order hash.
- * `stillCurrent` is asked after the encoding; when it says no, nothing is written.
+ * Writes the progress of a list: the statuses encoded and the order hash. `stillCurrent` is asked after the
+ * encoding; when it says no, nothing is written.
  */
 export async function writeMirror(
   storage: ModuleStorage,
@@ -30,14 +33,7 @@ export async function writeMirror(
   progress: SavedProgress,
   stillCurrent: () => boolean = () => true,
 ): Promise<void> {
-  const text: MirrorText = {
-    v: 1,
-    s: await encodeStatuses(progress.statuses),
-    l: progress.localRevision,
-    a: progress.ackedRevision,
-    h: orderHash,
-    ...(progress.ackedGeneration === undefined ? {} : { g: progress.ackedGeneration }),
-  }
+  const text: MirrorText = { v: 1, s: await encodeStatuses(progress.statuses), h: orderHash }
   // encoding is async: a newer write may have started meanwhile, and the older one must not land after it
   if (!stillCurrent()) return
   storage.setItem(mirrorKey(listKey), JSON.stringify(text))
@@ -57,22 +53,9 @@ export async function readMirror(
   if (raw === null) return undefined
   try {
     const text = JSON.parse(raw) as Partial<MirrorText>
-    if (
-      text.v !== 1 ||
-      text.h !== orderHash ||
-      typeof text.s !== 'string' ||
-      typeof text.l !== 'number' ||
-      typeof text.a !== 'number' ||
-      (text.g !== undefined && typeof text.g !== 'string')
-    )
-      return undefined
+    if (text.v !== 1 || text.h !== orderHash || typeof text.s !== 'string') return undefined
     const statuses: TaskStatus[] = await decodeStatuses(text.s, count)
-    return {
-      statuses,
-      localRevision: text.l,
-      ackedRevision: text.a,
-      ...(text.g === undefined ? {} : { ackedGeneration: text.g }),
-    }
+    return { statuses }
   } catch {
     return undefined
   }

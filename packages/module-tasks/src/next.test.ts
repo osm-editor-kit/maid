@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 import { nextNearIndex, type TaskShape } from './next.ts'
+import type { TaskStatus } from './progress-codec.ts'
 
 // about 70 m per 0.001° of longitude at 52° north
 const line = (...points: [number, number][]): TaskShape => ({ points, line: true })

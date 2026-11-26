@@ -81,7 +81,7 @@ function editorConfig(config: Config) {
   const presets = lazyPresets(() => import('./presets').then((module) => module.makePresets()))
   const bbox = fixtureBounds(config, BBOX)
   const modules: MaidModule[] = [
-    // private task lists: a GeoJSON file of features to check, the progress in the OSM user preferences (ADR 0013)
+    // private task lists: a GeoJSON file of features to check, the progress in this browser (ADR 0013, ADR 0016)
     tasks(),
     // HOT's Tasking Manager, read only: `tm=<project>/<task>` opens a project at a task, its area on the map, the
     // instructions in the dock, the project's changeset comment in the save form; the mock's made-up project on mock data

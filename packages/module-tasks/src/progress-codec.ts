@@ -1,7 +1,8 @@
 /**
  * Task statuses packed into text: two bits per task, four tasks per byte, then base64url. The text starts
  * with `b` (plain bytes) or `z` (the same bytes deflated), whichever is shorter. The count of tasks is not
- * in the text: the caller keeps it (in the list's meta) and passes it to `decodeStatuses`.
+ * in the text: the caller knows it from the file and passes it to `decodeStatuses`. This is the format of
+ * `maid:tasks:<listKey>` in local.ts; entries written before must stay readable.
  */
 
 /** The statuses a task can have. The index in this list is the two-bit code. */
@@ -124,4 +125,18 @@ async function transform(
     offset += part.length
   }
   return out
+}
+
+/**
+ * The 8-character key of a list, from its id: FNV-1a (32 bits) of the id, in base 36. It names the list's entries in
+ * this browser (`maid:tasks:<listKey>`) and in the file cache.
+ */
+export function listKeyOf(listId: string): string {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < listId.length; index++) {
+    hash ^= listId.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  // a 32-bit value needs at most 7 characters of base 36
+  return (hash >>> 0).toString(36).padStart(8, '0')
 }

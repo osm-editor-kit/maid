@@ -72,7 +72,7 @@ function editorConfig(config: Config) {
     // MapRoulette: top bar button with the challenge, the tasks on the map, the task in the inspector and the dock,
     // the tasks reported to MapRoulette after the upload. The mock's MapRoulette on the mock's data.
     maproulette({ apiUrl: config.source === 'mock' ? MOCK_MAPROULETTE_API : MAPROULETTE_API }),
-    // private task lists: a GeoJSON file of features to check, the progress in the OSM user preferences (ADR 0013)
+    // private task lists: a GeoJSON file of features to check, the progress in this browser (ADR 0013, ADR 0016)
     tasks(),
     // inspector section "Element": id, version and upload state of the selected object
     elementInfo(),

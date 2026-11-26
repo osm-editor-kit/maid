@@ -418,7 +418,7 @@ export const GROUPS: FeatureGroup[] = [
       },
       {
         title: 'Private task lists',
-        text: 'Open a GeoJSON task file from another project: Markdown instructions, one-click tag fixes, progress kept in your OSM account.',
+        text: 'Open a GeoJSON task file from another project: Markdown instructions, one-click tag fixes, progress kept in this browser.',
         maid: { factory: 'tasks' },
         pkg: 'module-tasks',
         iD: 'no',

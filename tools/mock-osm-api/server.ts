@@ -13,10 +13,6 @@
  *   /api/0.6/{node,way,relation}/ID/relations(.json) (the relations an element is a member of, as iD's download asks)
  *   /api/0.6/{node,way,relation}/ID/VERSION(.json) (the current version from the fixture; an older one only when
  *     tools/mock-osm-api/history/<scene>.json has it, written by hand for a check; else 404)
- *   /api/0.6/user/preferences(.json), PUT and DELETE /api/0.6/user/preferences/KEY (a KEY with a dot is 404, as on
- *     OSM; user preferences of one
- *     made-up user, in memory, shared by all scenes, with OSM's limits: key and value 1..255 characters; a PUT of the
- *     whole collection is refused, as Maid must never send one). /prefs/reset empties them.
  * Task lists for the tasks module: /tasks/<name>.geojson serves fixtures/tasks/<name>.geojson.
  * Route previews as Postpass answers them: /postpass/api/interpreter?data=<SQL> finds the relation by the SQL's
  *   `-- maid:route-preview <id>` line (route-analysis `routePreviewSql`) and serves fixtures/postpass/route-<id>.json,
@@ -279,46 +275,8 @@ export async function loadScenes(names = SCENES.map((s) => s.name)) {
   return scenes
 }
 
-/** OSM's limit for a preference's key and its value (the Rails model `UserPreference`: length 1..255) */
-const PREF_MAX = 255
-
-/**
- * The user preferences of the mock's one user. They live in memory only: a restart forgets them, and no fixture is
- * written. Only the preferences accept writes, so the editor's task progress can be tested without a server.
- */
-function preferencesAnswer(prefs: Map<string, string>, req: Request, path: string) {
-  if (path === '/api/0.6/user/preferences') {
-    if (req.method !== 'GET') {
-      // the whole collection is never replaced: it holds the preferences of every app of the user
-      return new Response('Replacing all preferences is not supported by the mock', {
-        status: 405,
-        headers: CORS,
-      })
-    }
-    return Response.json(
-      { version: '0.6', preferences: Object.fromEntries(prefs) },
-      { headers: CORS },
-    )
-  }
-  const key = decodeURIComponent(path.slice('/api/0.6/user/preferences/'.length))
-  if (key.length < 1 || key.length > PREF_MAX)
-    return new Response('Key length must be 1..255', { status: 400, headers: CORS })
-  if (req.method === 'GET') {
-    const value = prefs.get(key)
-    return value === undefined
-      ? new Response('Not found', { status: 404, headers: CORS })
-      : new Response(value, { headers: { ...CORS, 'Content-Type': 'text/plain; charset=utf-8' } })
-  }
-  if (req.method === 'DELETE') {
-    prefs.delete(key)
-    return new Response(null, { status: 200, headers: CORS })
-  }
-  return null
-}
-
 export function createHandler(scenes: Map<string, SceneIndex>, options: { latency: number }) {
   const log: { t: number; method: string; path: string; status: number }[] = []
-  const prefs = new Map<string, string>()
   const maproulette = createMapRouletteMock()
   const respond = async (req: Request) => {
     const url = new URL(req.url)
@@ -330,10 +288,6 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
     if (url.pathname === '/requests') return Response.json(log, { headers: CORS })
     if (url.pathname === '/requests/reset') {
       log.length = 0
-      return Response.json({ ok: true }, { headers: CORS })
-    }
-    if (url.pathname === '/prefs/reset') {
-      prefs.clear()
       return Response.json({ ok: true }, { headers: CORS })
     }
     const taskFile = url.pathname.match(/^\/tasks\/([a-z0-9-]+(?:\.[a-z0-9-]+)*\.geojson)$/)
@@ -368,23 +322,6 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
     // notes of an unknown scene, or of a scene without notes, are an empty collection
     if (!scene && path !== '/api/0.6/notes')
       return new Response('Unknown scene', { status: 404, headers: CORS })
-    if (path === '/api/0.6/user/preferences' || path.startsWith('/api/0.6/user/preferences/')) {
-      // as the OSM website: its route for one preference does not match a key with a dot (Rails' default segment
-      // `[^/.?]+`), so a PUT, GET or DELETE of such a key is 404 there (found 2026-11-26)
-      const rawKey = match[2]!.slice('/api/0.6/user/preferences/'.length)
-      if (path !== '/api/0.6/user/preferences' && rawKey.includes('.'))
-        return new Response('Not found', { status: 404, headers: CORS })
-      if (req.method === 'PUT' && path !== '/api/0.6/user/preferences') {
-        const key = decodeURIComponent(path.slice('/api/0.6/user/preferences/'.length))
-        const value = (await req.text()).replace(/\n$/, '')
-        if (key.length < 1 || key.length > PREF_MAX || value.length < 1 || value.length > PREF_MAX)
-          return new Response('Key and value length must be 1..255', { status: 400, headers: CORS })
-        prefs.set(key, value)
-        return new Response(null, { status: 200, headers: CORS })
-      }
-      const answer = preferencesAnswer(prefs, req, path)
-      if (answer) return answer
-    }
     if (req.method !== 'GET') {
       return new Response('The mock OSM API is read-only', { status: 405, headers: CORS })
     }

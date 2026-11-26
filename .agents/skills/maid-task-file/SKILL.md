@@ -7,8 +7,8 @@ description: How to write a task file that Maid opens as a private task list (Ge
 
 Maid has **private task lists** (`packages/module-tasks`, ADR 0013): a person loads a file, works through its tasks
 in the dock tab "Tasks", sees each task with its Markdown text in the inspector, and picks an option; Maid shows the
-change before it is applied, as one undo step. The progress (open, done, ignored, skipped) is kept in the browser and
-in the person's OSM user preferences. Teams use MapRoulette; this is for one person.
+change before it is applied, as one undo step. The progress (open, done, ignored, skipped) is kept in the browser
+(ADR 0016). Teams use MapRoulette; this is for one person.
 
 **The authority is [`packages/tasks/FORMAT.md`](../../../packages/tasks/FORMAT.md).** It is written to be pasted into
 a prompt, has a full example and a checklist. This skill says when to use it and how to hand a file over.
@@ -73,5 +73,5 @@ parser is `packages/module-data-layers/src/geojson.ts`: a `FeatureCollection` or
 ## Where this lives
 
 Format, parser and checker `packages/tasks` (`FORMAT.md`, `src/schema.ts`); the module `packages/module-tasks`;
-the progress in the preferences `packages/osm-prefs`; decisions ADR 0013. If you change what is accepted, update
+the progress in the browser (`packages/module-tasks/src/local.ts`); decisions ADR 0013 and ADR 0016. If you change what is accepted, update
 FORMAT.md and this file.

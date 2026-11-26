@@ -68,7 +68,7 @@ function editorConfig(config: Config) {
   const presets = lazyPresets(() => import('./presets').then((module) => module.makePresets()))
   const bbox = fixtureBounds(config, BBOX)
   const modules: MaidModule[] = [
-    // private task lists: a GeoJSON file of features to check, the progress in the OSM user preferences (ADR 0013)
+    // private task lists: a GeoJSON file of features to check, the progress in this browser (ADR 0013, ADR 0016)
     tasks(),
     // inspector section "Element": id, version and upload state of the selected object
     elementInfo(),

@@ -1,14 +1,11 @@
 /**
  * Task list check for module-tasks (ADR 0013): `?tasks=<url>` with fixtures/tasks/small.tasks.geojson from the mock,
- * on the small scene. The progress goes to the mock's user preferences (in memory), so the whole round trip runs
- * without a server and without a login:
+ * on the small scene. The progress is kept in the browser only, which automation switches off (`isAutomated`), so
+ * nothing about it is checked here (local.test.ts covers it):
  *
- * - a stale list of 40 days in the preferences is offered in the cleanup dialog, and deleted on the click only;
  * - the dock tab "Tasks" with 40 open tasks; a row selects its way and shows the task in the inspector;
  * - an option's diff and "Apply": the tags change in one undo step, the task is done;
- * - "Ignore" on another task; the progress is saved to the preferences (a meta key and chunks of at most 255
- *   characters, never a PUT of the whole collection);
- * - a reload restores the progress from the preferences (under automation the browser keeps nothing);
+ * - "Ignore" on another task;
  * - undo takes the tags back;
  * - a "create" option adds a tagged node at the task's point, a "delete" option deletes the task's node; each is
  *   one undo step, and undo also takes the done status back;
@@ -28,25 +25,11 @@ import { runCheck } from './check-page'
 const sceneName = process.argv[2] ?? 'small'
 const MOCK = `http://localhost:${PORTS.mockApi}`
 const TASKS_URL = `${MOCK}/tasks/small.tasks.geojson`
-const PREFS = `${MOCK}/s/${sceneName}/api/0.6/user/preferences`
 /** A large list for the timings, served by the page's route under a local URL (the mock serves only fixtures) */
 const BIG_URL = `${MOCK}/tasks-big/synthetic-20000.geojson`
 /** A list with a "create" and a "delete" option, served the same way */
 const EDIT_URL = `${MOCK}/tasks-edit/create-delete.geojson`
 const REPORT = join(import.meta.dir, '../../reports/tasks-perf.json')
-
-const prefs = async (): Promise<Record<string, string>> =>
-  (await (await fetch(`${PREFS}.json`)).json()).preferences
-const put = (key: string, value: string) => fetch(`${PREFS}/${key}`, { method: 'PUT', body: value })
-
-// before the page opens: the preferences hold one list nobody touched for 40 days (3 open tasks)
-await fetch(`${MOCK}/prefs/reset`)
-const staleSeconds = Math.floor(Date.now() / 1000) - 40 * 24 * 3600
-await put('maid-tasks-stale001-a-0', 'bAA')
-await put(
-  'maid-tasks-stale001',
-  JSON.stringify({ v: 1, s: 'a', n: 1, c: 3, r: 1, u: staleSeconds, h: 'abcd1234' }),
-)
 
 const timings: Record<string, number> = {}
 
@@ -67,31 +50,6 @@ const code = await runCheck(
       await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 30_000 })
       await page.evaluate(() => window.__bench.ready())
     }
-    const waitSaved = async () => {
-      await page.waitForFunction(
-        () =>
-          document.querySelector('[data-testid="tasks-sync"]')?.getAttribute('data-sync-kind') ===
-          'saved',
-        undefined,
-        { timeout: 10_000 },
-      )
-    }
-
-    // --- cleanup of the stale list ---
-    await byId('tasks-cleanup-dialog').waitFor({ timeout: 15_000 })
-    report(
-      'the cleanup dialog offers the list of 40 days',
-      1,
-      await byId('tasks-cleanup-row-stale001').count(),
-    )
-    report('nothing is deleted before the click', true, 'maid-tasks-stale001' in (await prefs()))
-    await byId('tasks-cleanup-delete-stale001').click()
-    await page.waitForTimeout(500)
-    const afterCleanup = Object.keys(await prefs()).filter((key) => key.includes('stale001'))
-    report('"Delete" removes the meta and its chunks', [], afterCleanup)
-    const later = byId('tasks-cleanup-later')
-    if (await later.count()) await later.click()
-
     // --- the list from the URL ---
     await byId('tasks-view').waitFor({ timeout: 15_000 })
     report(
@@ -180,45 +138,10 @@ const code = await runCheck(
       .click()
     report('"Ignore" counts the task as ignored', 1, await count('ignored'))
 
-    // --- saved to the preferences ---
-    await waitSaved().catch(() => undefined)
-    report('the sync says saved', 'saved', await byId('tasks-sync').getAttribute('data-sync-kind'))
-    const stored = await prefs()
-    const ours = Object.entries(stored).filter(([key]) => key.startsWith('maid-tasks-'))
-    report('the progress is a meta key and chunks', true, ours.length >= 2)
-    report(
-      'every key and value is within 255 characters',
-      true,
-      ours.every(([k, v]) => k.length <= 255 && v.length > 0 && v.length <= 255),
-    )
-    const requests = (await (await fetch(`${MOCK}/requests`)).json()) as {
-      method: string
-      path: string
-    }[]
-    report(
-      'no PUT of the whole preferences',
-      0,
-      requests.filter((r) => r.method === 'PUT' && /\/user\/preferences(\.json)?$/.test(r.path))
-        .length,
-    )
-
-    // --- a reload restores it from the preferences ---
+    // a reload: the list comes from the URL again, with every task open (nothing is kept under automation)
     await page.reload()
     await ready()
     await byId('tasks-view').waitFor({ timeout: 15_000 })
-    await page
-      .waitForFunction(
-        () =>
-          document.querySelector('[data-testid="tasks-count-done"]')?.textContent?.includes('1'),
-        undefined,
-        { timeout: 10_000 },
-      )
-      .catch(() => undefined)
-    report(
-      'after a reload: 1 done, 1 ignored (from the preferences)',
-      [1, 1],
-      [await count('done'), await count('ignored')],
-    )
 
     // the edit journal offers the applied tags of before the reload: they are not the task's business here
     const discard = page.getByRole('button', { name: 'Discard them' })
@@ -411,14 +334,6 @@ const code = await runCheck(
           button.click()
           requestAnimationFrame(poll)
         }),
-    )
-    await waitSaved().catch(() => undefined)
-    const bigKeys = Object.keys(await prefs()).filter((k) => k.startsWith('maid-tasks-'))
-    timings.prefKeysAfter = bigKeys.length
-    report(
-      '20 000 tasks: a status change is saved',
-      'saved',
-      await byId('tasks-sync').getAttribute('data-sync-kind'),
     )
   },
   `tasks=${encodeURIComponent(TASKS_URL)}`,

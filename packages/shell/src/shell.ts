@@ -9,7 +9,6 @@ import {
   type Server,
   type SuggestedFavourite,
 } from '@osm-editor-kit/maid-ui'
-import { createAccount } from './account'
 import { createAuth } from './auth'
 import { DEPLOYED, DEV_API, OSM_API, readConfig, type Config } from './config'
 import { watchFavourites } from './favourites'
@@ -181,7 +180,6 @@ export function createShell(app: AppConfig) {
     normalizeFilters,
     filtersStart,
     auth,
-    account: createAccount(auth, config),
     journal: createShellJournal(id, config, editor),
   }
 }
