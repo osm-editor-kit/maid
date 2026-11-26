@@ -4,15 +4,52 @@
  */
 import type { ModuleStorage } from '@osm-editor-kit/maid-core'
 import { listKeyOf } from '@osm-editor-kit/maid-osm-prefs'
-import { orderHash, parseTaskFileText } from '@osm-editor-kit/maid-tasks'
+import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
+import { orderHash, parseTaskFileText, type TaskFile } from '@osm-editor-kit/maid-tasks'
 import { type FileCache, LAST_LIST_KEY, readMirror } from './local.ts'
-import type { TasksStore } from './store.ts'
+import type { SavedProgress, TasksStore } from './store.ts'
 
 export type OpenDeps = {
   store: TasksStore
   storage: ModuleStorage
   cache: FileCache
   now?: () => number
+  /** Told when a new version of a list took over statuses of the version before (`carryOver`) */
+  onCarried?: (carried: { count: number; title: string }) => void
+}
+
+/**
+ * The statuses of the version of this list this browser had before, matched by `task_id`, for a file whose tasks
+ * changed (another order hash): a regenerated list keeps what was done, ignored or skipped, and new tasks start open
+ * (Tobias, 2026-11-26). Undefined when there is no earlier version with progress, or nothing to take over.
+ */
+export async function carryOver(
+  deps: Pick<OpenDeps, 'storage' | 'cache'>,
+  listKey: string,
+  file: TaskFile,
+  hash: string,
+): Promise<{ progress: SavedProgress; count: number } | undefined> {
+  const cached = await deps.cache.load(listKey)
+  if (!cached) return undefined
+  const before = parseTaskFileText(cached.text)
+  if (!before.ok) return undefined
+  const beforeHash = orderHash(before.file)
+  if (beforeHash === hash) return undefined
+  const saved = await readMirror(deps.storage, listKey, beforeHash, before.file.features.length)
+  if (!saved) return undefined
+  const byId = new Map<string, TaskStatus>()
+  before.file.features.forEach((task, index) => {
+    const status = saved.statuses[index]
+    if (status && status !== 'open') byId.set(task.properties.task_id, status)
+  })
+  const statuses = file.features.map((task) => byId.get(task.properties.task_id) ?? 'open')
+  const count = statuses.filter((status) => status !== 'open').length
+  if (count === 0) return undefined
+  // a change of this browser, not yet in the account (which holds the other version)
+  return {
+    progress: { statuses, localRevision: saved.localRevision + 1, ackedRevision: 0 },
+    count,
+  }
 }
 
 /**
@@ -37,9 +74,14 @@ export async function openTaskText(
   const { file } = result
   const hash = orderHash(file)
   const listKey = listKeyOf(file.maid_tasks.list_id)
-  const saved = await readMirror(storage, listKey, hash, file.features.length)
+  const mirrored = await readMirror(storage, listKey, hash, file.features.length)
+  // another version of the list: the statuses of the one before, by task id, before its file is replaced below
+  const carried = mirrored ? undefined : await carryOver(deps, listKey, file, hash)
   if (stale()) return false
-  store.getState().actions.open({ file, fileName, sourceUrl: options.sourceUrl }, saved)
+  store
+    .getState()
+    .actions.open({ file, fileName, sourceUrl: options.sourceUrl }, mirrored ?? carried?.progress)
+  if (carried) deps.onCarried?.({ count: carried.count, title: file.maid_tasks.title })
   if (options.remember !== false) {
     storage.setItem(LAST_LIST_KEY, listKey)
     await cache.save({
@@ -51,6 +93,14 @@ export async function openTaskText(
     })
   }
   return true
+}
+
+/** Opens a list this browser kept (the menu's earlier lists). Returns whether it was found. */
+export async function openCachedList(deps: OpenDeps, listKey: string): Promise<boolean> {
+  const cached = await deps.cache.load(listKey)
+  if (!cached) return false
+  const request = deps.store.getState().actions.start(cached.fileName)
+  return openTaskText(deps, cached.text, cached.fileName, { request })
 }
 
 /** Opens the list of the last visit from the cache. Returns whether one was found. */

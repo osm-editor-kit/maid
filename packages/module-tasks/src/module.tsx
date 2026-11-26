@@ -1,4 +1,5 @@
 import { defineModule, moduleStorage } from '@osm-editor-kit/maid-core'
+import { notify } from '@osm-editor-kit/maid-ui'
 import { tasksOfEntity } from './list.ts'
 import { createLoadTasksItem, DOCK_VIEW } from './LoadTasksItem.tsx'
 import { createFileCache, writeMirror } from './local.ts'
@@ -26,7 +27,13 @@ export function tasks() {
     setup(api) {
       const store = createTasksStore()
       const shared: Shared = {}
-      const deps: OpenDeps = { store, storage: moduleStorage(), cache: createFileCache() }
+      const deps: OpenDeps = {
+        store,
+        storage: moduleStorage(),
+        cache: createFileCache(),
+        // a regenerated list kept the statuses of its earlier version: say how many, it is not obvious
+        onCarried: ({ count }) => notify.info(m.tasks_carried({ count })),
+      }
       const tasksParam = api.urlParam({
         name: TASKS_PARAM,
         parser: parseAsTasksUrl,

@@ -106,22 +106,52 @@ describe('opening a file', () => {
     expect(second.getState().localRevision).toBe(1)
   })
 
-  it('starts all open when the file has other tasks than the saved progress', async () => {
+  it('takes the statuses of the version before by task id when the tasks changed', async () => {
     const storage = memoryStorage()
     const cache = createFileCache(cacheName(), true)
     const store = createTasksStore()
     await openTaskText({ store, storage, cache }, text, 'a.geojson')
     store.getState().actions.setStatus(0, 'done')
+    store.getState().actions.setStatus(2, 'ignored')
     const { list, statuses, localRevision, ackedRevision } = store.getState()
     await writeMirror(storage, list!.listKey, list!.orderHash, {
       statuses,
       localRevision,
       ackedRevision,
     })
+    // a regenerated list: b is gone, d is new, the order changed
+    const changed = JSON.stringify(makeFile([{ id: 'd' }, { id: 'c' }, { id: 'a' }]))
+    const again = createTasksStore()
+    const told: number[] = []
+    await openTaskText(
+      { store: again, storage, cache, onCarried: ({ count }) => told.push(count) },
+      changed,
+      'a.geojson',
+    )
+    expect(again.getState().statuses).toEqual(['open', 'ignored', 'done'])
+    expect(told).toEqual([2])
+    // a change of this browser that the account does not have yet
+    expect(again.getState().localRevision).toBeGreaterThan(again.getState().ackedRevision)
+  })
+
+  it('starts all open when the version before had no progress', async () => {
+    const storage = memoryStorage()
+    const cache = createFileCache(cacheName(), true)
+    await openTaskText({ store: createTasksStore(), storage, cache }, text, 'a.geojson')
     const changed = JSON.stringify(makeFile([{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }]))
     const again = createTasksStore()
     await openTaskText({ store: again, storage, cache }, changed, 'a.geojson')
     expect(again.getState().statuses).toEqual(['open', 'open', 'open', 'open'])
+  })
+
+  it('lists the kept files newest first, without their text', async () => {
+    const cache = createFileCache(cacheName(), true)
+    await cache.save({ listKey: 'k1', title: 'One', fileName: 'one.json', text: '{}', savedAt: 1 })
+    await cache.save({ listKey: 'k2', title: 'Two', fileName: 'two.json', text: '{}', savedAt: 2 })
+    expect(await cache.list()).toEqual([
+      { listKey: 'k2', title: 'Two', fileName: 'two.json', savedAt: 2 },
+      { listKey: 'k1', title: 'One', fileName: 'one.json', savedAt: 1 },
+    ])
   })
 
   it('reports the first errors of an invalid file and keeps the open list', async () => {

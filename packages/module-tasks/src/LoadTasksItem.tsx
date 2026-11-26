@@ -1,16 +1,38 @@
 import { ClipboardDocumentListIcon } from '@heroicons/react/20/solid'
 import { openDockView, TASKS_MENU_ITEM, TASKS_TEXT } from '@osm-editor-kit/maid-ui'
 import type { AccountMenuItem } from '@osm-editor-kit/maid-ui'
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { CachedFile } from './local.ts'
 import { m } from './messages.ts'
-import { openTaskText, type OpenDeps } from './open.ts'
+import { openCachedList, openTaskText, type OpenDeps } from './open.ts'
+import { useTasks } from './store.ts'
 
 export const DOCK_VIEW = 'tasks'
 
-/** "Load task list…" in the account menu: a file picker, then the list in the dock */
+/**
+ * "Load task list…" in the account menu: a file picker, then the list in the dock. Under it the lists this browser kept,
+ * newest first, to open again without the file (Tobias, 2026-11-26).
+ */
 export function createLoadTasksItem(deps: OpenDeps): AccountMenuItem['component'] {
   return function LoadTasksItem({ close }) {
     const input = useRef<HTMLInputElement>(null)
+    const openKey = useTasks(deps.store, (state) => state.list?.listKey)
+    const [kept, setKept] = useState<Omit<CachedFile, 'text'>[]>([])
+    // read when the menu opens: IndexedDB, no request
+    useEffect(() => {
+      let alive = true
+      void deps.cache.list().then((files) => {
+        if (alive) setKept(files)
+      })
+      return () => {
+        alive = false
+      }
+    }, [])
+    const reopen = (listKey: string) => {
+      close()
+      openDockView(DOCK_VIEW)
+      void openCachedList(deps, listKey)
+    }
     const pick = (file: File | undefined) => {
       if (!file) return
       close()
@@ -46,6 +68,34 @@ export function createLoadTasksItem(deps: OpenDeps): AccountMenuItem['component'
             </span>
           </span>
         </button>
+        {kept.length > 0 && (
+          <div className="mt-1 flex flex-col gap-0.5 pl-6" data-testid="tasks-recent">
+            <span className="px-2 text-xs text-zinc-500 dark:text-zinc-400">
+              {m.tasks_recent()}
+            </span>
+            {kept.map((file) => (
+              <button
+                key={file.listKey}
+                type="button"
+                data-testid={`tasks-recent-${file.listKey}`}
+                onClick={() => reopen(file.listKey)}
+                className="flex w-full cursor-pointer flex-col rounded-lg px-2 py-1 text-left text-sm hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:bg-white/5"
+              >
+                <span className="truncate font-medium">
+                  {file.title}
+                  {file.listKey === openKey && (
+                    <span className={`ml-1.5 text-xs font-normal ${TASKS_TEXT}`}>
+                      {m.tasks_recent_open()}
+                    </span>
+                  )}
+                </span>
+                <span className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+                  {file.fileName} · {new Date(file.savedAt).toLocaleDateString()}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
         <input
           ref={input}
           type="file"

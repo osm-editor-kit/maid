@@ -90,5 +90,8 @@
   "tasks_select_task_feature": "Seleccionar su elemento",
   "tasks_show_task": "Mostrar en el mapa",
   "tasks_hint": "Hay una tarea para este elemento.",
-  "tasks_hint_open": "Abrir en la lista de tareas"
+  "tasks_hint_open": "Abrir en la lista de tareas",
+  "tasks_carried": "Nueva versión de esta lista: se tomaron {count} estados de la versión anterior, por id de tarea.",
+  "tasks_recent": "Listas anteriores en este navegador",
+  "tasks_recent_open": "abierta"
 }

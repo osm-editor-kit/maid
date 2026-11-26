@@ -90,5 +90,8 @@
   "tasks_select_task_feature": "Sélectionner son élément",
   "tasks_show_task": "Montrer sur la carte",
   "tasks_hint": "Une tâche porte sur cet élément.",
-  "tasks_hint_open": "Ouvrir dans la liste de tâches"
+  "tasks_hint_open": "Ouvrir dans la liste de tâches",
+  "tasks_carried": "Nouvelle version de cette liste : {count} statuts repris de la version précédente, par identifiant de tâche.",
+  "tasks_recent": "Listes précédentes dans ce navigateur",
+  "tasks_recent_open": "ouverte"
 }

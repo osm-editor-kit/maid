@@ -90,5 +90,8 @@
   "tasks_select_task_feature": "Element auswählen",
   "tasks_show_task": "Auf der Karte zeigen",
   "tasks_hint": "Zu diesem Element gibt es eine Aufgabe.",
-  "tasks_hint_open": "In der Aufgabenliste öffnen"
+  "tasks_hint_open": "In der Aufgabenliste öffnen",
+  "tasks_carried": "Neue Version dieser Liste: {count} Status aus der Version davor übernommen, nach Aufgaben-ID.",
+  "tasks_recent": "Frühere Listen in diesem Browser",
+  "tasks_recent_open": "geöffnet"
 }

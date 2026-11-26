@@ -90,5 +90,8 @@
   "tasks_select_task_feature": "Select its feature",
   "tasks_show_task": "Show on the map",
   "tasks_hint": "There is a task for this feature.",
-  "tasks_hint_open": "Open in the task list"
+  "tasks_hint_open": "Open in the task list",
+  "tasks_carried": "A new version of this list: {count} statuses were taken over from the version before, by task id.",
+  "tasks_recent": "Earlier lists in this browser",
+  "tasks_recent_open": "open now"
 }

@@ -24,7 +24,8 @@ URL parameter `tasks=<address>`: `https:` (or `http:` on this computer).
 | --- | --- |
 | `src/store.ts` | The zustand store; every transition is a pure `with...` function |
 | `src/list.ts` | Counts, filter, next open task, ref index (`way/1` to task indexes), bounds, map colours |
-| `src/local.ts` | Local mirror (`moduleStorage`, key `maid:tasks:<listKey>`) and the IndexedDB file cache (dexie) |
+| `src/local.ts` | Local mirror (`moduleStorage`, key `maid:tasks:<listKey>`) and the IndexedDB file cache (dexie), whose files the account menu lists to open again |
+| `src/open.ts` | Opening a file; a new version of a list (other tasks or order) takes the statuses of the version before by `task_id` (`carryOver`). The account's copy keeps the old version and is not synced ("mismatch") |
 | `src/open.ts` | Parse, find saved progress, fill the store, remember the file |
 | `src/sync.ts` | Reconcile, debounced push (2 s), conflict, 401/403, order hash check |
 | `src/cleanup.ts` | Lists to offer for deletion (30 days, never the open list) |
