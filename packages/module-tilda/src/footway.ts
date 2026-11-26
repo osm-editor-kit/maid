@@ -140,7 +140,7 @@ export function sideOf(
   return vote > 0 ? 'left' : vote < 0 ? 'right' : undefined
 }
 
-function locsOf(graph: Graph, way: OsmWay): Loc[] | undefined {
+export function locsOf(graph: Graph, way: OsmWay): Loc[] | undefined {
   const locs: Loc[] = []
   for (const id of way.nodes) {
     const node = graph.hasEntity(id)
@@ -152,13 +152,13 @@ function locsOf(graph: Graph, way: OsmWay): Loc[] | undefined {
 }
 
 /** Every way of the graph: the loaded ones that were not edited, and the edited ones */
-function* waysOf(graph: Graph) {
+export function* waysOf(graph: Graph) {
   for (const [id, entity] of graph.base.entities)
     if (entity instanceof OsmWay && !graph.local.entities.has(id)) yield entity
   for (const entity of graph.local.entities.values()) if (entity instanceof OsmWay) yield entity
 }
 
-function boxOf(line: readonly Loc[], padMeters: number) {
+export function boxOf(line: readonly Loc[], padMeters: number) {
   const lons = line.map((loc) => loc[0])
   const lats = line.map((loc) => loc[1])
   const lat = lats[0] ?? 0

@@ -479,6 +479,48 @@ function column(cases: Case[], west: number, east: number, step: number, firstId
   return { elements, last: id }
 }
 
+/**
+ * Cycle paths next to a road, for the rules that need the geometry (tagging 0.9.0): road A runs west to east with a
+ * cycle path on each side, both drawn eastward with `oneway=yes`. The south one runs with the traffic on its side
+ * (right-hand traffic), the north one against it (`sidepath_line_against_traffic`). Road B has a segregated foot and
+ * cycle path on its south side, the case of "lane from a segregated path". Seven metres apart, as a sidewalk is.
+ */
+function sidepaths(west: number, east: number, top: number, firstId: number) {
+  const elements: Element[] = []
+  let id = firstId
+  const offset = 0.000065
+  const line = (lat: number, tags: Record<string, string>) => {
+    const nodes = [west, (west + east) / 2, east].map((lon) => {
+      elements.push({ type: 'node', id: ++id, lat: round(lat), lon: round(lon), version: 1 })
+      return id
+    })
+    elements.push({ type: 'way', id: ++id, nodes, version: 1, tags })
+  }
+  const road = (name: string) => ({ highway: 'secondary', name, 'cycleway:both': 'separate' })
+  const cycleway = (name: string) => ({
+    highway: 'cycleway',
+    oneway: 'yes',
+    is_sidepath: 'yes',
+    traffic_sign: 'DE:237',
+    name,
+  })
+  line(top, road('S road A'))
+  line(top + offset, cycleway('S cycle path north, drawn against the traffic'))
+  line(top - offset, cycleway('S cycle path south, drawn with the traffic'))
+  const lower = top - 0.0004
+  line(lower, { highway: 'secondary', name: 'S road B', 'sidewalk:right': 'separate' })
+  line(lower - offset, {
+    highway: 'path',
+    bicycle: 'designated',
+    foot: 'designated',
+    segregated: 'yes',
+    is_sidepath: 'yes',
+    traffic_sign: 'DE:241-30',
+    name: 'S segregated path south of road B',
+  })
+  return { elements, last: id }
+}
+
 if (import.meta.main) {
   const failures: string[] = []
   for (const item of [...PATHS, ...ROADS, ...DIRECTIONS]) {
@@ -498,7 +540,13 @@ if (import.meta.main) {
   const paths = column(PATHS, 13.3005, 13.3017, 0.00017, 1_000_000_000)
   const roads = column(ROADS, 13.3033, 13.3053, 0.0003, paths.last)
   const directions = column(DIRECTIONS, 13.3065, 13.3085, 0.0003, roads.last)
-  const elements = [...paths.elements, ...roads.elements, ...directions.elements]
+  const besideRoads = sidepaths(13.3093, 13.3113, round(scene.bbox[3] - 0.0003), directions.last)
+  const elements = [
+    ...paths.elements,
+    ...roads.elements,
+    ...directions.elements,
+    ...besideRoads.elements,
+  ]
   // nodes first, then ways, as the OSM API answers
   elements.sort((a, b) => (a.type === b.type ? a.id - b.id : a.type === 'node' ? -1 : 1))
   const counts = { node: 0, way: 0, relation: 0 }

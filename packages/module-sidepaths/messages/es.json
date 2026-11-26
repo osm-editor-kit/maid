@@ -38,5 +38,13 @@
   "extract_refused_different_lifecycle": "Solo uno de la acera del lado {side} y el carril bici está en construcción. Extrae el carril bici solo; la acera sigue siendo una línea propia.",
   "choice_distance": "a {distance} m de la calle, {length} m de largo",
   "choice_both": "izquierda a {left} m, derecha a {right} m de la calle",
-  "extract_group_label": "Extraer vía lateral"
+  "extract_group_label": "Extraer vía lateral",
+  "lane_from_path_group_label": "Carril bici fuera del camino segregado",
+  "lane_from_path_line_label": "Carril bici como línea propia",
+  "lane_from_path_centerline_label": "Carril bici en la calle",
+  "lane_from_path_no_road": "Ninguna calle corre junto a este camino",
+  "lane_from_path_review": "Revisar a mano:",
+  "lane_from_path_path": "Camino (pasa a ser la acera)",
+  "lane_from_path_road": "Calle",
+  "lane_from_path_annotation": "Carril bici separado de un camino segregado"
 }

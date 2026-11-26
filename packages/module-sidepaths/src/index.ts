@@ -1,6 +1,7 @@
 import { defineModule } from '@osm-editor-kit/maid-core'
 import { operationGroup } from '@osm-editor-kit/maid-operations'
 import { extractOperations } from './extract-operations.ts'
+import { laneFromPathOperations } from './lane-operations.ts'
 import { m } from './messages.ts'
 import { moveSideTagsOperations } from './operations.ts'
 import { signRules } from './sign-rules.ts'
@@ -27,7 +28,14 @@ export function sidepaths() {
         group: 'structure',
         members: extractOperations,
       })
-      for (const operation of [extract, ...moveSideTagsOperations])
+      const laneFromPath = operationGroup({
+        id: 'lane-from-path',
+        label: () => m.lane_from_path_group_label(),
+        icon: 'iD-operation-extract',
+        group: 'structure',
+        members: laneFromPathOperations,
+      })
+      for (const operation of [extract, laneFromPath, ...moveSideTagsOperations])
         api.register('edit.operation', operation)
       // the traffic sign rules decide the extracted way's highway and access: load them before the first extraction
       signRules()

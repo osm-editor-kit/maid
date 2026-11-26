@@ -37,7 +37,7 @@ export function isSeparatePart(tags: Tags, prefix: SidePrefix): boolean {
   return highway === 'path' && tags.bicycle !== 'no' && sidepath
 }
 
-function locsOf(graph: Graph, way: OsmWay): Loc[] | undefined {
+export function locsOf(graph: Graph, way: OsmWay): Loc[] | undefined {
   const locs: Loc[] = []
   for (const id of way.nodes) {
     const node = graph.hasEntity(id)
@@ -48,7 +48,7 @@ function locsOf(graph: Graph, way: OsmWay): Loc[] | undefined {
 }
 
 /** Every way of the graph: the loaded ones as the edits left them, and the new ones */
-function* waysOf(graph: Graph): Generator<OsmWay> {
+export function* waysOf(graph: Graph): Generator<OsmWay> {
   const seen = new Set<string>()
   for (const [id, entity] of graph.local.entities) {
     seen.add(id)

@@ -1,10 +1,10 @@
 {
   "name": "bicycle",
-  "description": "Made-up test cases of bicycle infrastructure: every TILDA category and subcategory on its own way, paths on the left, road sides in the middle, riding directions (oneway=-1) on the right",
+  "description": "Made-up test cases of bicycle infrastructure: every TILDA category and subcategory on its own way, paths on the left, road sides in the middle, riding directions (oneway=-1) right of them, cycle paths beside roads at the far right",
   "bbox": [
     13.3,
     52.6,
-    13.309,
+    13.3115,
     52.6045
   ],
   "center": [
@@ -13,13 +13,13 @@
   ],
   "zoom": 18,
   "counts": {
-    "node": 159,
-    "way": 53,
+    "node": 174,
+    "way": 58,
     "relation": 0
   },
   "source": {
     "script": "tools/fixtures/bicycle.ts"
   },
   "attribution": "Made up for the tests, not OSM data",
-  "sha256": "56c60dd4fd35093818acee7a9eb947f6d0b04ef5cd182fe953f5b98c315ffeda"
+  "sha256": "889b9d3114b2e969bdb31ddf5122bb4054711606323c272c0daa07fb362b3a9f"
 }

@@ -38,5 +38,13 @@
   "extract_refused_different_lifecycle": "Only one of the footway on the {side} side and the cycle track is under construction. Extract the cycle track alone; the footway stays a line of its own.",
   "choice_distance": "{distance} m from the road, {length} m long",
   "choice_both": "left {left} m, right {right} m from the road",
-  "extract_group_label": "Extract side path"
+  "extract_group_label": "Extract side path",
+  "lane_from_path_group_label": "Bike lane out of the segregated path",
+  "lane_from_path_line_label": "Bike lane as a line of its own",
+  "lane_from_path_centerline_label": "Bike lane on the road",
+  "lane_from_path_no_road": "No road runs along this path",
+  "lane_from_path_review": "Check by hand:",
+  "lane_from_path_path": "Path (becomes the sidewalk)",
+  "lane_from_path_road": "Road",
+  "lane_from_path_annotation": "Took the bike lane out of a segregated path"
 }

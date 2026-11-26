@@ -20,6 +20,7 @@ import {
   resolveMappingChoice,
   roadAttributes,
   type CategoryChangePlan,
+  type LineRelation,
   type MappingChoice,
   type RequiredAttribute,
   type RequirementsProfile,
@@ -262,6 +263,8 @@ export type CardOptions = {
   edited: ReadonlySet<string>
   /** The footway question of the way itself, from the geometry (footway.ts) */
   footway?: FootwayQuestion
+  /** How the way's line runs next to its road (side-road.ts): `oneway=yes` then says with or against the traffic */
+  lineRelation?: LineRelation
 }
 
 /** The cards of a way, in the order self, left, right */
@@ -300,9 +303,12 @@ export function buildCards(tags: Tags, options: CardOptions): SideCard[] {
       choice,
       target,
       plan,
-      attributes: requiredAttributes(result, osmTags, { profile, targetCategory, edited }).filter(
-        notAGap,
-      ),
+      attributes: requiredAttributes(result, osmTags, {
+        profile,
+        targetCategory,
+        edited,
+        ...(side === 'self' && options.lineRelation ? { lineRelation: options.lineRelation } : {}),
+      }).filter(notAGap),
       roadAttributes:
         side === 'self' && !selfIsInfrastructure
           ? roadAttributes(osmTags, { profile, edited }).filter(notAGap)

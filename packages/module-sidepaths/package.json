@@ -14,6 +14,6 @@
     "@osm-editor-kit/maid-operations": "workspace:*",
     "@osm-editor-kit/maid-renderer": "workspace:*",
     "@osm-traffic-signs/converter": "0.8.0",
-    "@tilda-geo/bicycle-infrastructure-tagging": "0.8.0"
+    "@tilda-geo/bicycle-infrastructure-tagging": "0.9.0"
   }
 }

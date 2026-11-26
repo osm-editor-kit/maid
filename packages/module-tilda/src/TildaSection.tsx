@@ -69,6 +69,7 @@ import {
 import { checkIn, tildaChecksActions, useTildaChecks } from './checks-store.ts'
 import { footwayNextTo } from './footway.ts'
 import { m } from './messages.ts'
+import { lineRelationOf } from './side-road.ts'
 import {
   categoryName,
   normalizeWidthInput,
@@ -205,6 +206,8 @@ function TildaBox({ entity, editor, readOnly, onFieldFocus, profile }: TildaSect
   const graphVersion = graph.v
   // oxlint-disable-next-line react-hooks/exhaustive-deps -- graphVersion stands for the graph's content
   const footway = useMemo(() => footwayNextTo(graph, wayId), [graph, graphVersion, wayId])
+  // oxlint-disable-next-line react-hooks/exhaustive-deps -- graphVersion stands for the graph's content
+  const lineRelation = useMemo(() => lineRelationOf(graph, wayId), [graph, graphVersion, wayId])
 
   // choices that the tags reach now are done: the card shows the new category
   const open = openChoices(tags, choices)
@@ -212,6 +215,7 @@ function TildaBox({ entity, editor, readOnly, onFieldFocus, profile }: TildaSect
     profile,
     choices: open,
     edited: editedKeys(editor, wayId, tags),
+    ...(lineRelation ? { lineRelation } : {}),
     ...(footway
       ? {
           footway: {

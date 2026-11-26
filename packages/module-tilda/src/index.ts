@@ -48,3 +48,4 @@ export {
   type SideCard,
 } from './cards.ts'
 export { footwayNextTo, runsAlong, sideOf } from './footway.ts'
+export { sidepathDirectionRule } from './rules.ts'

@@ -20,7 +20,7 @@ import { sidepaths } from '@osm-editor-kit/maid-module-sidepaths'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
 import { surface } from '@osm-editor-kit/maid-module-surface'
 import { tasks } from '@osm-editor-kit/maid-module-tasks'
-import { tilda } from '@osm-editor-kit/maid-module-tilda'
+import { sidepathDirectionRule, tilda } from '@osm-editor-kit/maid-module-tilda'
 import { trafficSigns } from '@osm-editor-kit/maid-module-traffic-signs'
 import {
   turnRestrictionRules,
@@ -82,7 +82,7 @@ function editorConfig(config: Config) {
     relations(),
     // checks what was changed here: inspector section and dock view "Issues"
     // (indoor and levels, with their rules, are in apps/maid-indoor)
-    validation({ rules: [...defaultRules, ...turnRestrictionRules] }),
+    validation({ rules: [...defaultRules, ...turnRestrictionRules, sidepathDirectionRule] }),
     turnRestrictions(),
     // top bar "Background": aerial imagery and overlays under the OSM data
     background,
