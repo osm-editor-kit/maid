@@ -22,10 +22,12 @@ import {
   mappingKindLabel,
   mappingOptionRows,
   normalizeMappingChoice,
+  optionMeaningText,
   reminderText,
   renderPlanConflict,
   renderPlanReason,
   type MappingChoice,
+  type OptionMeaningText,
   type RequiredAttribute,
   type RequirementsProfile,
   type ResultSide,
@@ -43,10 +45,8 @@ import {
   gapKey,
   gapUpdate,
   mergeSides,
-  onewayChoices,
   onewayToMove,
   openChoices,
-  type OnewayMeaning,
   openCount,
   reminderCheck,
   toTagChange,
@@ -57,6 +57,7 @@ import {
   type Tags,
   type TagsUpdate,
   type TildaCheck,
+  valueForTwin,
 } from './cards.ts'
 import { checkIn, tildaChecksActions, useTildaChecks } from './checks-store.ts'
 import { footwayNextTo } from './footway.ts'
@@ -636,7 +637,7 @@ function ChangeTo({
           }}
         >
           <option value="">{m.tilda_choose_kind()}</option>
-          {groupMappingKinds().map((group) => (
+          {groupMappingKinds(card.side).map((group) => (
             <optgroup key={group.id} label={MAPPING_TARGET_GROUP_LABELS[lang][group.id]}>
               {group.kinds.map((kind) => (
                 <option key={kind.id} value={kind.id}>
@@ -765,7 +766,6 @@ function Checklist({
           key={`${attribute.id}-${attribute.key}`}
           attribute={attribute}
           twin={card.twins?.get(attribute)}
-          side={card.side}
           tags={tags}
           checkOf={checkOf}
           quickValue={quickValues[attribute.key]}
@@ -791,7 +791,6 @@ function Checklist({
 function AttributeRow({
   attribute,
   twin,
-  side,
   tags,
   checkOf,
   quickValue,
@@ -801,7 +800,6 @@ function AttributeRow({
 }: {
   attribute: RequiredAttribute
   twin: RequiredAttribute | undefined
-  side: ResultSide
   tags: Tags
   checkOf: CheckOf
   quickValue: string | undefined
@@ -825,8 +823,15 @@ function AttributeRow({
   )
   const needsInputs = attribute.state !== 'ok' && attribute.state !== 'inherited'
   const quick = attribute.state === 'missing' ? quickValue : undefined
-  // oneway: only the values that make sense here, each with what it means
-  const oneway = moved || quick || !needsInputs ? undefined : onewayChoices(attribute, side)
+  // values that need words (oneway): each with what it means here, from the package
+  const meanings =
+    moved || quick || !needsInputs || !attribute.optionMeanings
+      ? undefined
+      : attribute.options.flatMap((value) => {
+          const text = optionMeaningText(attribute, value, lang)
+          return text ? [{ value, text }] : []
+        })
+  const oneway = meanings && meanings.length > 0 ? meanings : undefined
   const buttons: string[] = moved
     ? [moved]
     : quick
@@ -909,15 +914,15 @@ function AttributeRow({
               <OnewayButton
                 key={choice.value}
                 value={choice.value}
-                meaning={choice.meaning}
-                // the left side alone: the right side keeps its default
+                text={choice.text}
+                // a value only this side offers (left with the line, contraflow) leaves the twin alone
                 onClick={() =>
                   onChange(
                     attributeUpdate(
                       tags,
                       attribute,
                       choice.value,
-                      choice.meaning === 'left_with_line' ? undefined : twin,
+                      twin && valueForTwin(attribute, twin, choice.value) ? twin : undefined,
                     ),
                   )
                 }
@@ -957,29 +962,19 @@ function AttributeRow({
   )
 }
 
-const ONEWAY_TEXTS: Record<OnewayMeaning, { label: () => string; tooltip: () => string }> = {
-  with_line: { label: m.tilda_oneway_with_line, tooltip: m.tilda_oneway_with_line_tooltip },
-  both: { label: m.tilda_oneway_both, tooltip: m.tilda_oneway_both_tooltip },
-  left_with_line: {
-    label: m.tilda_oneway_left_with_line,
-    tooltip: m.tilda_oneway_left_with_line_tooltip,
-  },
-}
-
-/** A oneway value with what it means here: the value, and the meaning in words */
+/** A value with what it means here (the package's `optionMeaningText`): the value, and the meaning in words */
 function OnewayButton({
   value,
-  meaning,
+  text,
   onClick,
 }: {
   value: string
-  meaning: OnewayMeaning
+  text: OptionMeaningText
   onClick: () => void
 }) {
-  const texts = ONEWAY_TEXTS[meaning]
   return (
-    <button type="button" className={BUTTON} title={texts.tooltip()} onClick={onClick}>
-      <code>{value}</code> · {texts.label()}
+    <button type="button" className={BUTTON} title={text.hint} onClick={onClick}>
+      <code>{value}</code> · {text.label}
     </button>
   )
 }
