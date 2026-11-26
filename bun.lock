@@ -405,7 +405,7 @@
         "@osm-editor-kit/maid-style": "workspace:*",
         "@osm-editor-kit/osm-traffic-sign-field": "workspace:*",
         "@tilda-geo/bicycle-infrastructure": "0.6.1",
-        "@tilda-geo/bicycle-infrastructure-tagging": "0.9.0",
+        "@tilda-geo/bicycle-infrastructure-tagging": "0.9.1",
         "react": "^19.3.1",
         "react-map-gl": "^8.1.3",
         "zustand": "^5.0.16",
@@ -714,7 +714,7 @@
         "@osm-editor-kit/maid-operations": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-traffic-signs/converter": "0.8.0",
-        "@tilda-geo/bicycle-infrastructure-tagging": "0.9.0",
+        "@tilda-geo/bicycle-infrastructure-tagging": "0.9.1",
       },
     },
     "packages/module-street-imagery": {
@@ -835,7 +835,7 @@
         "@osm-editor-kit/maid-ui": "workspace:*",
         "@osm-editor-kit/maid-validation": "workspace:*",
         "@tilda-geo/bicycle-infrastructure": "0.6.1",
-        "@tilda-geo/bicycle-infrastructure-tagging": "0.9.0",
+        "@tilda-geo/bicycle-infrastructure-tagging": "0.9.1",
         "react": "^19.3.1",
         "zustand": "^5.0.16",
       },
@@ -1603,7 +1603,7 @@
 
     "@tilda-geo/bicycle-infrastructure": ["@tilda-geo/bicycle-infrastructure@0.6.1", "", {}, "sha512-ayfqzt0SHAvHUbkqE5eJicU5f7ftEeHwQvI7TV7Vbt5Qpr5mVjOUvQ24lUoVuUWYPHa+ZxbI6wiBA1RFgDDihg=="],
 
-    "@tilda-geo/bicycle-infrastructure-tagging": ["@tilda-geo/bicycle-infrastructure-tagging@0.9.0", "", { "dependencies": { "@tilda-geo/bicycle-infrastructure": "0.6.1" } }, "sha512-zvY3GoRSinc7wzSsNtp7+ia+cNq7aOL4IKXfptAj2Mfyi/hMssnf3HKK5OWstiX/FkqMXIoVUQ1iUMlB3cn32A=="],
+    "@tilda-geo/bicycle-infrastructure-tagging": ["@tilda-geo/bicycle-infrastructure-tagging@0.9.1", "", { "dependencies": { "@tilda-geo/bicycle-infrastructure": "0.6.1" } }, "sha512-+Kw7zDxdy+I1r4QJK7wjEo8D4tbMKXuoivKvaLiFwrMAgOWkcqKV8w4iqVombJl62WQ2N/qBQpckzMTTzPcltA=="],
 
     "@tmcw/togeojson": ["@tmcw/togeojson@7.1.3", "", {}, "sha512-26QL68Q2Zzkmj0J6uZm5FbZPQ9V/qOC3x6/FR7BMnulPVMK3hRu+MZXJHYYJMi8ygcPfOKjhK0UGf3qdTswLLA=="],
 
