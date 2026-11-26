@@ -53,6 +53,11 @@ export type Sync = {
   flush: () => Promise<void>
   /** The retry button: reconciles again when the first one failed, else saves now */
   retry: () => Promise<void>
+  /**
+   * The person's answer to a mismatch: the account holds this list for another version of the file (other tasks or
+   * another order). Replaces the account's copy with this browser's version and statuses, so they sync again.
+   */
+  replaceRemote: () => Promise<void>
   /** The person's answer to a conflict: the account's statuses or this browser's */
   resolveConflict: (choice: 'remote' | 'local') => Promise<void>
   /** Drops the timer; later results are ignored */
@@ -137,7 +142,7 @@ export function createSync(deps: SyncDeps): Sync {
     let saved = false
     try {
       const all = await transport.list()
-      const remoteText = all[`${prefix}.${list.listKey}`]
+      const remoteText = all[`${prefix}-${list.listKey}`]
       if (remoteText !== undefined) {
         const meta = parseMeta(remoteText)
         if (meta.h !== list.orderHash || meta.c !== statuses.length) {
@@ -239,6 +244,33 @@ export function createSync(deps: SyncDeps): Sync {
         return
       }
       await push()
+    },
+    async replaceRemote() {
+      const list = store.getState().list
+      if (disposed || !list || store.getState().sync.kind !== 'mismatch' || saving) return
+      stopTimer()
+      // the same lock as push: a change meanwhile waits for the replace and is saved after it
+      saving = true
+      again = false
+      actions().setSync('saving', server)
+      const revisionAtSave = store.getState().localRevision
+      try {
+        const all = await transport.list()
+        const meta = await progress.save(list.listKey, store.getState().statuses, {
+          orderHash: list.orderHash,
+          previous: all,
+        })
+        if (store.getState().list?.listKey !== list.listKey) return
+        actions().markSaved(meta.r, meta.g, revisionAtSave)
+        started = true
+        if (!disposed) actions().setSync('saved', server)
+        // changes made while it saved go out as usual, once the lock is free
+        if (!disposed && (again || dirty())) queueMicrotask(schedule)
+      } catch (error) {
+        if (!disposed) actions().setSync(isForbidden(error) ? 'forbidden' : 'failed', server)
+      } finally {
+        saving = false
+      }
     },
     async resolveConflict(choice) {
       const conflict = store.getState().conflict

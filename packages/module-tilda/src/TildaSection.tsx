@@ -5,7 +5,14 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
 import { getLocale } from '@osm-editor-kit/maid-i18n'
 import { actionChangeTags, type OsmEntity } from '@osm-editor-kit/maid-model'
-import { notify, TagDiff, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
+import {
+  DirectionIcon,
+  type DirectionIconShape,
+  notify,
+  TagDiff,
+  type InspectorSectionProps,
+  useBearing,
+} from '@osm-editor-kit/maid-ui'
 import { isIncompleteCategoryId, type CategoryGap } from '@tilda-geo/bicycle-infrastructure'
 import {
   ATTRIBUTE_STATE_TEXTS,
@@ -22,15 +29,17 @@ import {
   mappingKindLabel,
   mappingOptionRows,
   normalizeMappingChoice,
+  optionMeaningText,
   reminderText,
   renderPlanConflict,
   renderPlanReason,
   type MappingChoice,
+  type OptionMeaningText,
   type RequiredAttribute,
   type RequirementsProfile,
   type ResultSide,
 } from '@tilda-geo/bicycle-infrastructure-tagging'
-import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { createContext, use, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react'
 import {
   attributeDone,
   attributeRank,
@@ -43,10 +52,8 @@ import {
   gapKey,
   gapUpdate,
   mergeSides,
-  onewayChoices,
   onewayToMove,
   openChoices,
-  type OnewayMeaning,
   openCount,
   reminderCheck,
   toTagChange,
@@ -57,6 +64,7 @@ import {
   type Tags,
   type TagsUpdate,
   type TildaCheck,
+  valueForTwin,
 } from './cards.ts'
 import { checkIn, tildaChecksActions, useTildaChecks } from './checks-store.ts'
 import { footwayNextTo } from './footway.ts'
@@ -106,6 +114,40 @@ export function TildaSection(props: TildaSectionProps) {
   return <TildaBox key={props.entity.id} {...props} />
 }
 
+/**
+ * The screen direction of the selected way, along its first segment, in degrees clockwise from east, with the map's
+ * turn taken off: the oneway choices show the line's drawing direction with it, so the person checks it before saying
+ * "with the line" (Tobias, 2026-11-26). The first segment, not the first-to-last chord, which misleads on a U-shaped or
+ * closed way. Undefined for a feature that is not a way.
+ */
+const LineAngle = createContext<number | undefined>(undefined)
+
+function lineAngleOf(entity: OsmEntity | undefined, graph: Editor['history']['staging']['graph']) {
+  if (!entity || entity.type !== 'way') return undefined
+  const nodes = (entity as OsmEntity & { nodes: readonly string[] }).nodes
+  const first = graph.hasEntity(nodes[0] ?? '')
+  const last = graph.hasEntity(nodes[1] ?? '')
+  const a = first && 'loc' in first ? (first.loc as [number, number]) : undefined
+  const b = last && 'loc' in last ? (last.loc as [number, number]) : undefined
+  if (!a || !b || (a[0] === b[0] && a[1] === b[1])) return undefined
+  // east-west distances shrink with the latitude; the screen's y runs down, so north is -90°
+  const dx = (b[0] - a[0]) * Math.cos((((a[1] + b[1]) / 2) * Math.PI) / 180)
+  const dy = b[1] - a[1]
+  return (Math.atan2(-dy, dx) * 180) / Math.PI
+}
+
+/** A geographic angle (north up) as it is on a map turned by `bearing` degrees */
+function screenAngle(angle: number | undefined, bearing: number) {
+  return angle === undefined ? undefined : angle - bearing
+}
+
+/** The marker of a oneway value, by what the tag value means for the line: `yes` with it, `-1` against it, `no` both */
+const ONEWAY_SHAPE: Record<string, DirectionIconShape | undefined> = {
+  yes: 'forward',
+  '-1': 'reversed',
+  no: 'both',
+}
+
 function stateText(id: string) {
   return ATTRIBUTE_STATE_TEXTS[packageLanguage()][id] ?? id
 }
@@ -147,6 +189,8 @@ function TildaBox({ entity, editor, readOnly, onFieldFocus, profile }: TildaSect
   const [showDone, setShowDone] = useState<ReadonlySet<string>>(new Set())
 
   const checks = useTildaChecks()
+  // the map's turn: the line-direction arrows point as on the screen
+  const bearing = useBearing()
   const checkOf: CheckOf = (check) => checkIn(checks, wayId, check)
   const graph = editor.history.staging.graph
   const current: OsmEntity | undefined = graph.hasEntity(wayId)
@@ -240,135 +284,137 @@ function TildaBox({ entity, editor, readOnly, onFieldFocus, profile }: TildaSect
     verified?.wayVersion !== undefined && version !== undefined && verified.wayVersion !== version
 
   return (
-    <div className="flex flex-col gap-2 text-sm" data-testid="tilda-section">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          className="text-xs text-blue-700 hover:underline dark:text-blue-400"
-          aria-expanded={showIntro}
-          onClick={() => setShowIntro(!showIntro)}
-        >
-          {m.tilda_info()}
-        </button>
-      </div>
-      {showIntro && (
-        <div className="rounded-md bg-blue-50 p-2 text-xs dark:bg-blue-950/40">
-          <p>{m.tilda_intro()}</p>
-          <p className="mt-1">{m.tilda_checks_local()}</p>
-        </div>
-      )}
-      {cards.map((card) => {
-        const collapsed = card.collapsible && !(selfExpanded ?? !!card.choice)
-        const count = openCount(card, checkOf)
-        const isEditing = editing.has(card.side) || !!card.choice
-        return (
-          <div
-            key={card.twin ? 'both' : card.side}
-            data-tilda-card={card.twin ? 'both' : card.side}
-            className="rounded-lg border border-zinc-950/10 dark:border-white/15"
-            onPointerEnter={() => showSide(card)}
-            onPointerLeave={() => showSide(undefined)}
+    <LineAngle value={screenAngle(lineAngleOf(current, graph), bearing)}>
+      <div className="flex flex-col gap-2 text-sm" data-testid="tilda-section">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="text-xs text-blue-700 hover:underline dark:text-blue-400"
+            aria-expanded={showIntro}
+            onClick={() => setShowIntro(!showIntro)}
           >
-            <CardHeader
-              card={card}
-              tags={tags}
-              collapsed={collapsed}
-              count={count}
-              isEditing={isEditing}
-              onToggleCollapsed={() => card.collapsible && setSelfExpanded(collapsed)}
-              onEdit={() => toggleEditing(card)}
-            />
-            {!collapsed && (
-              <div className="flex flex-col gap-2 p-2">
-                {card.footway && (
-                  <FootwayQuestion
-                    card={card}
-                    stored={checkOf(TRAFFIC_MODE_FOOT_CHECK)}
-                    disabled={checkDisabled}
-                    onAnswer={(side) => change({ [`traffic_mode:${side}`]: 'foot' })}
-                    onNo={() => toggleCheck(TRAFFIC_MODE_FOOT_CHECK, 'no')}
-                  />
-                )}
-                {card.gaps.map((gap) => (
-                  <GapQuestion
-                    key={gap.key}
-                    gap={gap}
-                    card={card}
-                    tags={tags}
-                    onAnswer={(value) => change(gapUpdate(gap, card, value))}
-                  />
-                ))}
-                {isEditing && (
-                  <ChangeTo
-                    card={card}
-                    tags={tags}
-                    onChoice={(next) => setChoice(card.side, next)}
-                    onApply={change}
-                  />
-                )}
-                <Checklist
-                  attributes={card.attributes}
-                  card={card}
-                  tags={tags}
-                  checkOf={checkOf}
-                  header={
-                    card.target && card.target !== card.result.category
-                      ? m.tilda_required_for({ category: categoryName(card.target) })
-                      : m.tilda_required()
-                  }
-                  showDone={showDone.has(`${card.side}-attributes`)}
-                  onToggleDone={() => toggleDone(`${card.side}-attributes`)}
-                  checkDisabled={checkDisabled}
-                  onChange={change}
-                  onCheck={toggleCheck}
-                />
-                <Checklist
-                  attributes={card.roadAttributes}
-                  card={card}
-                  tags={tags}
-                  checkOf={checkOf}
-                  quickValues={MIXED_TRAFFIC_QUICK_VALUES}
-                  showDone={showDone.has(`${card.side}-road`)}
-                  onToggleDone={() => toggleDone(`${card.side}-road`)}
-                  checkDisabled={checkDisabled}
-                  onChange={change}
-                  onCheck={toggleCheck}
-                />
-                {card.reminders.map((id) => (
-                  <Reminder
-                    key={id}
-                    id={id}
-                    stored={checkOf(reminderCheck(id))}
-                    disabled={checkDisabled}
-                    onCheck={() => toggleCheck(reminderCheck(id), '')}
-                  />
-                ))}
-              </div>
-            )}
+            {m.tilda_info()}
+          </button>
+        </div>
+        {showIntro && (
+          <div className="rounded-md bg-blue-50 p-2 text-xs dark:bg-blue-950/40">
+            <p>{m.tilda_intro()}</p>
+            <p className="mt-1">{m.tilda_checks_local()}</p>
           </div>
-        )
-      })}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          className={CHECK}
-          aria-pressed={!!verified}
-          disabled={checkDisabled !== undefined}
-          title={
-            checkDisabled ?? (verified ? m.tilda_unverify_tooltip() : m.tilda_verify_tooltip())
-          }
-          onClick={() => toggleCheck(VERIFIED, '')}
-        >
-          ✓ {m.tilda_verify()}
-        </button>
-        <span className={MUTED}>
-          {verified
-            ? m.tilda_verified_on({ date: formatDate(verified.at) }) +
-              (changedSince ? ` (${m.tilda_changed_since()})` : '')
-            : m.tilda_not_verified()}
-        </span>
+        )}
+        {cards.map((card) => {
+          const collapsed = card.collapsible && !(selfExpanded ?? !!card.choice)
+          const count = openCount(card, checkOf)
+          const isEditing = editing.has(card.side) || !!card.choice
+          return (
+            <div
+              key={card.twin ? 'both' : card.side}
+              data-tilda-card={card.twin ? 'both' : card.side}
+              className="rounded-lg border border-zinc-950/10 dark:border-white/15"
+              onPointerEnter={() => showSide(card)}
+              onPointerLeave={() => showSide(undefined)}
+            >
+              <CardHeader
+                card={card}
+                tags={tags}
+                collapsed={collapsed}
+                count={count}
+                isEditing={isEditing}
+                onToggleCollapsed={() => card.collapsible && setSelfExpanded(collapsed)}
+                onEdit={() => toggleEditing(card)}
+              />
+              {!collapsed && (
+                <div className="flex flex-col gap-2 p-2">
+                  {card.footway && (
+                    <FootwayQuestion
+                      card={card}
+                      stored={checkOf(TRAFFIC_MODE_FOOT_CHECK)}
+                      disabled={checkDisabled}
+                      onAnswer={(side) => change({ [`traffic_mode:${side}`]: 'foot' })}
+                      onNo={() => toggleCheck(TRAFFIC_MODE_FOOT_CHECK, 'no')}
+                    />
+                  )}
+                  {card.gaps.map((gap) => (
+                    <GapQuestion
+                      key={gap.key}
+                      gap={gap}
+                      card={card}
+                      tags={tags}
+                      onAnswer={(value) => change(gapUpdate(gap, card, value))}
+                    />
+                  ))}
+                  {isEditing && (
+                    <ChangeTo
+                      card={card}
+                      tags={tags}
+                      onChoice={(next) => setChoice(card.side, next)}
+                      onApply={change}
+                    />
+                  )}
+                  <Checklist
+                    attributes={card.attributes}
+                    card={card}
+                    tags={tags}
+                    checkOf={checkOf}
+                    header={
+                      card.target && card.target !== card.result.category
+                        ? m.tilda_required_for({ category: categoryName(card.target) })
+                        : m.tilda_required()
+                    }
+                    showDone={showDone.has(`${card.side}-attributes`)}
+                    onToggleDone={() => toggleDone(`${card.side}-attributes`)}
+                    checkDisabled={checkDisabled}
+                    onChange={change}
+                    onCheck={toggleCheck}
+                  />
+                  <Checklist
+                    attributes={card.roadAttributes}
+                    card={card}
+                    tags={tags}
+                    checkOf={checkOf}
+                    quickValues={MIXED_TRAFFIC_QUICK_VALUES}
+                    showDone={showDone.has(`${card.side}-road`)}
+                    onToggleDone={() => toggleDone(`${card.side}-road`)}
+                    checkDisabled={checkDisabled}
+                    onChange={change}
+                    onCheck={toggleCheck}
+                  />
+                  {card.reminders.map((id) => (
+                    <Reminder
+                      key={id}
+                      id={id}
+                      stored={checkOf(reminderCheck(id))}
+                      disabled={checkDisabled}
+                      onCheck={() => toggleCheck(reminderCheck(id), '')}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className={CHECK}
+            aria-pressed={!!verified}
+            disabled={checkDisabled !== undefined}
+            title={
+              checkDisabled ?? (verified ? m.tilda_unverify_tooltip() : m.tilda_verify_tooltip())
+            }
+            onClick={() => toggleCheck(VERIFIED, '')}
+          >
+            ✓ {m.tilda_verify()}
+          </button>
+          <span className={MUTED}>
+            {verified
+              ? m.tilda_verified_on({ date: formatDate(verified.at) }) +
+                (changedSince ? ` (${m.tilda_changed_since()})` : '')
+              : m.tilda_not_verified()}
+          </span>
+        </div>
       </div>
-    </div>
+    </LineAngle>
   )
 }
 
@@ -636,7 +682,7 @@ function ChangeTo({
           }}
         >
           <option value="">{m.tilda_choose_kind()}</option>
-          {groupMappingKinds().map((group) => (
+          {groupMappingKinds(card.side).map((group) => (
             <optgroup key={group.id} label={MAPPING_TARGET_GROUP_LABELS[lang][group.id]}>
               {group.kinds.map((kind) => (
                 <option key={kind.id} value={kind.id}>
@@ -765,7 +811,6 @@ function Checklist({
           key={`${attribute.id}-${attribute.key}`}
           attribute={attribute}
           twin={card.twins?.get(attribute)}
-          side={card.side}
           tags={tags}
           checkOf={checkOf}
           quickValue={quickValues[attribute.key]}
@@ -791,7 +836,6 @@ function Checklist({
 function AttributeRow({
   attribute,
   twin,
-  side,
   tags,
   checkOf,
   quickValue,
@@ -801,7 +845,6 @@ function AttributeRow({
 }: {
   attribute: RequiredAttribute
   twin: RequiredAttribute | undefined
-  side: ResultSide
   tags: Tags
   checkOf: CheckOf
   quickValue: string | undefined
@@ -825,8 +868,15 @@ function AttributeRow({
   )
   const needsInputs = attribute.state !== 'ok' && attribute.state !== 'inherited'
   const quick = attribute.state === 'missing' ? quickValue : undefined
-  // oneway: only the values that make sense here, each with what it means
-  const oneway = moved || quick || !needsInputs ? undefined : onewayChoices(attribute, side)
+  // values that need words (oneway): each with what it means here, from the package
+  const meanings =
+    moved || quick || !needsInputs || !attribute.optionMeanings
+      ? undefined
+      : attribute.options.flatMap((value) => {
+          const text = optionMeaningText(attribute, value, lang)
+          return text ? [{ value, text }] : []
+        })
+  const oneway = meanings && meanings.length > 0 ? meanings : undefined
   const buttons: string[] = moved
     ? [moved]
     : quick
@@ -905,19 +955,20 @@ function AttributeRow({
                 ✓ {m.tilda_check()}
               </button>
             )}
+            {oneway && <DrawnDirection />}
             {oneway?.map((choice) => (
               <OnewayButton
                 key={choice.value}
                 value={choice.value}
-                meaning={choice.meaning}
-                // the left side alone: the right side keeps its default
+                text={choice.text}
+                // a value only this side offers (left with the line, contraflow) leaves the twin alone
                 onClick={() =>
                   onChange(
                     attributeUpdate(
                       tags,
                       attribute,
                       choice.value,
-                      choice.meaning === 'left_with_line' ? undefined : twin,
+                      twin && valueForTwin(attribute, twin, choice.value) ? twin : undefined,
                     ),
                   )
                 }
@@ -957,30 +1008,45 @@ function AttributeRow({
   )
 }
 
-const ONEWAY_TEXTS: Record<OnewayMeaning, { label: () => string; tooltip: () => string }> = {
-  with_line: { label: m.tilda_oneway_with_line, tooltip: m.tilda_oneway_with_line_tooltip },
-  both: { label: m.tilda_oneway_both, tooltip: m.tilda_oneway_both_tooltip },
-  left_with_line: {
-    label: m.tilda_oneway_left_with_line,
-    tooltip: m.tilda_oneway_left_with_line_tooltip,
-  },
-}
-
-/** A oneway value with what it means here: the value, and the meaning in words */
+/** A value with what it means here (the package's `optionMeaningText`): the value, and the meaning in words */
 function OnewayButton({
   value,
-  meaning,
+  text,
   onClick,
 }: {
   value: string
-  meaning: OnewayMeaning
+  text: OptionMeaningText
   onClick: () => void
 }) {
-  const texts = ONEWAY_TEXTS[meaning]
+  // turned like the way on the map, so the arrow points where the riding would go
+  const angle = use(LineAngle)
+  const shape = ONEWAY_SHAPE[value]
   return (
-    <button type="button" className={BUTTON} title={texts.tooltip()} onClick={onClick}>
-      <code>{value}</code> · {texts.label()}
+    <button
+      type="button"
+      className={`${BUTTON} inline-flex items-center gap-1`}
+      title={text.hint}
+      onClick={onClick}
+    >
+      {shape && <DirectionIcon shape={shape} className="size-4 shrink-0" rotate={angle} />}
+      <code>{value}</code> · {text.label}
     </button>
+  )
+}
+
+/** "Line direction: →": the selected way's drawing direction, turned as on the map, before the oneway choices */
+function DrawnDirection() {
+  const angle = use(LineAngle)
+  if (angle === undefined) return null
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-300"
+      title={m.tilda_line_direction_hint()}
+      data-testid="tilda-line-direction"
+    >
+      {m.tilda_line_direction()}
+      <DirectionIcon shape="drawn" className="size-4" rotate={angle} />
+    </span>
   )
 }
 

@@ -25,9 +25,9 @@ tilda-geo turns the line of a `-1` way round when it publishes it. An editor can
   tagged two-way. The hook of a road side turns away from the road. The arrows are line patterns of the renderer
   (`maid-line-arrow-*`), because a pattern follows the layer's `line-offset` and a symbol does not.
 - **The direction comes from TILDA, not from a list in Maid.** A road side uses TILDA's `oneway` (one direction or
-  not) and `_lineReversed` (against the line), which is the port of tilda-geo's `side_line_reversed.lua`. For the way
-  itself TILDA gives `oneway=yes` also for `-1` and no `_lineReversed`, so Maid reads `oneway:bicycle` / `oneway`
-  there (draft for the package: [docs/upstream/tilda-self-line-direction.md](../upstream/tilda-self-line-direction.md)).
+  not) and `_lineReversed` (against the line), which is the port of tilda-geo's `line_direction.lua`. Since
+  `@tilda-geo/bicycle-infrastructure` 0.6.0 (2026-11-25) the way itself has `_lineReversed` too (`oneway=-1` or
+  `oneway:bicycle=-1`), so Maid reads no tag of its own for the direction.
   TILDA's guessed one-way (`implicit_yes`) gives no arrows on a way of its own: its drawing direction says nothing.
 - **Left and right do not flip.** `:left`, `:right`, `:forward` and `:backward` always follow the drawing direction,
   with `oneway=-1` too (OSM wiki, "Forward & backward, left & right"). The fields and the side overlay on hover stay as
@@ -41,3 +41,16 @@ tilda-geo turns the line of a `-1` way round when it publishes it. An editor can
   (`reports/bike-style/direction-*.png`).
 - The bicycle arrows are on top of the line, so on a cycleway with `oneway=-1` the renderer's hook peeks out from under
   the blue line. Accepted: both say the same.
+
+## Addendum 2026-11-26: Reverse turns `-1` into `yes`
+
+Asked for by Tobias. On a way whose main direction is `-1` (`oneway`, or when it gives no direction, as `no` or none, `oneway:bicycle`; a
+shared path with `oneway=no` + `oneway:bicycle=-1` counts), the edit
+menu's Reverse (V) keeps every riding direction on the ground after it turned the line: each oneway key's `-1` becomes
+`yes` and `yes` becomes `-1`, so the `-1` is gone, which is what Reverse is mostly used for there. Any other way keeps its
+oneway values, as in iD, so all of its directions turn together (Reverse of a `yes` way fixes a way drawn the wrong way
+round). Never a mix: a review found that turning only the `-1` keys made a contraflow track of a `yes` road run with
+the cars. iD keeps `-1` (its V does not touch oneway; its join flips them all, `reverseOneway`). The tag box beside the
+menu and the confirm on touch show the change. Code: `reverseAction` in `packages/operations/src/operations.ts`.
+Task files get the same through their `reverse` operation.
+

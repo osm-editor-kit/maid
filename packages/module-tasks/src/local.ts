@@ -92,6 +92,8 @@ export type FileCache = {
   save: (file: CachedFile) => Promise<void>
   load: (listKey: string) => Promise<CachedFile | undefined>
   remove: (listKey: string) => Promise<void>
+  /** Every kept file without its text, the newest first: the lists to open again */
+  list: () => Promise<Omit<CachedFile, 'text'>[]>
 }
 
 class TasksDB extends Dexie {
@@ -109,6 +111,7 @@ const OFF: FileCache = {
   save: async () => {},
   load: async () => undefined,
   remove: async () => {},
+  list: async () => [],
 }
 
 /**
@@ -139,6 +142,16 @@ export function createFileCache(name = 'maid-tasks', enabled = !isAutomated()): 
         await open().files.delete(listKey)
       } catch {
         // nothing to remove
+      }
+    },
+    async list() {
+      try {
+        const files = await open().files.toArray()
+        return files
+          .map(({ text: _text, ...rest }) => rest)
+          .toSorted((a, b) => b.savedAt - a.savedAt)
+      } catch {
+        return []
       }
     },
   }

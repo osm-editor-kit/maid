@@ -240,6 +240,47 @@ export function SidebarSection(props: { title: string; children: ReactNode }) {
   )
 }
 
+const REMEMBERED_KEY = 'maid.sidebar-open'
+
+/**
+ * The open state of the sections with a `remember` key, for this tab's session: in memory, mirrored to
+ * sessionStorage so that a reload keeps it. Storage may be missing or throw (a private window): then it lives in
+ * memory only.
+ */
+const remembered: { states: Map<string, boolean> | undefined } = { states: undefined }
+
+function rememberedStates(): Map<string, boolean> {
+  if (remembered.states) return remembered.states
+  let entries: [string, boolean][] = []
+  try {
+    const parsed: unknown = JSON.parse(sessionStorage.getItem(REMEMBERED_KEY) ?? '{}')
+    if (parsed && typeof parsed === 'object') {
+      entries = Object.entries(parsed).filter(
+        (entry): entry is [string, boolean] => typeof entry[1] === 'boolean',
+      )
+    }
+  } catch {
+    // no storage: memory only
+  }
+  remembered.states = new Map(entries)
+  return remembered.states
+}
+
+/** Whether the section with this key was left open (true), folded (false), or not touched yet (undefined) */
+export function rememberedOpen(key: string): boolean | undefined {
+  return rememberedStates().get(key)
+}
+
+export function rememberOpen(key: string, open: boolean) {
+  const states = rememberedStates()
+  states.set(key, open)
+  try {
+    sessionStorage.setItem(REMEMBERED_KEY, JSON.stringify(Object.fromEntries(states)))
+  } catch {
+    // no storage: memory only
+  }
+}
+
 /** From this many characters a heading's title may be cut in the sidebar */
 const LONG_TITLE = 30
 
@@ -258,6 +299,11 @@ export function SidebarDisclosure(props: {
   title: string
   detail?: ReactNode
   defaultOpen?: boolean
+  /**
+   * Keeps the folded or open state for the browser tab's session under this key (`rememberedOpen`): a section the
+   * mapper folded stays folded on the next feature (Tobias, 2026-11-26). Absent: every mount starts at `defaultOpen`.
+   */
+  remember?: string
   /** An icon before the title, drawn for the open or folded state (the relation sections' icon) */
   icon?: (open: boolean) => ReactNode
   /** Extra classes for the heading, merged last (for example a tinted background) */
@@ -269,7 +315,10 @@ export function SidebarDisclosure(props: {
   actions?: ReactNode
   children: ReactNode
 }) {
-  const [open, setOpen] = useState(props.defaultOpen ?? false)
+  const [open, setOpen] = useState(
+    () =>
+      (props.remember ? rememberedOpen(props.remember) : undefined) ?? props.defaultOpen ?? false,
+  )
   const id = useId()
   const headingId = `${id}-heading`
   const panelId = `${id}-panel`
@@ -292,6 +341,7 @@ export function SidebarDisclosure(props: {
   function toggle() {
     reveal.current = !open
     setOpen(!open)
+    if (props.remember) rememberOpen(props.remember, !open)
   }
 
   function onTitleClick(event: MouseEvent<HTMLButtonElement>) {
@@ -324,7 +374,11 @@ export function SidebarDisclosure(props: {
         >
           {props.icon?.(open)}
           <span
-            className="min-w-0 truncate"
+            // the title keeps its room before a word detail does (the detail is cut first), up to most of the width
+            className={twMerge(
+              'min-w-0 truncate',
+              wordDetail && hasDetail && 'max-w-[75%] shrink-0',
+            )}
             // a long title is cut: the whole one as a tooltip (a rough count, no measuring)
             title={props.title.length > LONG_TITLE ? props.title : undefined}
           >

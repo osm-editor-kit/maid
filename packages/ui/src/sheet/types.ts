@@ -110,12 +110,13 @@ export type SheetColumn = {
 
 /**
  * One change to the data. The host turns a batch into its own edit; the sheet never writes data itself.
- * `insert` comes from the trailing row: `row` is the id the new row takes (minted by the sheet).
+ * `insert` comes from the trailing row: `row` is the id the new row takes (minted by the sheet). With `after`, the row
+ * was made under that row (Cmd/Ctrl+Enter, the row menu) and goes right below it, not at the end.
  */
 export type SheetChange =
   | { type: 'set'; row: RowId; col: ColId; text: string }
   | { type: 'clear'; row: RowId; col: ColId }
-  | { type: 'insert'; row: RowId; cells: Record<ColId, string> }
+  | { type: 'insert'; row: RowId; cells: Record<ColId, string>; after?: RowId }
   | { type: 'remove'; row: RowId }
 
 /**
@@ -208,6 +209,16 @@ export type SheetState = {
   editStart: 'replace' | 'keep'
   /** The column where a run of Tabs began: Enter and Shift+Enter return to it on the next row. */
   tabOrigin: ColId | null
+  /**
+   * Rows selected on top of the range, by Cmd/Ctrl+click (as in Google Sheets). Never holds the trailing or the
+   * inserted row. Not empty means the selection is whole rows: Delete removes them and a copy takes them.
+   */
+  extraRows: RowId[]
+  /**
+   * An empty row the person made under `after` (Cmd/Ctrl+Enter, the row menu). Like the trailing row it is a position,
+   * not a row of the host: its first commit is an `insert` with `after`. It goes when the focus leaves it.
+   */
+  inserted: { id: RowId; after: RowId } | null
   /** Id of the trailing empty row (a position in the shape, not a row of the host). */
   trailingId: RowId
   /** Next number for a minted id (`t<n>`). */
@@ -215,7 +226,16 @@ export type SheetState = {
 }
 
 /** Where the focus goes when an edit ends. */
-export type EndThen = 'stay' | 'down' | 'up' | 'next' | 'previous' | 'arrowDown' | 'arrowUp'
+export type EndThen =
+  | 'stay'
+  | 'down'
+  | 'up'
+  | 'next'
+  | 'previous'
+  | 'arrowDown'
+  | 'arrowUp'
+  /** Stays on the row, and makes an empty one under it (Cmd/Ctrl+Enter while editing) */
+  | 'insertBelow'
 
 /** Every change of focus, selection and mode the reducer knows. */
 export type SheetAction =
@@ -229,6 +249,12 @@ export type SheetAction =
       wrap?: boolean
     }
   | { type: 'selectRows'; from: RowId; to?: RowId }
+  /** Cmd/Ctrl+click: adds the row to the selection, or removes it when it is in it. `col` is the clicked column. */
+  | { type: 'toggleRow'; row: RowId; col?: ColId }
+  /** An empty row under `row` (default: the active one), with the focus in its first cell */
+  | { type: 'insertBelow'; row?: RowId }
+  /** The focus left the sheet: the range collapses and an inserted row that stayed empty goes */
+  | { type: 'leave' }
   | { type: 'selectAll' }
   | { type: 'collapse' }
   | { type: 'startEdit'; how: 'replace' | 'keep' }

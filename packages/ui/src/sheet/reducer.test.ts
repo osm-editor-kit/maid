@@ -3,7 +3,9 @@ import {
   clearSelection,
   commitEdit,
   initialSheetState,
+  removeRows,
   selectedCells,
+  selectedRowIds,
   sheetReducer,
   shapeOf,
 } from './reducer.ts'
@@ -547,5 +549,248 @@ describe('shapeOf', () => {
       shapeOf(rows, columns, { trailingId: 't0', sheetReadOnly: true }).readOnly(cell('a', 'key')),
     ).toBe(true)
     expect(shape.readOnly(cell('a', 'missing'))).toBe(true)
+  })
+})
+
+describe('sheetReducer: a row inserted under another', () => {
+  it('insertBelow makes an empty row right under the active row, with the focus in its first cell', () => {
+    const next = sheetReducer(focus(cell('a', 'value')), { type: 'insertBelow' }, shape)
+    expect(next.inserted).toEqual({ id: 't1', after: 'a' })
+    expect(next.active).toEqual(cell('t1', 'key'))
+    expect(next.mode).toBe('navigate')
+    expect(next.nextId).toBe(2)
+    const grown = shapeOf(rows, columns, { trailingId: 't0', inserted: next.inserted })
+    expect(grown.rowIds).toEqual(['a', 't1', 'b', 'c', 't0'])
+  })
+
+  it('insertBelow in the middle and at the last row put the row at the right index', () => {
+    const middle = sheetReducer(focus(cell('b', 'key')), { type: 'insertBelow' }, shape)
+    expect(shapeOf(rows, columns, { trailingId: 't0', inserted: middle.inserted }).rowIds).toEqual([
+      'a',
+      'b',
+      't1',
+      'c',
+      't0',
+    ])
+    const last = sheetReducer(focus(cell('c', 'key')), { type: 'insertBelow' }, shape)
+    expect(shapeOf(rows, columns, { trailingId: 't0', inserted: last.inserted }).rowIds).toEqual([
+      'a',
+      'b',
+      'c',
+      't1',
+      't0',
+    ])
+  })
+
+  it('insertBelow with a row (the row menu) uses that row, not the active one', () => {
+    const next = sheetReducer(focus(cell('a', 'key')), { type: 'insertBelow', row: 'c' }, shape)
+    expect(next.inserted).toEqual({ id: 't1', after: 'c' })
+  })
+
+  it('nothing happens on the trailing row, on the inserted row, or without a focus', () => {
+    expect(sheetReducer(focus(cell('t0', 'key')), { type: 'insertBelow' }, shape)).toEqual(
+      focus(cell('t0', 'key')),
+    )
+    expect(sheetReducer(initialSheetState(), { type: 'insertBelow' }, shape)).toEqual(
+      initialSheetState(),
+    )
+    const once = sheetReducer(focus(cell('a', 'key')), { type: 'insertBelow' }, shape)
+    const grown = shapeOf(rows, columns, { trailingId: 't0', inserted: once.inserted })
+    expect(sheetReducer(once, { type: 'insertBelow' }, grown)).toBe(once)
+  })
+
+  it('the row goes when the focus moves off it, and stays while the focus is on it', () => {
+    const once = sheetReducer(focus(cell('a', 'key')), { type: 'insertBelow' }, shape)
+    const grown = shapeOf(rows, columns, { trailingId: 't0', inserted: once.inserted })
+    const right = sheetReducer(once, { type: 'move', dx: 1, dy: 0 }, grown)
+    expect(right.inserted).not.toBeNull()
+    const down = sheetReducer(once, { type: 'move', dx: 0, dy: 1 }, grown)
+    expect(down.inserted).toBeNull()
+    expect(down.active).toEqual(cell('b', 'key'))
+    const up = sheetReducer(once, { type: 'move', dx: 0, dy: -1 }, grown)
+    expect(up.inserted).toBeNull()
+    expect(up.active).toEqual(cell('a', 'key'))
+  })
+
+  it('the row goes when the focus leaves the sheet, and when its row is gone', () => {
+    const once = sheetReducer(focus(cell('a', 'key')), { type: 'insertBelow' }, shape)
+    expect(sheetReducer(once, { type: 'leave' }, shape).inserted).toBeNull()
+    const without = shapeOf([rowB, rowC], columns, { trailingId: 't0', inserted: once.inserted })
+    const gone = sheetReducer(
+      once,
+      { type: 'rowsChanged', previousRowIds: ['a', 't1', 'b'] },
+      without,
+    )
+    expect(gone.inserted).toBeNull()
+  })
+
+  it('a commit on the inserted row is an insert under its row, and the row keeps its id', () => {
+    const once = sheetReducer(focus(cell('a', 'key')), { type: 'insertBelow' }, shape)
+    const grown = shapeOf(rows, columns, { trailingId: 't0', inserted: once.inserted })
+    const result = commitEdit({ ...once, mode: 'edit' }, grown, rows, columns, ' access ', 'stay')
+    expect(result.batch?.changes).toEqual([
+      { type: 'insert', row: 't1', cells: { key: 'access' }, after: 'a' },
+    ])
+    expect(result.state.inserted).toBeNull()
+    expect(result.state.trailingId).toBe('t0')
+    expect(result.state.active).toEqual(cell('t1', 'key'))
+  })
+
+  it('an empty commit on the inserted row gives no batch and the row stays until the focus leaves', () => {
+    const once = sheetReducer(focus(cell('a', 'key')), { type: 'insertBelow' }, shape)
+    const grown = shapeOf(rows, columns, { trailingId: 't0', inserted: once.inserted })
+    const stay = commitEdit({ ...once, mode: 'edit' }, grown, rows, columns, '', 'stay')
+    expect(stay.batch).toBeUndefined()
+    expect(stay.state.inserted).not.toBeNull()
+    const down = commitEdit({ ...once, mode: 'edit' }, grown, rows, columns, '', 'down')
+    expect(down.batch).toBeUndefined()
+    expect(down.state.inserted).toBeNull()
+    expect(down.state.active).toEqual(cell('b', 'key'))
+  })
+
+  it('Cmd/Ctrl+Enter while editing: the text is committed and a new row opens under that row', () => {
+    const result = commitEdit(editing(cell('b', 'value')), shape, rows, columns, 'B', 'insertBelow')
+    expect(result.batch?.changes).toEqual([{ type: 'set', row: 'b', col: 'value', text: 'B' }])
+    expect(result.state.inserted).toEqual({ id: 't1', after: 'b' })
+    expect(result.state.active).toEqual(cell('t1', 'key'))
+  })
+
+  it('Cmd/Ctrl+Enter in the trailing row commits it and opens a row under the new row', () => {
+    const result = commitEdit(
+      editing(cell('t0', 'key')),
+      shape,
+      rows,
+      columns,
+      'access',
+      'insertBelow',
+    )
+    expect(result.batch?.changes).toEqual([{ type: 'insert', row: 't0', cells: { key: 'access' } }])
+    expect(result.state.trailingId).toBe('t1')
+    expect(result.state.inserted).toEqual({ id: 't2', after: 't0' })
+    expect(result.state.active).toEqual(cell('t2', 'key'))
+  })
+})
+
+describe('sheetReducer: Cmd/Ctrl+click picks single rows', () => {
+  it('a modifier click on another row adds it, and the rows so far stay selected', () => {
+    const first = focus(cell('a', 'key'))
+    const next = sheetReducer(first, { type: 'toggleRow', row: 'c', col: 'value' }, shape)
+    expect(next.active).toEqual(cell('c', 'value'))
+    expect(next.extraRows).toEqual(['a'])
+    expect(selectedRowIds(next, shape)).toEqual(['a', 'c'])
+  })
+
+  it('a modifier click on a selected row takes it out', () => {
+    const first = focus(cell('a', 'key'))
+    const both = sheetReducer(first, { type: 'toggleRow', row: 'c', col: 'key' }, shape)
+    const three = sheetReducer(both, { type: 'toggleRow', row: 'b', col: 'key' }, shape)
+    expect(selectedRowIds(three, shape)).toEqual(['a', 'b', 'c'])
+    const no = sheetReducer(three, { type: 'toggleRow', row: 'a', col: 'key' }, shape)
+    expect(selectedRowIds(no, shape)).toEqual(['b', 'c'])
+    const noActive = sheetReducer(no, { type: 'toggleRow', row: 'b', col: 'key' }, shape)
+    expect(selectedRowIds(noActive, shape)).toEqual(['c'])
+    expect(noActive.active?.row).toBe('c')
+  })
+
+  it('the only selected row cannot be taken out', () => {
+    const first = focus(cell('a', 'key'))
+    expect(sheetReducer(first, { type: 'toggleRow', row: 'a', col: 'key' }, shape)).toBe(first)
+  })
+
+  it('the trailing row and a row that is not there are not picked', () => {
+    const first = focus(cell('a', 'key'))
+    expect(sheetReducer(first, { type: 'toggleRow', row: 't0' }, shape)).toBe(first)
+    expect(sheetReducer(first, { type: 'toggleRow', row: 'zz' }, shape)).toBe(first)
+  })
+
+  it('a range with extra rows: Shift keeps the rows picked before, a plain click starts over', () => {
+    const picked = sheetReducer(
+      focus(cell('a', 'key')),
+      { type: 'toggleRow', row: 'c', col: 'key' },
+      shape,
+    )
+    expect(picked.extraRows).toEqual(['a'])
+    // the range runs from the clicked row up to b: rows b and c, plus the extra row a
+    const ranged = sheetReducer(
+      picked,
+      { type: 'activate', cell: cell('b', 'value'), extend: true },
+      shape,
+    )
+    expect(ranged.extraRows).toEqual(['a'])
+    expect(selectedRowIds(ranged, shape)).toEqual(['a', 'b', 'c'])
+    const plain = sheetReducer(picked, { type: 'activate', cell: cell('b', 'value') }, shape)
+    expect(plain.extraRows).toEqual([])
+    expect(selectedRowIds(plain, shape)).toEqual(['b'])
+  })
+
+  it('a plain move, a row handle, Select all, Escape and an edit drop the extra rows', () => {
+    const picked = sheetReducer(
+      focus(cell('a', 'key')),
+      { type: 'toggleRow', row: 'c', col: 'key' },
+      shape,
+    )
+    for (const action of [
+      { type: 'move', dx: 0, dy: -1 },
+      { type: 'selectRows', from: 'b' },
+      { type: 'selectAll' },
+      { type: 'collapse' },
+      { type: 'startEdit', how: 'keep' },
+    ] as const) {
+      expect(sheetReducer(picked, action, shape).extraRows).toEqual([])
+    }
+  })
+
+  it('a row that is gone leaves the selection', () => {
+    const picked = sheetReducer(
+      focus(cell('a', 'key')),
+      { type: 'toggleRow', row: 'c', col: 'key' },
+      shape,
+    )
+    const without = shapeOf([rowB, rowC], columns, { trailingId: 't0' })
+    const next = sheetReducer(
+      picked,
+      { type: 'rowsChanged', previousRowIds: ['a', 'b', 'c', 't0'] },
+      without,
+    )
+    expect(next.extraRows).toEqual([])
+  })
+
+  it('selectedRowIds lists the rows in table order whatever the order of the picks', () => {
+    const one = sheetReducer(
+      focus(cell('c', 'key')),
+      { type: 'toggleRow', row: 'a', col: 'key' },
+      shape,
+    )
+    expect(selectedRowIds(one, shape)).toEqual(['a', 'c'])
+  })
+
+  it('Delete removes the picked rows and the rows of the range, in one batch', () => {
+    const picked = sheetReducer(
+      focus(cell('a', 'key')),
+      { type: 'toggleRow', row: 'c', col: 'key' },
+      shape,
+    )
+    expect(clearSelection(picked, shape, rows, columns)).toEqual({
+      cause: 'delete',
+      changes: [
+        { type: 'remove', row: 'a' },
+        { type: 'remove', row: 'c' },
+      ],
+    })
+  })
+
+  it('Delete skips a read-only row', () => {
+    const locked = row('l', 'ref', '1', { readOnly: true })
+    const all = [rowA, locked, rowC]
+    const grid = shapeOf(all, columns, { trailingId: 't0' })
+    const picked = sheetReducer(
+      focus(cell('a', 'key')),
+      { type: 'toggleRow', row: 'l', col: 'key' },
+      grid,
+    )
+    expect(clearSelection(picked, grid, all, columns)?.changes).toEqual([
+      { type: 'remove', row: 'a' },
+    ])
+    expect(removeRows(['l'], all)).toBeUndefined()
   })
 })

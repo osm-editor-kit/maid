@@ -3,7 +3,7 @@
 You are writing (or checking) a task file for the Maid map editor. A task file is a list of map tasks. Each task
 points at a place on the map, shows a short title and a Markdown description, and offers one or more options. The
 mapper picks an option, and Maid shows the change before anything is saved. An option can change the tags of the
-task's features, add a new feature, or delete features. Moving features or changing their geometry is not possible. Maid does not fetch the tasks from
+task's features, add a new feature, or delete features. Moving features is not possible; the `operations` of a `tag` option change the shape of a feature in place. Maid does not fetch the tasks from
 anywhere: the file is made by a person or by a language model, then loaded into Maid.
 
 The file is a GeoJSON `FeatureCollection` with one extra top-level member, `maid_tasks`, that describes the list.
@@ -62,7 +62,8 @@ least 4 positions and its last position equals its first.
 | `id`          | string             | required. 1 to 64 characters: letters, digits, `.` `_` `:` `-`. Unique within its task.          |
 | `label`       | string             | required. 1 to 200 characters. The button text.                                                  |
 | `description` | string             | optional. Markdown, at most 10 000 characters.                                                   |
-| `action`      | string             | optional. `"tag"` (the default), `"create"` or `"delete"`. See below.                            |
+| `action`      | string             | optional. `"tag"` (the default), `"create"`, `"delete"` or `"none"`. See below.                  |
+| `operations`  | array of objects   | `tag` only, optional, at most 5. Each `{ "op": <name> }`, `op` one of `reverse`, `square`, `straighten`, `circularize`. See below. |
 | `set`         | object             | Tag key to tag value. Each key and each value 1 to 255 characters. `tag`: adds or changes tags; `create`: the tags of the new feature. |
 | `remove`      | array of strings   | `tag` only. Tag keys to delete. Each 1 to 255 characters.                                        |
 | `geometry`    | object             | `create` only, optional. Where the new feature goes: a `Point`, a `LineString` or a `Polygon` with one ring. |
@@ -79,6 +80,29 @@ roads beside it can offer one option for the sidewalk and one for the roads. Mai
 label, "this feature" for the selected one, the id for any other (hover highlights it, a click selects it), and Apply
 changes all of them in one undo step, whichever of the task's features is selected. So the text need not name them
 again. Without `osm` the option changes the selected feature.
+
+#### `operations`: editor operations before the tags
+
+A `tag` option may run editor operations on its features before it changes their tags: the same as the editor's
+commands Reverse (V), Square (Q), Straighten (S) and Circularize (O), in the order given. With `operations`, `set` and
+`remove` may both be empty. When one of the operations cannot run on the features (iD's reasons: not squarish, too
+large, …), the option cannot be applied and its button says why; nothing is changed in part. Apply is one undo step,
+operations and tags together.
+
+`reverse` turns the way and swaps the keys and values that depend on its direction (`:left` and `:right`, `:forward`
+and `:backward`, also inside a key, `direction`, `incline`), as the editor's Reverse does. On a way whose `oneway` (or, when
+that gives no direction, as `no` or none, `oneway:bicycle`) is `-1`, it keeps every riding direction on the ground: each oneway key's `-1` becomes
+`yes` and `yes` becomes `-1`. Any other way keeps its oneway values, so all its directions turn. So:
+
+- a way drawn the wrong way round with `oneway=-1`: `"operations": [{ "op": "reverse" }]` draws it the right way round
+  with `oneway=yes`, same riding direction;
+- a way with `oneway=yes` drawn against the traffic: `"operations": [{ "op": "reverse" }]` turns the riding direction.
+
+#### `"action": "none"`: an answer that changes nothing
+
+No `set`, `remove`, `operations`, `geometry` or `osm`. Picking it marks the task done with that answer, for "The
+direction is right" or "Checked, the data is right" next to the options that fix something (where "ignored" would say
+the task was skipped).
 
 #### `"action": "create"`: add a new feature
 

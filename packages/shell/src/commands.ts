@@ -1,5 +1,5 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
-import { m } from '@osm-editor-kit/maid-i18n'
+import { device, m } from '@osm-editor-kit/maid-i18n'
 import { OPERATION_GROUPS, visibleOperations } from '@osm-editor-kit/maid-operations'
 import type { Operation, OperationGroup, OperationHint } from '@osm-editor-kit/maid-operations'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
@@ -7,6 +7,7 @@ import type { MenuDetails } from '@osm-editor-kit/maid-ui'
 import type { ReactNode } from 'react'
 import { pasteAt } from './clipboard'
 import { commandIcon } from './command-icons'
+import { askOnTouch, changesDetails } from './operation-changes'
 import { modKey } from './platform'
 import { useSelection } from './selection'
 import { useEngine, useShell } from './shell-context'
@@ -210,14 +211,19 @@ export function useEditCommands(at?: { lon: number; lat: number }) {
             : operation.disabled(context)),
         run: () => {
           engine.previewOperation(null)
-          const next = engine.runOperation(operation, place)
+          // a touch device has no hover for the tag changes: it asks with them first (operation-changes.ts)
+          const next = engine.runOperation(askOnTouch(operation, device().input === 'touch'), place)
           if (next) select(next.length > 0 ? next : null)
         },
         preview: (on: boolean) => engine.previewOperation(on ? operation : null, place),
-        // asked on hover, with the data of that moment
-        details: operation.details
-          ? () => operation.details?.(engine.operationContext(place))
-          : undefined,
+        // asked on hover, with the data of that moment: what blocks it, or else the tags it changes
+        details:
+          operation.details || operation.changes
+            ? () => {
+                const at = engine.operationContext(place)
+                return operation.details?.(at) ?? changesDetails(operation.changes?.(at))
+              }
+            : undefined,
       }
     }
     const leading = applicable

@@ -24,6 +24,7 @@ import {
   codeUnits,
   DUPLICATE,
   GONE,
+  insertAfter,
   mint,
   NO_KEY,
   NONE,
@@ -257,6 +258,7 @@ function insertRow(
   id: RowId,
   cells: Record<string, string>,
   readOnlyKey: ReadOnlyKeys,
+  after?: RowId,
 ): Work {
   const key = cleanText(cells.key ?? '')
   const value = cleanText(cells.value ?? '')
@@ -270,7 +272,11 @@ function insertRow(
   const base: Work = {
     ...work,
     nextId: minted.nextId,
-    rows: [...work.rows, rowFor(minted.id, key, { kind: 'value', text: value }, false)],
+    rows: insertAfter(
+      work.rows,
+      rowFor(minted.id, key, { kind: 'value', text: value }, false),
+      after,
+    ),
   }
   return value === '' ? base : putSet(base, key, value, true)
 }
@@ -286,7 +292,7 @@ function applyChange(work: Work, change: SheetChange, readOnlyKey: ReadOnlyKeys)
       if (change.col === 'value') return setValue(work, change.row, '', readOnlyKey)
       return refuse(work, '', 'This column cannot be changed')
     case 'insert':
-      return insertRow(work, change.row, change.cells, readOnlyKey)
+      return insertRow(work, change.row, change.cells, readOnlyKey, change.after)
     case 'remove':
       return removeRow(work, change.row, readOnlyKey)
   }

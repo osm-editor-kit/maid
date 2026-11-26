@@ -60,28 +60,29 @@ const HIGHWAY = 'highway'
 /** TILDA's `oneway` values of a part that bicycles ride in one direction only */
 const ONE_DIRECTION = new Set(['yes', 'implicit_yes'])
 
+/** TILDA's `oneway` values of a part that bicycles ride both ways (`assumed_no`: nothing tagged, TILDA's default) */
+const BOTH_DIRECTIONS = new Set(['no', 'car_not_bike', 'assumed_no'])
+
 /**
- * The riding direction of a part (BikeProperties.dir), from TILDA's processing: `oneway` says whether it is one
- * direction, and for a road side `_lineReversed` says whether that direction is against the way (`oneway=-1` on the
- * road, the left side of a two-way road, `cycleway:left:oneway=-1`, ...: TILDA's own rules, tilda-geo `6ec40d600`).
- * For the way itself TILDA keeps the way's direction and gives `oneway=yes` also for `-1`, so the tag is read here:
- * `oneway:bicycle` when it makes the way one-way for bicycles, else `oneway`. TILDA's `implicit_yes` gives no arrows on
- * the way itself: a sidepath mapped as a way of its own has no direction of its own to guess from (its drawing
- * direction says nothing), unlike a road side, whose direction comes from the road.
+ * The riding direction of a part (BikeProperties.dir), from TILDA's result alone: `oneway` says whether it is one
+ * direction, `_lineReversed` whether that direction is against the way (tilda-geo `line_direction.lua`: a road side
+ * follows its side rule, the way itself runs against its line on `oneway=-1` or `oneway:bicycle=-1`). Every part
+ * with a direction gets arrows, both ways included, so no stretch of bicycle infrastructure is without them
+ * (Tobias, 2026-11-26). TILDA's `implicit_yes` gives no arrows on the way itself: a sidepath mapped as a way of its
+ * own has no direction of its own to guess from (its drawing direction says nothing), unlike a road side, whose
+ * direction comes from the road.
  */
-export function ridingDirection(
-  result: { _side: Side; oneway?: string; _lineReversed?: boolean },
-  tags: BikeWay['tags'],
-): BikeProperties['dir'] {
-  const oneway = result.oneway
-  if (result._side !== 'self') {
-    if (oneway !== undefined && ONE_DIRECTION.has(oneway)) return result._lineReversed ? -1 : 1
-    return oneway === 'no' ? 2 : undefined
-  }
-  if (oneway !== 'yes') return undefined
-  const bicycle = tags['oneway:bicycle']
-  const value = bicycle === 'yes' || bicycle === '-1' ? bicycle : tags.oneway
-  return value === '-1' ? -1 : 1
+export function ridingDirection(result: {
+  _side: Side
+  oneway?: string
+  _lineReversed?: boolean
+}): BikeProperties['dir'] {
+  const { oneway } = result
+  if (oneway === undefined) return undefined
+  const self = result._side === 'self'
+  const oneDirection = self ? oneway === 'yes' : ONE_DIRECTION.has(oneway)
+  if (oneDirection) return result._lineReversed ? -1 : 1
+  return BOTH_DIRECTIONS.has(oneway) ? 2 : undefined
 }
 
 const SIDEPATH: Record<string, BikeProperties['sidepath']> = {
@@ -222,7 +223,7 @@ export function bikeWayFeatures(way: BikeWay): BikeFeature[] {
       if (result.traffic_sign && signParts(result.traffic_sign).length > 0)
         props.sign = result.traffic_sign
       if (result.lifecycle) props.lifecycle = result.lifecycle
-      const dir = ridingDirection(result, way.tags)
+      const dir = ridingDirection(result)
       if (dir !== undefined) props.dir = dir
     }
     if (props === undefined) continue

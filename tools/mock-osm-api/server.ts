@@ -13,7 +13,8 @@
  *   /api/0.6/{node,way,relation}/ID/relations(.json) (the relations an element is a member of, as iD's download asks)
  *   /api/0.6/{node,way,relation}/ID/VERSION(.json) (the current version from the fixture; an older one only when
  *     tools/mock-osm-api/history/<scene>.json has it, written by hand for a check; else 404)
- *   /api/0.6/user/preferences(.json), PUT and DELETE /api/0.6/user/preferences/KEY (user preferences of one
+ *   /api/0.6/user/preferences(.json), PUT and DELETE /api/0.6/user/preferences/KEY (a KEY with a dot is 404, as on
+ *     OSM; user preferences of one
  *     made-up user, in memory, shared by all scenes, with OSM's limits: key and value 1..255 characters; a PUT of the
  *     whole collection is refused, as Maid must never send one). /prefs/reset empties them.
  * Task lists for the tasks module: /tasks/<name>.geojson serves fixtures/tasks/<name>.geojson.
@@ -368,6 +369,11 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
     if (!scene && path !== '/api/0.6/notes')
       return new Response('Unknown scene', { status: 404, headers: CORS })
     if (path === '/api/0.6/user/preferences' || path.startsWith('/api/0.6/user/preferences/')) {
+      // as the OSM website: its route for one preference does not match a key with a dot (Rails' default segment
+      // `[^/.?]+`), so a PUT, GET or DELETE of such a key is 404 there (found 2026-11-26)
+      const rawKey = match[2]!.slice('/api/0.6/user/preferences/'.length)
+      if (path !== '/api/0.6/user/preferences' && rawKey.includes('.'))
+        return new Response('Not found', { status: 404, headers: CORS })
       if (req.method === 'PUT' && path !== '/api/0.6/user/preferences') {
         const key = decodeURIComponent(path.slice('/api/0.6/user/preferences/'.length))
         const value = (await req.text()).replace(/\n$/, '')

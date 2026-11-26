@@ -156,3 +156,29 @@ export function colourExpression(statuses: readonly TaskStatus[]): unknown[] | s
   expression.push(STATUS_COLOUR.open)
   return expression
 }
+
+/** The ignored tasks of a list, to hand to whoever makes the next list (a chat, a script) so they leave them out */
+export type IgnoredExport = {
+  list_id: string
+  title: string
+  ignored: { task_id: string; title: string; osm: string[] }[]
+}
+
+/** The tasks with the status `ignored`, in file order, with the list they come from */
+export function ignoredTasks(file: TaskFile, statuses: readonly TaskStatus[]): IgnoredExport {
+  return {
+    list_id: file.maid_tasks.list_id,
+    title: file.maid_tasks.title,
+    ignored: file.features.flatMap((task, index) =>
+      statuses[index] === 'ignored'
+        ? [
+            {
+              task_id: task.properties.task_id,
+              title: task.properties.title,
+              osm: [...(task.properties.osm ?? [])],
+            },
+          ]
+        : [],
+    ),
+  }
+}

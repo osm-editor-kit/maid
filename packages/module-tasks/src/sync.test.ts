@@ -318,6 +318,23 @@ describe('order hash', () => {
     expect(transport.calls.filter((call) => call.method === 'PUT')).toHaveLength(writes)
   })
 
+  it("replaces the account's copy of another version when the person says so", async () => {
+    const transport = memoryTransport()
+    await saveFromOtherDevice(transport, ['done', 'done', 'done'], 'zzzzzzzz')
+    const store = openedStore(file)
+    store.getState().actions.setStatus(0, 'skipped')
+    const { sync, progress } = await startSync(store, transport)
+    expect(store.getState().sync.kind).toBe('mismatch')
+    await sync.replaceRemote()
+    expect(store.getState().sync.kind).toBe('saved')
+    expect((await metaOf(transport))?.h).toBe(orderHash(file))
+    expect((await progress.load(listKey))?.statuses).toEqual(['skipped', 'open', 'open'])
+    // from now on the changes sync as usual
+    store.getState().actions.setStatus(1, 'done')
+    sync.schedule()
+    expect(store.getState().sync.kind).toBe('pending')
+  })
+
   it('treats another task count as a mismatch too', async () => {
     const transport = memoryTransport()
     await saveFromOtherDevice(transport, ['done', 'done'])

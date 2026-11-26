@@ -3,6 +3,8 @@ import { defineModule } from '@osm-editor-kit/maid-core'
 import {
   Flyout,
   notify,
+  parseTime,
+  relativeTime,
   Time,
   type InspectorSection,
   type InspectorSectionProps,
@@ -130,7 +132,22 @@ function ElementInfo({ entity, editor }: InspectorSectionProps) {
       links: changesetRowLinks(entity.id, props.changeset, website),
     },
     { label: 'User', value: props.user, links: userRowLinks(entity.id, props.user, website) },
-    { label: 'Timestamp', value: props.timestamp, shown: <Time value={props.timestamp} /> },
+    {
+      label: 'Timestamp',
+      value: props.timestamp,
+      // the date, and under it how long ago, so neither needs the tooltip
+      shown:
+        props.timestamp === undefined ? undefined : (
+          <>
+            <div className="truncate">
+              <Time value={props.timestamp} primary="absolute" />
+            </div>
+            <div className="truncate text-zinc-500 dark:text-zinc-400">
+              <Time value={props.timestamp} primary="relative" />
+            </div>
+          </>
+        ),
+    },
   ]
   const edited = current !== original
   return (
@@ -174,7 +191,14 @@ export function elementInfo() {
         title: 'Element',
         // id, version and so on are looked at now and then: folded away until asked for
         disclosure: 'closed',
-        detail: (entity) => entity.id,
+        // folded, the heading still says who touched it last and when: id · user · how long ago
+        detail: (entity, editor) => {
+          const props = editor.history.staging.graph.hasEntity(entity.id)?.props
+          const time = parseTime(props?.timestamp)
+          // read when the inspector draws, not ticking: the open section's <Time> is the live one
+          const ago = time ? relativeTime(time, Date.now()) : undefined
+          return [entity.id, props?.user, ago].filter(Boolean).join(' · ')
+        },
         component: ElementInfo,
       }
       api.register('inspector.section', section)

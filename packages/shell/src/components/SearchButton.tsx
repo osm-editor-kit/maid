@@ -1,7 +1,7 @@
 import { MagnifyingGlassIcon, MapPinIcon } from '@heroicons/react/20/solid'
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { device, getLocale, m } from '@osm-editor-kit/maid-i18n'
-import { Flyout, listRow, toolButtonClass, Tooltip } from '@osm-editor-kit/maid-ui'
+import { Flyout, listRow, notify, toolButtonClass, Tooltip } from '@osm-editor-kit/maid-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { followActions, useFollowState, useFollowWanted } from '../location-store'
@@ -212,6 +212,17 @@ function SearchPanel() {
     setSearchOpen(false)
   }
 
+  const loadObject = (id: string) => {
+    setSearchOpen(false)
+    engine.loadEntity(id).then(
+      () => {
+        select(id)
+        engine.fitTo([id])
+      },
+      (error: unknown) => notify.failed(error),
+    )
+  }
+
   const searchPlaces = () => {
     if (!query || isAutomated()) return
     // asked once per text: a text that was asked is answered from the query, and a failure is asked again
@@ -263,13 +274,14 @@ function SearchPanel() {
         run: () => selectObject(object.id),
       })
     } else {
+      // not on the map yet: loaded by its id (iD's loadEntity), then selected and shown
       rows.push({
         key: `object-${object.id}`,
         group: 'object',
-        kind: 'info',
+        kind: 'choice',
         label: m.search_object_not_loaded({ id: object.id }),
         detail: m.search_object_not_loaded_hint(),
-        disabled: true,
+        run: () => loadObject(object.id),
       })
     }
   }

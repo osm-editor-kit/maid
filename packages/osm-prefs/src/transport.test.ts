@@ -60,9 +60,9 @@ describe('validatePref', () => {
 describe('memoryTransport', () => {
   it('accepts a value of 255 characters and refuses 256', async () => {
     const transport = memoryTransport()
-    await transport.set('maid.tasks.x', 'v'.repeat(255))
-    expect((await transport.list())['maid.tasks.x']).toBe('v'.repeat(255))
-    expect(await errorOf(transport.set('maid.tasks.x', 'v'.repeat(256)))).toMatchObject({
+    await transport.set('maid-tasks-x', 'v'.repeat(255))
+    expect((await transport.list())['maid-tasks-x']).toBe('v'.repeat(255))
+    expect(await errorOf(transport.set('maid-tasks-x', 'v'.repeat(256)))).toMatchObject({
       status: 400,
     })
   })
@@ -79,14 +79,14 @@ describe('memoryTransport', () => {
 
   it('lists, sets and removes, and records every call in order', async () => {
     const transport = memoryTransport({ 'iD.foo': 'bar' })
-    await transport.set('maid.tasks.a', '1')
-    expect(await transport.list()).toEqual({ 'iD.foo': 'bar', 'maid.tasks.a': '1' })
-    await transport.remove('maid.tasks.a')
+    await transport.set('maid-tasks-a', '1')
+    expect(await transport.list()).toEqual({ 'iD.foo': 'bar', 'maid-tasks-a': '1' })
+    await transport.remove('maid-tasks-a')
     expect(await transport.list()).toEqual({ 'iD.foo': 'bar' })
     expect(transport.calls).toEqual([
-      { method: 'PUT', key: 'maid.tasks.a' },
+      { method: 'PUT', key: 'maid-tasks-a' },
       { method: 'GET', key: null },
-      { method: 'DELETE', key: 'maid.tasks.a' },
+      { method: 'DELETE', key: 'maid-tasks-a' },
       { method: 'GET', key: null },
     ])
   })
@@ -108,10 +108,10 @@ describe('httpTransport', () => {
 
   it('lists with a GET of preferences.json and reads the preferences', async () => {
     const { fetch, calls } = fakeFetch(
-      () => new Response(JSON.stringify({ preferences: { 'iD.foo': 'bar', 'maid.tasks.a': '1' } })),
+      () => new Response(JSON.stringify({ preferences: { 'iD.foo': 'bar', 'maid-tasks-a': '1' } })),
     )
     const transport = httpTransport({ apiUrl: root, fetch })
-    expect(await transport.list()).toEqual({ 'iD.foo': 'bar', 'maid.tasks.a': '1' })
+    expect(await transport.list()).toEqual({ 'iD.foo': 'bar', 'maid-tasks-a': '1' })
     expect(calls[0]?.url).toBe(`${root}/api/0.6/user/preferences.json`)
     expect(calls[0]?.init?.method).toBe('GET')
   })
@@ -133,8 +133,8 @@ describe('httpTransport', () => {
   it('sets with a PUT on the encoded key, the value as text/plain, and the auth header', async () => {
     const { fetch, calls } = fakeFetch(() => new Response(null, { status: 200 }))
     const transport = httpTransport({ apiUrl: `${root}/`, authHeader: 'Bearer xyz', fetch })
-    await transport.set('maid.tasks.a b/c', 'b1234')
-    expect(calls[0]?.url).toBe(`${root}/api/0.6/user/preferences/maid.tasks.a%20b%2Fc`)
+    await transport.set('maid-tasks-a b/c', 'b1234')
+    expect(calls[0]?.url).toBe(`${root}/api/0.6/user/preferences/maid-tasks-a%20b%2Fc`)
     expect(calls[0]?.init?.method).toBe('PUT')
     expect(calls[0]?.init?.body).toBe('b1234')
     expect(calls[0]?.init?.headers).toEqual({
@@ -145,8 +145,8 @@ describe('httpTransport', () => {
 
   it('deletes with a DELETE on the key, and sends no auth header when none is given', async () => {
     const { fetch, calls } = fakeFetch(() => new Response(null, { status: 200 }))
-    await httpTransport({ apiUrl: root, fetch }).remove('maid.tasks.a')
-    expect(calls[0]?.url).toBe(`${root}/api/0.6/user/preferences/maid.tasks.a`)
+    await httpTransport({ apiUrl: root, fetch }).remove('maid-tasks-a')
+    expect(calls[0]?.url).toBe(`${root}/api/0.6/user/preferences/maid-tasks-a`)
     expect(calls[0]?.init?.method).toBe('DELETE')
     expect(calls[0]?.init?.headers).toEqual({})
   })
@@ -157,13 +157,13 @@ describe('httpTransport', () => {
       const transport = httpTransport({ apiUrl: root, fetch })
       let thrown: unknown
       try {
-        await transport.set('maid.tasks.a', '1')
+        await transport.set('maid-tasks-a', '1')
       } catch (error) {
         thrown = error
       }
       expect(thrown).toBeInstanceOf(PrefsHttpError)
       expect((thrown as PrefsHttpError).status).toBe(status)
-      expect((thrown as PrefsHttpError).url).toBe(`${root}/api/0.6/user/preferences/maid.tasks.a`)
+      expect((thrown as PrefsHttpError).url).toBe(`${root}/api/0.6/user/preferences/maid-tasks-a`)
     }
   })
 
@@ -178,8 +178,8 @@ describe('httpTransport', () => {
   it('never sends a PUT to the collection without a key', async () => {
     const { fetch, calls } = fakeFetch(() => new Response(null))
     const transport = httpTransport({ apiUrl: root, fetch })
-    await transport.set('maid.tasks.a', '1')
-    await transport.remove('maid.tasks.a')
+    await transport.set('maid-tasks-a', '1')
+    await transport.remove('maid-tasks-a')
     for (const call of calls.filter((entry) => entry.init?.method === 'PUT')) {
       expect(call.url).toMatch(/\/api\/0\.6\/user\/preferences\/[^/]+$/)
     }

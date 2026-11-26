@@ -7,6 +7,7 @@ import {
   OsmNode,
   OsmRelation,
   OsmWay,
+  actionChangeTags,
   actionCircularize,
   actionDeleteMultiple,
   actionDisconnect,
@@ -19,7 +20,8 @@ import {
   actionStraightenNodes,
   actionStraightenWay,
 } from '@osm-editor-kit/maid-model'
-import type { Action, DisconnectAction, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
+import { Graph } from '@osm-editor-kit/maid-model'
+import type { Action, DisconnectAction, OsmEntity } from '@osm-editor-kit/maid-model'
 import { continueOperation } from './continue.ts'
 import { deleteSegmentOperation } from './delete-segment.ts'
 import { isTooLargeToEdit } from './extent.ts'
@@ -74,6 +76,42 @@ function notApplicable(operationID: string): never {
 
 // Reverse
 
+function sameTags(a: Readonly<Record<string, string>>, b: Readonly<Record<string, string>>) {
+  const keys = Object.keys(a)
+  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key])
+}
+
+/** The oneway keys of a way: `oneway`, `oneway:bicycle`, `cycleway:right:oneway`, … */
+const ONEWAY_KEY = /(^|:)oneway(:|$)/
+
+/**
+ * iD's reverse, with one addition for a way whose main direction is `-1` (`oneway`, or when that gives no direction,
+ * as `no` or none, `oneway:bicycle`):
+ * there Reverse is used to get rid of the `-1`, so every riding direction stays on the ground: each oneway key's `-1`
+ * becomes `yes` and `yes` becomes `-1`. Any other way keeps its oneway values as in iD, so all of its directions turn
+ * together (Reverse of a `yes` way fixes a way drawn the wrong way round). Never a mix of the two. A deviation from iD
+ * (Tobias, 2026-11-26, ADR 0015).
+ */
+export function reverseAction(id: string): Action {
+  return (graph) => {
+    const reversed = actionReverse(id)(graph)
+    const entity = reversed.hasEntity(id)
+    if (!(entity instanceof OsmWay)) return reversed
+    // the first key that gives a direction: `oneway=no` gives none, so a shared path's `oneway:bicycle` decides
+    const main = [entity.tags.oneway, entity.tags['oneway:bicycle']].find(
+      (value) => value === 'yes' || value === '-1',
+    )
+    if (main !== '-1') return reversed
+    const tags = { ...entity.tags }
+    for (const key of Object.keys(tags)) {
+      if (!ONEWAY_KEY.test(key)) continue
+      if (tags[key] === '-1') tags[key] = 'yes'
+      else if (tags[key] === 'yes') tags[key] = '-1'
+    }
+    return actionChangeTags(id, tags)(reversed)
+  }
+}
+
 /** Lines (not areas) and nodes whose direction tags would change. iD offers nothing else. */
 function reverseTargets(context: OperationContext) {
   const graph = context.graph
@@ -95,6 +133,24 @@ export const reverseOperation: Operation = {
   group: 'structure',
   applies: (context) => reverseTargets(context).length > 0,
   disabled: () => undefined,
+  // the direction tags it turns (`:left` to `:right`, `forward` to `backward`, …), on the lines and on their nodes
+  changes: (context) => {
+    const before = context.graph
+    // an action may change the graph it gets (the editor passes a head graph): run it on a copy
+    let after = new Graph(before)
+    for (const entity of reverseTargets(context)) after = reverseAction(entity.id)(after)
+    // the targets and the nodes of the lines: what reverse can touch
+    const ids = reverseTargets(context).flatMap((entity) =>
+      entity instanceof OsmWay ? [...new Set(entity.nodes), entity.id] : [entity.id],
+    )
+    const features = ids.flatMap((id) => {
+      const was = before.hasEntity(id)
+      const now = after.hasEntity(id)
+      if (!was || !now || sameTags(was.tags, now.tags)) return []
+      return [{ id, label: id, before: was.tags, after: now.tags }]
+    })
+    return { title: 'Reverse changes these tags', features, submit: 'Reverse' }
+  },
   run: (context) => {
     const targets = reverseTargets(context)
     const nodes = targets.filter((entity) => entity instanceof OsmNode).length
@@ -107,7 +163,7 @@ export const reverseOperation: Operation = {
     } else {
       annotation = n === 1 ? 'Reversed a feature' : `Reversed ${n} features`
     }
-    return { actions: targets.map((entity) => actionReverse(entity.id)), annotation }
+    return { actions: targets.map((entity) => reverseAction(entity.id)), annotation }
   },
 }
 

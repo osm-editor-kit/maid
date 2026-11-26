@@ -153,6 +153,13 @@ export function replaceRow(rows: SheetRow[], id: RowId, next: SheetRow): SheetRo
   return rows.map((row) => (row.id === id ? next : row))
 }
 
+/** `next` at the end, or right under the row `after` (a row made under another one keeps its place there). */
+export function insertAfter(rows: SheetRow[], next: SheetRow, after?: RowId): SheetRow[] {
+  const index = after === undefined ? -1 : rows.findIndex((row) => row.id === after)
+  if (index < 0) return [...rows, next]
+  return [...rows.slice(0, index + 1), next, ...rows.slice(index + 1)]
+}
+
 export function mint(nextId: number, used: ReadonlySet<RowId>): { id: RowId; nextId: number } {
   let n = nextId
   while (used.has(`tag${n}`)) n++
@@ -317,6 +324,7 @@ function insertRow(
   id: RowId,
   cells: Record<string, string>,
   readOnlyKey: ReadOnlyKeys,
+  after?: RowId,
 ): Work {
   const key = cleanText(cells.key ?? '')
   const value = cleanText(cells.value ?? '')
@@ -331,7 +339,7 @@ function insertRow(
     ...work,
     nextId: minted.nextId,
     tags: value === '' ? work.tags : { ...work.tags, [key]: value },
-    rows: [...work.rows, rowOf(minted.id, key, value, false)],
+    rows: insertAfter(work.rows, rowOf(minted.id, key, value, false), after),
   }
 }
 
@@ -346,7 +354,7 @@ function applyChange(work: Work, change: SheetChange, readOnlyKey: ReadOnlyKeys)
       if (change.col === 'value') return setValue(work, change.row, '', readOnlyKey)
       return refuse(work, '', COLUMN)
     case 'insert':
-      return insertRow(work, change.row, change.cells, readOnlyKey)
+      return insertRow(work, change.row, change.cells, readOnlyKey, change.after)
     case 'remove':
       return removeRow(work, change.row, readOnlyKey)
   }

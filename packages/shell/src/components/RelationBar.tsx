@@ -10,10 +10,12 @@ import { useSelection } from '../selection'
 import { useShell } from '../shell-context'
 import { PresetIcon } from './PresetIcon'
 
-// The bar hangs from the map's bottom left corner, the pills side by side; a long bar scrolls sideways. The right edge
-// stays free for the imagery's attribution. The bar lets the pointer through to the map, its pills take it.
+// The bar hangs near the map's bottom left corner, the pills side by side; a long bar scrolls sideways. It stands above
+// the dock's tab pill, which takes the corner itself (Dock.tsx, `bottom-full left-2 mb-2`, one row of tabs): the task
+// lists' tab is always there now. The right edge stays free for the imagery's attribution. The bar lets the pointer
+// through to the map, its pills take it.
 const BAR =
-  'pointer-events-none absolute right-24 bottom-2 left-2 z-10 flex items-center gap-1.5 overflow-x-auto p-0.5'
+  'pointer-events-none absolute right-24 bottom-12 left-2 z-10 flex items-center gap-1.5 overflow-x-auto p-0.5'
 const PILL =
   'pointer-events-auto flex h-8 max-w-48 shrink-0 items-center rounded-full text-xs font-medium shadow-sm ring-1 touch:h-10'
 const PILL_IDLE =

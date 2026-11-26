@@ -76,3 +76,35 @@ describe('the Tags model: the batch is one label and one set of tags', () => {
     expect(keysOf(change.model)).toHaveLength(2)
   })
 })
+
+describe('the Tags model: a row made under another row', () => {
+  it('the new key goes right under that row and the sheet does not sort it away', () => {
+    const tags = { access: 'yes', highway: 'residential', name: 'A' }
+    const model = initialTagModel('way/1', tags)
+    const after = model.rows.rows[0]?.id
+    if (after === undefined) throw new Error('no row')
+    const batch: SheetBatch = {
+      cause: 'edit',
+      changes: [{ type: 'insert', row: 't1', cells: { key: 'zzz' }, after }],
+    }
+    const change = changeTagModel(model, tags, batch)
+    expect(change.model.rows.rows.map(rowKey)).toEqual(['access', 'zzz', 'highway', 'name'])
+    expect(change.model.order).toBe('hold')
+    expect(change.model.version).toBe(model.version)
+    expect(change.model.rows.rows[1]?.id).toBe('t1')
+  })
+
+  it('a key and a value under a row is a tag, in that place', () => {
+    const tags = { access: 'yes', name: 'A' }
+    const model = initialTagModel('way/1', tags)
+    const after = model.rows.rows[0]?.id
+    if (after === undefined) throw new Error('no row')
+    const batch: SheetBatch = {
+      cause: 'edit',
+      changes: [{ type: 'insert', row: 't1', cells: { key: 'zzz', value: '1' }, after }],
+    }
+    const change = changeTagModel(model, tags, batch)
+    expect(change.tags).toEqual({ access: 'yes', name: 'A', zzz: '1' })
+    expect(change.model.rows.rows.map(rowKey)).toEqual(['access', 'zzz', 'name'])
+  })
+})

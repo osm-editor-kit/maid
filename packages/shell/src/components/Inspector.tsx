@@ -352,7 +352,7 @@ export function Inspector() {
                 onHover={(id) => engine.setHover(id)}
               />
               {(fields.length > 0 || moreFields.length > 0) && (
-                <SidebarDisclosure title="Fields" defaultOpen>
+                <SidebarDisclosure title="Fields" defaultOpen remember="fields">
                   <PresetFields
                     // picked fields belong to the feature: a new feature starts with none
                     key={id}
@@ -384,6 +384,7 @@ export function Inspector() {
               )}
               <SidebarDisclosure
                 title="Tags"
+                remember="tags"
                 detail={Object.keys(entity.tags).length}
                 defaultOpen
                 actions={<CopyTagsButton tags={entity.tags} />}

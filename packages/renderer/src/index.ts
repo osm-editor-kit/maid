@@ -74,3 +74,12 @@ export { showsDirectionRotateHint } from '@osm-editor-kit/maid-operations'
 
 // how far a click or a corner reaches to snap to a node or a way, in screen pixels
 export { SNAP_PX, type SnapTarget } from './snap'
+// the direction markers as SVG path data: the files in assets/direction and the ui's DirectionIcon
+export {
+  DIRECTION_SHAPES,
+  DIRECTION_VIEWBOX,
+  directionParts,
+  directionSvg,
+  type DirectionPart,
+  type DirectionShape,
+} from './direction-svg'

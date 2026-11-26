@@ -85,6 +85,12 @@ export function useShortcuts() {
     if (stack && current) select(stepStackId(stack.ids, current, step) ?? null)
   }
 
+  const stepUnlessTyping = (event: KeyboardEvent, step: 1 | -1) => {
+    if (isTypingTarget(document.activeElement)) return
+    event.preventDefault()
+    stepStack(step)
+  }
+
   const finishDrawing = () => {
     const finished = engine.draw.finish()
     if (finished) afterDrawing(engine, finished, engine.mode)
@@ -145,8 +151,18 @@ export function useShortcuts() {
     { hotkey: '1', callback: () => engine.setMode('add-point') },
     { hotkey: '2', callback: () => engine.setMode('draw-line') },
     { hotkey: '3', callback: () => stepAreaTool(engine, drawTools) },
-    { hotkey: ',', callback: () => stepStack(-1), options: { enabled: stackShown } },
-    { hotkey: '.', callback: () => stepStack(1), options: { enabled: stackShown } },
+    // also while the edit menu has the focus: the hotkey library leaves typed characters to a focused menu (its
+    // type-to-find), but the edit menu has none and its marker says , and . step. A text field keeps them.
+    {
+      hotkey: ',',
+      callback: (event) => stepUnlessTyping(event, -1),
+      options: { enabled: stackShown, ignoreInputs: false, preventDefault: false },
+    },
+    {
+      hotkey: '.',
+      callback: (event) => stepUnlessTyping(event, 1),
+      options: { enabled: stackShown, ignoreInputs: false, preventDefault: false },
+    },
     { hotkey: 'M', callback: () => engine.setMode('move') },
     { hotkey: 'R', callback: () => engine.setMode('rotate') },
     {
@@ -205,4 +221,12 @@ export function useShortcuts() {
     })),
   ]
   useHotkeys(keys, { ignoreInputs: true })
+}
+
+/** Whether the focus is in a text field, which keeps the keys it types (, and . in a tag value) */
+function isTypingTarget(element: Element | null) {
+  return (
+    element instanceof HTMLElement &&
+    (element.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(element.tagName))
+  )
 }

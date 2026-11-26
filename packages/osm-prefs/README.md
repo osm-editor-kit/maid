@@ -17,13 +17,13 @@ later become its own npm package. Nothing in it sends a request on its own: the 
 
 ## Key layout
 
-All keys start with the prefix (default `maid.tasks`). A list has an 8-character key, `listKeyOf(listId)`:
+All keys start with the prefix (default `maid-tasks`, no dots: the OSM website answers 404 for a key with one). A list has an 8-character key, `listKeyOf(listId)`:
 FNV-1a of the id, in base 36.
 
 | Key                              | Value                                                         |
 | -------------------------------- | ------------------------------------------------------------- |
-| `maid.tasks.<listKey>`           | the meta: compact JSON, the commit point                      |
-| `maid.tasks.<listKey>.<slot>.<i>` | chunk `i` of the text, in slot `a` or `b` (double buffer)     |
+| `maid-tasks-<listKey>`           | the meta: compact JSON, the commit point                      |
+| `maid-tasks-<listKey>-<slot>-<i>` | chunk `i` of the text, in slot `a` or `b` (double buffer)     |
 
 The meta is `{"v":1,"s":"a","n":3,"c":2000,"r":7,"u":1700000000,"h":"<8 chars>","g":"<8 chars>"}`: `v` format
 version, `s` active slot, `n` chunk count, `c` task count, `r` revision (+1 per save), `u` time of the save (unix

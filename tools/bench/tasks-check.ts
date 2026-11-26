@@ -42,9 +42,9 @@ const put = (key: string, value: string) => fetch(`${PREFS}/${key}`, { method: '
 // before the page opens: the preferences hold one list nobody touched for 40 days (3 open tasks)
 await fetch(`${MOCK}/prefs/reset`)
 const staleSeconds = Math.floor(Date.now() / 1000) - 40 * 24 * 3600
-await put('maid.tasks.stale001.a.0', 'bAA')
+await put('maid-tasks-stale001-a-0', 'bAA')
 await put(
-  'maid.tasks.stale001',
+  'maid-tasks-stale001',
   JSON.stringify({ v: 1, s: 'a', n: 1, c: 3, r: 1, u: staleSeconds, h: 'abcd1234' }),
 )
 
@@ -84,7 +84,7 @@ const code = await runCheck(
       1,
       await byId('tasks-cleanup-row-stale001').count(),
     )
-    report('nothing is deleted before the click', true, 'maid.tasks.stale001' in (await prefs()))
+    report('nothing is deleted before the click', true, 'maid-tasks-stale001' in (await prefs()))
     await byId('tasks-cleanup-delete-stale001').click()
     await page.waitForTimeout(500)
     const afterCleanup = Object.keys(await prefs()).filter((key) => key.includes('stale001'))
@@ -95,9 +95,9 @@ const code = await runCheck(
     // --- the list from the URL ---
     await byId('tasks-view').waitFor({ timeout: 15_000 })
     report(
-      'the dock has the "Tasks" tab',
+      'the dock has the "Task lists (n)" tab',
       1,
-      await page.getByRole('tab', { name: 'Tasks' }).count(),
+      await page.getByRole('tab', { name: /^Task lists \(\d+\)$/ }).count(),
     )
     report(
       '40 tasks, all open',
@@ -116,8 +116,35 @@ const code = await runCheck(
     await settle()
     const selected = await page.evaluate(() => new URL(location.href).searchParams.get('id'))
     report('a row selects the way of its task', true, JSON.stringify(selected).includes(wayId))
+    // the inspector only points to the task; the task itself is in the dock beside the list
     await byId('tasks-section').waitFor({ timeout: 5_000 })
-    report('the inspector shows the task', 1, await byId(`tasks-content-${first.task_id}`).count())
+    report(
+      'the inspector points to the task, the dock shows it',
+      [1, 0, 1],
+      [
+        await byId(`tasks-hint-${first.task_id}`).count(),
+        await byId('tasks-section')
+          .locator(`[data-testid="tasks-content-${first.task_id}"]`)
+          .count(),
+        await byId('tasks-detail')
+          .locator(`[data-testid="tasks-content-${first.task_id}"]`)
+          .count(),
+      ],
+    )
+    // a click elsewhere on the map: the task stays, and "Select its feature" brings its way back
+    await page.evaluate(() => window.__maid.engine.setSelected([]))
+    await settle()
+    const kept = await byId('tasks-detail')
+      .locator(`[data-testid="tasks-content-${first.task_id}"]`)
+      .count()
+    await byId('tasks-show').click()
+    await settle()
+    const back = await page.evaluate(() => new URL(location.href).searchParams.get('id'))
+    report(
+      'the task stays without a selection, and its button selects the way again',
+      [1, true],
+      [kept, JSON.stringify(back).includes(wayId)],
+    )
 
     const before = await tags(wayId)
     const option = first.options!.find(
@@ -157,7 +184,7 @@ const code = await runCheck(
     await waitSaved().catch(() => undefined)
     report('the sync says saved', 'saved', await byId('tasks-sync').getAttribute('data-sync-kind'))
     const stored = await prefs()
-    const ours = Object.entries(stored).filter(([key]) => key.startsWith('maid.tasks.'))
+    const ours = Object.entries(stored).filter(([key]) => key.startsWith('maid-tasks-'))
     report('the progress is a meta key and chunks', true, ours.length >= 2)
     report(
       'every key and value is within 255 characters',
@@ -386,7 +413,7 @@ const code = await runCheck(
         }),
     )
     await waitSaved().catch(() => undefined)
-    const bigKeys = Object.keys(await prefs()).filter((k) => k.startsWith('maid.tasks.'))
+    const bigKeys = Object.keys(await prefs()).filter((k) => k.startsWith('maid-tasks-'))
     timings.prefKeysAfter = bigKeys.length
     report(
       '20 000 tasks: a status change is saved',

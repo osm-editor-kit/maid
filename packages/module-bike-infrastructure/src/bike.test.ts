@@ -141,18 +141,19 @@ describe('riding direction', () => {
         return `${p.side}:${p.dir ?? '-'}`
       })
 
-  test('the way itself: with the line for oneway=yes, against it for -1, no arrows when both ways', () => {
+  test('the way itself: with the line for oneway=yes, against it for -1, both ways when nothing says one way', () => {
     const cycleway = { highway: 'cycleway', traffic_sign: 'DE:237' }
     expect(dirs({ ...cycleway, oneway: 'yes' })).toEqual(['self:1'])
     // TILDA gives oneway=yes for -1 too: the tag decides
     expect(dirs({ ...cycleway, oneway: '-1' })).toEqual(['self:-1'])
-    expect(dirs(cycleway)).toEqual(['self:-'])
+    // nothing tagged: TILDA assumes both ways, and the line shows it
+    expect(dirs(cycleway)).toEqual(['self:2'])
     const path = { highway: 'path', bicycle: 'designated', foot: 'designated', segregated: 'no' }
     expect(dirs({ ...path, oneway: 'no', 'oneway:bicycle': '-1' })).toEqual(['self:-1'])
     // cars one way against the line, bicycles both ways
     expect(
       dirs({ highway: 'residential', bicycle_road: 'yes', oneway: '-1', 'oneway:bicycle': 'no' }),
-    ).toEqual(['self:-'])
+    ).toEqual(['self:2'])
     expect(dirs({ highway: 'residential', bicycle_road: 'yes', oneway: '-1' })).toEqual(['self:-1'])
   })
 

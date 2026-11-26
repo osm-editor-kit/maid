@@ -11,10 +11,10 @@ import { isApplied } from '@osm-editor-kit/maid-tasks'
 import { Dialog, openDockView, usePrefsEndpoint } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef, useState } from 'react'
 import { cleanupOffers } from './cleanup.ts'
-import { DOCK_VIEW } from './LoadTasksItem.tsx'
+import { DOCK_VIEW } from './dock-view.ts'
 import { m } from './messages.ts'
 import { openTaskText, type OpenDeps, restoreLastList } from './open.ts'
-import type { Shared } from './shared.ts'
+import { type Shared, setSharedEngine } from './shared.ts'
 import { useTasks, type TasksStore } from './store.ts'
 import { createSync, type Sync } from './sync.ts'
 import { fileNameOfUrl } from './url.ts'
@@ -50,9 +50,9 @@ export function createTasksController(
     const progressRef = useRef<ProgressStore | undefined>(undefined)
 
     useEffect(() => {
-      shared.engine = engine
+      setSharedEngine(shared, engine)
       return () => {
-        shared.engine = undefined
+        setSharedEngine(shared, undefined)
       }
     }, [engine])
 
@@ -101,6 +101,11 @@ export function createTasksController(
         store.getState().actions.followApplied(({ change }) => {
           if (change.kind === 'delete') return change.entityIds.every((id) => !graph.hasEntity(id))
           if (change.kind === 'create') return graph.hasEntity(change.entityId) !== undefined
+          if (change.kind === 'none') return true
+          if (change.kind === 'edit') {
+            const at = editor.history.history.indexOf(change.edit as never)
+            return at >= 0 && at <= editor.history.index
+          }
           return change.entityIds.every((id) => {
             const entity = graph.hasEntity(id)
             return entity !== undefined && isApplied(entity.tags, change.option)
@@ -129,6 +134,7 @@ export function createTasksController(
       syncRef.current = sync
       progressRef.current = progress
       shared.retry = () => void sync.retry()
+      shared.replaceRemote = () => void sync.replaceRemote()
       const unsubscribe = store.subscribe((state, previous) => {
         if (state.statuses !== previous.statuses && state.localRevision > state.ackedRevision) {
           sync.schedule()
@@ -169,6 +175,7 @@ export function createTasksController(
         syncRef.current = undefined
         progressRef.current = undefined
         shared.retry = undefined
+        shared.replaceRemote = undefined
       }
     }, [list, endpoint, editor])
 

@@ -160,6 +160,7 @@ export {
   type FieldTagEdit,
 } from './inspector/fields/shared.ts'
 export { Brand, TopBar } from './TopBar.tsx'
+export { DirectionIcon, type DirectionIconShape } from './DirectionIcon.tsx'
 export { Time } from './Time.tsx'
 export {
   absoluteTime,

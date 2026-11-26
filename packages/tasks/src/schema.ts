@@ -83,9 +83,29 @@ export const geometrySchema = z.discriminatedUnion('type', [
 /** A GeoJSON geometry of one of the five types */
 export type Geometry = z.infer<typeof geometrySchema>
 
-/** What an option does: change the tags of the task's feature, add a new feature, or delete features */
-export const OPTION_ACTIONS = ['tag', 'create', 'delete'] as const
+/**
+ * What an option does: change the tags of the task's feature (and run editor operations on it), add a new feature,
+ * delete features, or nothing (`none`: an answer that only records the choice, "the data is right")
+ */
+export const OPTION_ACTIONS = ['tag', 'create', 'delete', 'none'] as const
 export type OptionAction = (typeof OPTION_ACTIONS)[number]
+
+/**
+ * The editor operations a `tag` option may run on its features before it changes their tags, as the edit menu's
+ * commands: Reverse (V; on a way whose `oneway` is -1 it keeps the riding directions, see FORMAT.md), Square (Q), Straighten (S), Circularize (O). Only operations that keep
+ * the feature and its id; more can come as `{ op, ... }` objects without a new format.
+ */
+export const TASK_OPERATIONS = ['reverse', 'square', 'straighten', 'circularize'] as const
+export type TaskOperation = (typeof TASK_OPERATIONS)[number]
+/** The most operations one option runs */
+export const MAX_OPERATIONS = 5
+
+const operationSchema = z.looseObject({
+  op: z.enum(
+    TASK_OPERATIONS,
+    `op must be one of ${TASK_OPERATIONS.map((op) => `"${op}"`).join(', ')}`,
+  ),
+})
 
 const osmRefSchema = z
   .string()
@@ -117,7 +137,13 @@ export const taskOptionSchema = z
     label: textField('label', MAX_TITLE),
     /** Markdown; optional */
     description: markdownField('option description').optional(),
-    action: z.enum(OPTION_ACTIONS, 'action must be "tag", "create" or "delete"').optional(),
+    action: z.enum(OPTION_ACTIONS, 'action must be "tag", "create", "delete" or "none"').optional(),
+    /** `tag` only: editor operations on the features, in this order, before `set` and `remove` */
+    operations: z
+      .array(operationSchema)
+      .min(1)
+      .max(MAX_OPERATIONS, `at most ${MAX_OPERATIONS} operations`)
+      .optional(),
     set: z
       .record(
         textField('a tag key in set', MAX_TAG_TEXT),
@@ -142,6 +168,15 @@ export const taskOptionSchema = z
       ctx.addIssue({ code: 'custom', message: why, path: [field], input: option })
     if (action !== 'create' && option.geometry !== undefined)
       refuse('geometry', 'only a "create" option has a geometry')
+    if (action !== 'tag' && option.operations !== undefined)
+      refuse('operations', 'only a "tag" option runs operations')
+    if (action === 'none') {
+      if (option.set !== undefined) refuse('set', 'a "none" option changes nothing: no set')
+      if (option.remove !== undefined)
+        refuse('remove', 'a "none" option changes nothing: no remove')
+      if (option.osm !== undefined) refuse('osm', 'a "none" option changes nothing: no osm')
+      return
+    }
     if (action === 'create' && option.osm !== undefined)
       refuse('osm', 'a "create" option has no osm references')
     if (action === 'create') {
@@ -164,10 +199,10 @@ export const taskOptionSchema = z
       })
       return
     }
-    if (Object.keys(set).length === 0 && remove.length === 0) {
+    if (Object.keys(set).length === 0 && remove.length === 0 && option.operations === undefined) {
       ctx.addIssue({
         code: 'custom',
-        message: 'an option needs at least one tag in set or remove',
+        message: 'an option needs at least one tag in set or remove, or operations',
         input: option,
       })
     }

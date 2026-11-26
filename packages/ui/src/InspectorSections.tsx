@@ -57,6 +57,7 @@ export function InspectorSections({
               title={section.title}
               detail={section.detail?.(entity, editor)}
               defaultOpen={section.disclosure === 'open'}
+              remember={`section:${section.id}`}
               icon={
                 section.tone === 'relation'
                   ? (open) => (

@@ -23,11 +23,14 @@ MultiPolygon; `[lon, lat]`) and `properties` with `task_id`, `title`, `descripti
 
 | `action` | Fields | What Maid does |
 | --- | --- | --- |
-| `tag` (default) | `set` and/or `remove`, optional `osm` (a subset of the task's) | changes the tags of the features in `osm` (one undo step), else of the selected task feature, with a tag diff. Give `osm` whenever a task has several features: Maid then shows each option's features beside its label, so the texts need not name them ("Für den ausgewählten Gehweg way/…" is redundant) |
+| `tag` (default) | `set` and/or `remove`, and/or `operations` (`[{"op": "reverse"}]`; also `square`, `straighten`, `circularize`, run first), optional `osm` (a subset of the task's) | changes the tags of the features in `osm` (one undo step), else of the selected task feature, with a tag diff. Give `osm` whenever a task has several features: Maid then shows each option's features beside its label, so the texts need not name them ("Für den ausgewählten Gehweg way/…" is redundant) |
 | `create` | `set` (the new tags), optional `geometry` | adds a node, a way or a closed way at the option's or the task's geometry |
 | `delete` | optional `osm` (a subset of the task's) | deletes the task's nodes and ways as iD's Delete does |
+| `none` | nothing else | records the answer ("the direction is right") and marks the task done |
 
-Moving features and changing geometry are not offered.
+`reverse` on a way whose `oneway` (or, when it is `no` or missing, `oneway:bicycle`) is `-1` keeps every riding direction (`-1` becomes `yes`, line
+turned); on any other way it keeps the oneway values, so a `yes` way drawn against the traffic gets its direction turned.
+Moving features is not offered.
 
 ## Markdown
 

@@ -50,6 +50,13 @@ export type AppliedTask = {
   optionId: string
   change:
     | { kind: 'tag'; entityIds: string[]; option: Pick<TaskOption, 'set' | 'remove'> }
+    /**
+     * An option with operations: done while its edit is in effect, that is still in the history at or before the
+     * current position (an undo of it, or a new edit after undoing it, ends that). Its shape cannot be read from the tags.
+     */
+    | { kind: 'edit'; edit: object }
+    /** An answer without a change: stays applied, it records which answer was picked */
+    | { kind: 'none' }
     | { kind: 'create'; entityId: string }
     | { kind: 'delete'; entityIds: string[] }
   /** The status before Apply */

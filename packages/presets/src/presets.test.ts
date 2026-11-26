@@ -369,9 +369,10 @@ describe('search', () => {
     const elapsed = performance.now() - start
     console.log(`1,000 searches: ${elapsed.toFixed(1)} ms (${found} results)`)
     // about 0.2 ms per search alone; the check runs tests next to the type-check and the linter,
-    // which made it 1.2 ms. The bound only catches a search that scans far more than it should.
-    expect(elapsed).toBeLessThan(5000)
-  })
+    // which made it 1.2 ms, and a shared CI runner once 6 ms (2026-11-26). The bound only catches a search that
+    // scans far more than it should, so it leaves room for a slow machine.
+    expect(elapsed).toBeLessThan(15_000)
+  }, 30_000)
 })
 
 describe('applyPreset', () => {

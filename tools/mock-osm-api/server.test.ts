@@ -233,13 +233,13 @@ describe('an element at a version', () => {
     const prefs = '/s/small/api/0.6/user/preferences'
     test('a key is set, read, listed and deleted; reset empties all', async () => {
       await get('/prefs/reset')
-      expect((await get(`${prefs}/maid.tasks.x`, { method: 'PUT', body: 'abc' })).status).toBe(200)
-      expect(await (await get(`${prefs}/maid.tasks.x`)).text()).toBe('abc')
+      expect((await get(`${prefs}/maid-tasks-x`, { method: 'PUT', body: 'abc' })).status).toBe(200)
+      expect(await (await get(`${prefs}/maid-tasks-x`)).text()).toBe('abc')
       expect((await (await get(`${prefs}.json`)).json()).preferences).toEqual({
-        'maid.tasks.x': 'abc',
+        'maid-tasks-x': 'abc',
       })
-      expect((await get(`${prefs}/maid.tasks.x`, { method: 'DELETE' })).status).toBe(200)
-      expect((await get(`${prefs}/maid.tasks.x`)).status).toBe(404)
+      expect((await get(`${prefs}/maid-tasks-x`, { method: 'DELETE' })).status).toBe(200)
+      expect((await get(`${prefs}/maid-tasks-x`)).status).toBe(404)
       await get(`${prefs}/a`, { method: 'PUT', body: 'b' })
       await get('/prefs/reset')
       expect((await (await get(`${prefs}.json`)).json()).preferences).toEqual({})

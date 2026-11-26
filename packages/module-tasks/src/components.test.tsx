@@ -9,7 +9,10 @@ import { createTasksView } from './TasksView.tsx'
 import { makeFile, openedStore, renderable } from './test-support.ts'
 
 const render = server.renderToStaticMarkup as (node: ReactElement) => string
-const editor = {} as Editor
+// the dock reads the graph and follows its changes: an empty graph that never changes
+const editor = {
+  history: { staging: { graph: { hasEntity: () => undefined } }, on: () => () => {} },
+} as unknown as Editor
 
 const file = makeFile([{ id: 'with-option', osm: ['way/1'], options: true }, { id: 'plain' }])
 
@@ -124,10 +127,12 @@ describe('TasksView', () => {
     expect(out).not.toContain('tasks-apply-fix')
   })
 
-  it('leaves the current task to the inspector when its feature is selected', () => {
+  it('keeps the current task beside the list when its feature is selected too', () => {
     const Tasks = View(openedStore(file))
     const out = render(<Tasks {...props} selected={['w1']} />)
-    expect(out).not.toContain('data-testid="tasks-current"')
+    expect(out).toContain('data-testid="tasks-current"')
+    expect(out).toContain('data-testid="tasks-next"')
+    expect(out).toContain('data-testid="tasks-show"')
   })
 
   it('draws at most 200 rows and offers Show more', () => {

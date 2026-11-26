@@ -332,9 +332,13 @@ export function sidesMatch(
   return left.attributes.every((a, i) => {
     const b = right.attributes[i]
     if (!b) return false
-    // an untagged default may read differently per side and mean the same (`oneway`: -1 left, yes right)
+    // an untagged default may read differently per side and mean the same (`oneway`: -1 left, yes right,
+    // both "with the traffic on this side"); the sides may offer other values, which stay on their side
+    const meaning = (attribute: RequiredAttribute) =>
+      attribute.tilda === undefined ? undefined : attribute.optionMeanings?.[attribute.tilda]
     const sameTilda =
-      a.tilda === b.tilda || (a.state === 'assumed' && a.options.join() === b.options.join())
+      a.tilda === b.tilda ||
+      (a.state === 'assumed' && meaning(a) !== undefined && meaning(a) === meaning(b))
     return (
       a.id === b.id &&
       a.state === b.state &&
@@ -367,30 +371,13 @@ export function mergeSides(
     .map((card) => (card === left ? { ...left, twin: right, twins } : card))
 }
 
-/** What a oneway value means where it is offered; the words are chosen in the section */
-export type OnewayMeaning = 'with_line' | 'both' | 'left_with_line'
-
 /**
- * The oneway values worth offering, with what they mean (the wiki defaults, see tilda-geo's campaign
- * "Fahrtrichtung der Radinfrastruktur prüfen", Key:cycleway:right:oneway#Implicit_values):
- * - a way of its own: `yes` or `no`, never `-1`: a way that is ridden against its line is reversed instead
- * - a road side: the direction follows from the side, so `no` (both ways); on a left side whose default is `-1`
- *   also `yes`, for a lane on the left that is ridden with the line. No other case needs a direction.
- * Undefined for every other attribute: its own options stay.
+ * Whether a value of a merged card's row goes to the twin side too: where it means the same there
+ * (`no`, both ways). A value only one side offers (`yes` left with the line, `-1` contraflow) stays on
+ * its side. Rows without meanings go to both, as before.
  */
-export function onewayChoices(
-  attribute: RequiredAttribute,
-  side: ResultSide,
-): { value: string; meaning: OnewayMeaning }[] | undefined {
-  if (attribute.id !== 'oneway') return undefined
-  if (side === 'self')
-    return [
-      { value: 'yes', meaning: 'with_line' },
-      { value: 'no', meaning: 'both' },
-    ]
-  const fallback = attribute.default?.split('=')[1] ?? attribute.tilda
-  const choices: { value: string; meaning: OnewayMeaning }[] = [{ value: 'no', meaning: 'both' }]
-  if (side === 'left' && fallback === '-1')
-    choices.push({ value: 'yes', meaning: 'left_with_line' })
-  return choices
+export function valueForTwin(attribute: RequiredAttribute, twin: RequiredAttribute, value: string) {
+  if (!attribute.optionMeanings) return true
+  const meaning = attribute.optionMeanings[value]
+  return meaning !== undefined && twin.optionMeanings?.[value] === meaning
 }

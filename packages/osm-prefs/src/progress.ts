@@ -4,22 +4,24 @@
  * keys in one of two slots, `a` or `b`. A save writes the inactive slot, then the meta, then removes the
  * old chunks. The meta names the active slot, so until the meta is written the old state stays readable.
  *
- * Keys: `<prefix>.<listKey>` (the meta) and `<prefix>.<listKey>.<slot>.<index>` (a chunk). Nothing else is
- * written, and no function touches a key outside the prefix.
+ * Keys: `<prefix>-<listKey>` (the meta) and `<prefix>-<listKey>-<slot>-<index>` (a chunk). Nothing else is
+ * written, and no function touches a key outside the prefix. No dots: the OSM website's routes for one preference
+ * (`resources :user_preferences, :param => :preference_key`) do not match a key with a dot, so a PUT of one answers
+ * 404 (found 2026-11-26; every save to the real server failed with the dotted keys of before).
  */
 import { splitValue } from './chunks.ts'
 import { decodeStatuses, encodeStatuses, type TaskStatus } from './codec.ts'
 import { PREF_LIMITS, type PrefsTransport } from './transport.ts'
 
 /** The key prefix when none is given. Each app with its own progress can use its own prefix. */
-export const DEFAULT_PREFIX = 'maid.tasks'
+export const DEFAULT_PREFIX = 'maid-tasks'
 
 /** The meta format version. A reader refuses any other. */
 const META_VERSION = 1
 
 const DAY_SECONDS = 86_400
 const LIST_KEY = /^[0-9a-z]{8}$/
-const CHUNK_SUFFIX = /^[ab]\.\d+$/
+const CHUNK_SUFFIX = /^[ab]-\d+$/
 
 /** One of the two slots a list's chunks can be in. */
 export type Slot = 'a' | 'b'
@@ -67,7 +69,7 @@ export type SaveOptions = {
 /** Options of `createProgressStore`. */
 export type ProgressStoreOptions = {
   transport: PrefsTransport
-  /** The key prefix. Default `maid.tasks`. */
+  /** The key prefix, without a dot (see above). Default `maid-tasks`. */
   prefix?: string
   /** Epoch milliseconds, for the meta's `u`. Default `Date.now`. */
   now?: () => number
@@ -189,13 +191,13 @@ export function createProgressStore(options: ProgressStoreOptions): ProgressStor
   const prefix = options.prefix ?? DEFAULT_PREFIX
   const now = options.now ?? Date.now
   const generation = options.generation ?? randomGeneration
-  const listPrefix = `${prefix}.`
+  const listPrefix = `${prefix}-`
 
-  const metaKeyOf = (listKey: string): string => `${prefix}.${listKey}`
+  const metaKeyOf = (listKey: string): string => `${prefix}-${listKey}`
   const chunkKeyOf = (listKey: string, slot: Slot, index: number): string =>
-    `${prefix}.${listKey}.${slot}.${index}`
+    `${prefix}-${listKey}-${slot}-${index}`
   const isChunkOf = (key: string, listKey: string): boolean =>
-    key.startsWith(`${metaKeyOf(listKey)}.`) &&
+    key.startsWith(`${metaKeyOf(listKey)}-`) &&
     CHUNK_SUFFIX.test(key.slice(metaKeyOf(listKey).length + 1))
 
   return {
@@ -206,7 +208,7 @@ export function createProgressStore(options: ProgressStoreOptions): ProgressStor
       for (const [key, value] of Object.entries(record)) {
         if (!key.startsWith(listPrefix)) continue
         const listKey = key.slice(listPrefix.length)
-        // chunk keys have more dots after the list key, so they are not metas
+        // chunk keys have more after the list key, so they are not metas
         if (!LIST_KEY.test(listKey)) continue
         try {
           lists.push({ listKey, meta: parseMeta(value) })

@@ -116,6 +116,99 @@ describe('reverse', () => {
     expect(result.annotation).toBe('Reversed a line')
   })
 
+  it('keeps every direction on the ground of a way whose oneway is -1, and says so', () => {
+    const minus = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0),
+      way('w1', ['n1', 'n2'], {
+        highway: 'residential',
+        oneway: '-1',
+        'cycleway:left': 'track',
+        'cycleway:left:oneway': 'yes',
+      }),
+    )
+    const { after } = run(reverseOperation, minus, ['w1'])
+    expect(wayIn(after, 'w1').tags).toEqual({
+      highway: 'residential',
+      oneway: 'yes',
+      'cycleway:right': 'track',
+      'cycleway:right:oneway': '-1',
+    })
+    const changes = reverseOperation.changes?.(at(['w1'], new Graph(minus)))
+    expect(changes?.features[0]?.after.oneway).toBe('yes')
+  })
+
+  it('keeps the oneway values of any other way, as iD: all directions turn together', () => {
+    const contraflow = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0),
+      way('w1', ['n1', 'n2'], {
+        highway: 'residential',
+        oneway: 'yes',
+        'cycleway:left': 'track',
+        'cycleway:left:oneway': '-1',
+      }),
+    )
+    const { after } = run(reverseOperation, contraflow, ['w1'])
+    expect(wayIn(after, 'w1').tags).toEqual({
+      highway: 'residential',
+      oneway: 'yes',
+      'cycleway:right': 'track',
+      'cycleway:right:oneway': '-1',
+    })
+  })
+
+  it('uses oneway:bicycle as the main direction of a way without oneway', () => {
+    const cycleway = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0),
+      way('w1', ['n1', 'n2'], { highway: 'cycleway', 'oneway:bicycle': '-1' }),
+    )
+    const { after } = run(reverseOperation, cycleway, ['w1'])
+    expect(wayIn(after, 'w1').tags['oneway:bicycle']).toBe('yes')
+  })
+
+  it('lets oneway:bicycle decide on a shared path whose oneway is no', () => {
+    const shared = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0),
+      way('w1', ['n1', 'n2'], { highway: 'path', oneway: 'no', 'oneway:bicycle': '-1' }),
+    )
+    const { after } = run(reverseOperation, shared, ['w1'])
+    expect(wayIn(after, 'w1').tags).toEqual({
+      highway: 'path',
+      oneway: 'no',
+      'oneway:bicycle': 'yes',
+    })
+  })
+
+  it('says which tags it changes, and nothing for a line without direction tags', () => {
+    const tagged = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0, { highway: 'stop', direction: 'forward' }),
+      node('n3', 0.002, 0),
+      way('w1', ['n1', 'n2', 'n3'], {
+        highway: 'residential',
+        'cycleway:left': 'lane',
+        oneway: 'yes',
+      }),
+    )
+    const changes = reverseOperation.changes?.(at(['w1'], new Graph(tagged)))
+    expect(changes?.features.map(({ id, before, after }) => ({ id, before, after }))).toEqual([
+      {
+        id: 'n2',
+        before: { highway: 'stop', direction: 'forward' },
+        after: { highway: 'stop', direction: 'backward' },
+      },
+      {
+        id: 'w1',
+        before: { highway: 'residential', 'cycleway:left': 'lane', oneway: 'yes' },
+        after: { highway: 'residential', 'cycleway:right': 'lane', oneway: 'yes' },
+      },
+    ])
+    expect(reverseOperation.changes?.(at(['w1'], new Graph(line)))?.features).toEqual([])
+  })
+
   it('reverses the direction tag of a node', () => {
     const signal = graphOf(node('n1', 0, 0, { direction: 'forward' }))
     const { after, result } = run(reverseOperation, signal, ['n1'])

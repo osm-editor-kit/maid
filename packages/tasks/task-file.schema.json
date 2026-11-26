@@ -286,7 +286,23 @@
                     },
                     "action": {
                       "type": "string",
-                      "enum": ["tag", "create", "delete"]
+                      "enum": ["tag", "create", "delete", "none"]
+                    },
+                    "operations": {
+                      "minItems": 1,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "op": {
+                            "type": "string",
+                            "enum": ["reverse", "square", "straighten", "circularize"]
+                          }
+                        },
+                        "required": ["op"],
+                        "additionalProperties": {}
+                      }
                     },
                     "set": {
                       "type": "object",

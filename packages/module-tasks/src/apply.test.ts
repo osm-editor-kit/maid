@@ -225,3 +225,66 @@ describe('deleteTaskFeatures', () => {
     })
   })
 })
+
+describe('options with operations', () => {
+  function line() {
+    const context = new ModelContext()
+    const edits = new EditHistory(context)
+    edits.merge([
+      new OsmNode(context, { id: 'n1', loc: [13.4, 52.5], tags: {} }),
+      new OsmNode(context, { id: 'n2', loc: [13.401, 52.5], tags: {} }),
+      new OsmWay(context, {
+        id: 'w1',
+        nodes: ['n1', 'n2'],
+        tags: { highway: 'cycleway', oneway: '-1', 'sidewalk:left': 'no' },
+      }),
+    ])
+    return edits
+  }
+  const wayOf = (edits: EditHistory) => edits.staging.graph.hasEntity('w1') as OsmWay
+
+  it('reverses the way, then sets the tags, as one undo step', () => {
+    const edits = line()
+    const outcome = applyTaskOption(
+      edits,
+      'w1',
+      { operations: [{ op: 'reverse' }], set: { oneway: 'yes' } },
+      'Task: turn',
+      false,
+    )
+    expect(outcome).toEqual({ ok: true })
+    expect(wayOf(edits).nodes).toEqual(['n2', 'n1'])
+    // reverse swaps the sides and keeps oneway; set then writes yes
+    expect(wayOf(edits).tags).toEqual({
+      highway: 'cycleway',
+      oneway: 'yes',
+      'sidewalk:right': 'no',
+    })
+    expect(edits.index).toBe(1)
+    edits.undo()
+    expect(wayOf(edits).nodes).toEqual(['n1', 'n2'])
+  })
+
+  it('runs an option of operations only, even when its tags change nothing', () => {
+    const edits = line()
+    expect(applyTaskOption(edits, 'w1', { operations: [{ op: 'reverse' }] }, 'T', false)).toEqual({
+      ok: true,
+    })
+    expect(wayOf(edits).nodes).toEqual(['n2', 'n1'])
+  })
+
+  it('changes nothing when an operation cannot run, and says why', () => {
+    const edits = line()
+    const outcome = applyTaskOption(
+      edits,
+      'w1',
+      { operations: [{ op: 'circularize' }] },
+      'T',
+      false,
+    )
+    expect(outcome.ok).toBe(false)
+    expect(outcome.ok ? '' : outcome.reason).toBe('operation')
+    expect(wayOf(edits).nodes).toEqual(['n1', 'n2'])
+    expect(edits.index).toBe(0)
+  })
+})
