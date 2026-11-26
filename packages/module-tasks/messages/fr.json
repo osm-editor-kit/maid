@@ -106,5 +106,10 @@
   "tasks_list_menu": "Actions de la liste",
   "tasks_list_delete": "Supprimer la liste de ce navigateur",
   "tasks_filter_show_all": "Tout afficher",
-  "tasks_next_short": "Suivante"
+  "tasks_next_short": "Suivante",
+  "tasks_tab_count": "Listes de tâches ({count})",
+  "tasks_overview_title": "Listes de tâches",
+  "tasks_overview_back": "Retour à la liste",
+  "tasks_overview_hint": "Gardées dans ce navigateur et, connecté, dans votre compte OSM. Rechargez une liste dans une nouvelle version : ses statuts restent, par identifiant de tâche.",
+  "tasks_overview_none": "Pas encore de liste de tâches. Chargez un fichier de tâches (GeoJSON) ou ajoutez tasks=<adresse du fichier> au lien."
 }

@@ -1,4 +1,8 @@
-import { EllipsisHorizontalIcon, ViewfinderCircleIcon } from '@heroicons/react/20/solid'
+import {
+  ChevronLeftIcon,
+  EllipsisHorizontalIcon,
+  ViewfinderCircleIcon,
+} from '@heroicons/react/20/solid'
 import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
 import { type DockViewProps, Flyout, notify, TASKS_SURFACE } from '@osm-editor-kit/maid-ui'
@@ -11,9 +15,11 @@ import {
   nextOpenIndex,
   visibleIndexes,
 } from './list.ts'
+import { ListOverview } from './ListOverview.tsx'
 import { m } from './messages.ts'
 import { goToTask } from './navigate.ts'
 import { forgetList, type OpenDeps } from './open.ts'
+import { refreshKept, setBrowsing, useOverview } from './overview.ts'
 import { type Shared, useSharedEngine } from './shared.ts'
 import { type SyncKind, type TasksStore, useTasks } from './store.ts'
 import { StatusBadge, TaskContent, TaskLinks, statusLabel } from './TaskContent.tsx'
@@ -111,6 +117,15 @@ export function createTasksView(store: TasksStore, shared: Shared, deps?: OpenDe
     const list = useTasks(store, (state) => state.list)
     const error = useTasks(store, (state) => state.error)
     const loading = useTasks(store, (state) => state.loading)
+    const browsing = useOverview((state) => state.browsing)
+    // the overview of the lists: without an open list, or asked for with "<" beside the list's title
+    if (deps && ((!list && loading === undefined && !error) || (list && browsing))) {
+      return (
+        <div data-testid="tasks-view" className={`h-full min-h-0 overflow-y-auto ${TASKS_SURFACE}`}>
+          <ListOverview deps={deps} />
+        </div>
+      )
+    }
     if (!list) {
       return (
         <div
@@ -225,9 +240,21 @@ function Head({ store, shared, deps }: { store: TasksStore; shared: Shared; deps
   return (
     <header data-testid="tasks-head" className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
+        {deps && (
+          <button
+            type="button"
+            data-testid="tasks-to-overview"
+            aria-label={m.tasks_overview_title()}
+            title={m.tasks_overview_title()}
+            onClick={() => setBrowsing(true)}
+            className="-ml-1 grid size-6 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            <ChevronLeftIcon aria-hidden="true" className="size-5" />
+          </button>
+        )}
         <h2
           data-testid="tasks-title"
-          className="min-w-0 truncate text-sm/5 font-semibold"
+          className="min-w-0 flex-1 truncate text-sm/5 font-semibold"
           title={list.file.maid_tasks.title}
         >
           {list.file.maid_tasks.title}
@@ -358,7 +385,7 @@ function ListMenu({ store, deps }: { store: TasksStore; deps?: OpenDeps }) {
     close()
     const { listKey } = list
     store.getState().actions.close()
-    if (deps) void forgetList(deps, listKey)
+    if (deps) void forgetList(deps, listKey).then(() => refreshKept(deps))
   }
   return (
     <Flyout

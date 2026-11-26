@@ -106,5 +106,10 @@
   "tasks_list_menu": "Acciones de la lista",
   "tasks_list_delete": "Borrar la lista de este navegador",
   "tasks_filter_show_all": "Mostrar todo",
-  "tasks_next_short": "Siguiente"
+  "tasks_next_short": "Siguiente",
+  "tasks_tab_count": "Listas de tareas ({count})",
+  "tasks_overview_title": "Listas de tareas",
+  "tasks_overview_back": "Volver a la lista",
+  "tasks_overview_hint": "Guardadas en este navegador y, con sesión, en tu cuenta de OSM. Carga una lista en una versión nueva: sus estados se mantienen por id de tarea.",
+  "tasks_overview_none": "Todavía no hay lista de tareas. Carga un archivo de tareas (GeoJSON) o añade tasks=<dirección del archivo> al enlace."
 }

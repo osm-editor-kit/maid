@@ -106,5 +106,10 @@
   "tasks_list_menu": "Aktionen der Liste",
   "tasks_list_delete": "Liste aus diesem Browser löschen",
   "tasks_filter_show_all": "Alle anzeigen",
-  "tasks_next_short": "Weiter"
+  "tasks_next_short": "Weiter",
+  "tasks_tab_count": "Aufgabenlisten ({count})",
+  "tasks_overview_title": "Aufgabenlisten",
+  "tasks_overview_back": "Zurück zur Liste",
+  "tasks_overview_hint": "In diesem Browser und, angemeldet, in deinem OSM-Konto. Eine Liste in neuer Version wieder laden: Ihre Status bleiben nach Aufgaben-ID erhalten.",
+  "tasks_overview_none": "Noch keine Aufgabenliste. Lade eine Aufgabendatei (GeoJSON) oder hänge tasks=<Adresse der Datei> an den Link."
 }

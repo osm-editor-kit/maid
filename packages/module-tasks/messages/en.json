@@ -106,5 +106,10 @@
   "tasks_list_menu": "List actions",
   "tasks_list_delete": "Delete list from this browser",
   "tasks_filter_show_all": "Show all",
-  "tasks_next_short": "Next"
+  "tasks_next_short": "Next",
+  "tasks_tab_count": "Task lists ({count})",
+  "tasks_overview_title": "Task lists",
+  "tasks_overview_back": "Back to the list",
+  "tasks_overview_hint": "Kept in this browser and, logged in, in your OSM account. Load a list again in a new version: its statuses are kept by task id.",
+  "tasks_overview_none": "No task list yet. Load a task file (GeoJSON), or add tasks=<address of the file> to the link."
 }

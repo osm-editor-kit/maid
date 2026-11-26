@@ -95,9 +95,9 @@ const code = await runCheck(
     // --- the list from the URL ---
     await byId('tasks-view').waitFor({ timeout: 15_000 })
     report(
-      'the dock has the "Tasks" tab',
+      'the dock has the "Task lists (n)" tab',
       1,
-      await page.getByRole('tab', { name: 'Tasks' }).count(),
+      await page.getByRole('tab', { name: /^Task lists \(\d+\)$/ }).count(),
     )
     report(
       '40 tasks, all open',

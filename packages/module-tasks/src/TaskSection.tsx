@@ -5,8 +5,8 @@ import {
   TASKS_SURFACE,
   TASKS_TEXT,
 } from '@osm-editor-kit/maid-ui'
+import { DOCK_VIEW } from './dock-view.ts'
 import { tasksOfEntity } from './list.ts'
-import { DOCK_VIEW } from './LoadTasksItem.tsx'
 import { m } from './messages.ts'
 import { type TasksStore, useTasks } from './store.ts'
 import { StatusBadge } from './TaskContent.tsx'

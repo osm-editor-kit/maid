@@ -1,10 +1,11 @@
 import { defineModule, moduleStorage } from '@osm-editor-kit/maid-core'
 import { notify } from '@osm-editor-kit/maid-ui'
+import { DOCK_VIEW } from './dock-view.ts'
 import { tasksOfEntity } from './list.ts'
-import { createLoadTasksItem, DOCK_VIEW } from './LoadTasksItem.tsx'
 import { createFileCache, writeMirror } from './local.ts'
 import { m } from './messages.ts'
 import type { OpenDeps } from './open.ts'
+import { overviewStore, refreshKept } from './overview.ts'
 import type { Shared } from './shared.ts'
 import { createTasksStore } from './store.ts'
 import { createTasksController } from './TasksController.tsx'
@@ -14,7 +15,8 @@ import { createTasksView } from './TasksView.tsx'
 import { parseAsTasksUrl, TASKS_PARAM } from './url.ts'
 
 /**
- * Private task lists (packages/tasks/FORMAT.md): "Load task list…" in the account menu or `tasks=<address>` in the link,
+ * Private task lists (packages/tasks/FORMAT.md): loaded in the dock tab "Task lists (n)", always there, or with
+ * `tasks=<address>` in the link,
  * the dock tab "Tasks" with the list and, beside it, the current task and its options; a hint in the inspector; the geometries on the
  * map. The statuses stay in this browser and, while someone is logged in, in their OSM preferences (packages/osm-prefs).
  *
@@ -40,21 +42,26 @@ export function tasks() {
         options: { history: 'replace' },
       })
 
-      api.register('account.item', { id: 'tasks', component: createLoadTasksItem(deps) })
+      // the lists of this browser, for the tab's count and the overview; read again when another list opens
+      void refreshKept(deps)
+      const offKept = store.subscribe((state, previous) => {
+        if (state.list?.listKey !== previous.list?.listKey) void refreshKept(deps)
+      })
       api.register('dock.view', {
         id: DOCK_VIEW,
+        // the count of the kept lists: "Aufgabenlisten (3)"
         get label() {
-          return m.tasks_tab()
+          return m.tasks_tab_count({ count: overviewStore.getState().kept.length })
         },
         tone: 'tasks',
         component: createTasksView(store, shared, deps),
-        // the tab is there from the moment a file is picked: while it loads, with its list, or with its error
+        // always there: it holds the overview of the lists and the loading of a file (Tobias, 2026-11-26)
         available: {
-          get: () => {
-            const { loading, error, list } = store.getState()
-            return loading !== undefined || error !== undefined || list !== undefined
+          get: () => true,
+          subscribe: (listener) => {
+            const offs = [store.subscribe(listener), overviewStore.subscribe(listener)]
+            return () => offs.forEach((off) => off())
           },
-          subscribe: (listener) => store.subscribe(listener),
         },
       })
       api.register('inspector.section', {
@@ -105,6 +112,7 @@ export function tasks() {
         )
       })
       return () => {
+        offKept()
         unsubscribe()
         store.getState().actions.close()
       }

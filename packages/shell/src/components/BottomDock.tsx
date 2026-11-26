@@ -6,7 +6,10 @@ import { useCallback, useSyncExternalStore } from 'react'
 import { useSelection } from '../selection'
 import { useShell } from '../shell-context'
 
-/** The ids of the views that have something to show now (`DockView.available`), as one string, so it compares by value */
+/**
+ * The ids of the views that have something to show now (`DockView.available`), as one string, so it compares by value.
+ * The labels go into it too: a label that counts something ("Task lists (3)") changes with the same notification.
+ */
 function useAvailableIds(views: readonly DockView[], selected: readonly string[]) {
   const subscribe = useCallback(
     (listener: () => void) => {
@@ -22,8 +25,8 @@ function useAvailableIds(views: readonly DockView[], selected: readonly string[]
     () =>
       views
         .filter((view) => view.available?.get({ selected }) ?? true)
-        .map((view) => view.id)
-        .join(' '),
+        .map((view) => `${view.id}\u0000${view.label}`)
+        .join('\u0001'),
     [views, selected],
   )
   return useSyncExternalStore(subscribe, snapshot)
@@ -38,7 +41,9 @@ export function BottomDock() {
   const { editor, engine } = useShell()
   const all = useExtensionPoint(editor, 'dock.view')
   const { select, ids } = useSelection()
-  const availableIds = useAvailableIds(all, ids).split(' ')
+  const availableIds = useAvailableIds(all, ids)
+    .split('\u0001')
+    .map((entry) => entry.split('\u0000')[0])
   const views = all.filter((view) => availableIds.includes(view.id))
   // stable for as long as the engine is: a view memoises on these props
   const highlight = useCallback((ids: readonly string[] | null) => engine.setRelated(ids), [engine])
