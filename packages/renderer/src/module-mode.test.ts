@@ -170,7 +170,7 @@ describe('handles of a module mode are dragged', () => {
     expect(session.dragged).toBe(false)
   })
 
-  test('a click right after a drag is not a click', () => {
+  test('a click right after a drag, where it ended, is not a click', () => {
     const { session, log, advance } = sessionWith({ '10,10': 'end' })
     session.enter(modeLogging('reroute', log))
     session.press({ x: 10, y: 10 }, 13.4, 52.5)
@@ -182,6 +182,16 @@ describe('handles of a module mode are dragged', () => {
     advance(2)
     session.click(at, 13.5, 52.5)
     expect(log.at(-1)).toBe('click 13.5,52.5')
+  })
+
+  test('a quick click away from where a drag ended is a click', () => {
+    const { session, log } = sessionWith({ '10,10': 'end' })
+    session.enter(modeLogging('reroute', log))
+    session.press({ x: 10, y: 10 }, 13.4, 52.5)
+    session.move(at, 13.41, 52.5)
+    session.release(13.41, 52.5)
+    session.click({ x: 40, y: 1 }, 13.42, 52.5)
+    expect(log.at(-1)).toBe('click 13.42,52.5')
   })
 
   test('exit during a drag drops the drag', () => {
