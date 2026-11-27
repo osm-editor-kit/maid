@@ -129,9 +129,8 @@ function RadioGroup(props: {
           </button>
         )
       })}
-      {chosen === undefined ? (
-        <span className={HINT}>{mixed ? multipleValues() : m.ui_none()}</span>
-      ) : null}
+      {/* "None" is not said: no button looks chosen. Several features with different values are (Tobias, 2026-11-27). */}
+      {chosen === undefined && mixed ? <span className={HINT}>{multipleValues()}</span> : null}
     </div>
   )
 }
