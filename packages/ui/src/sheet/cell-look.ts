@@ -43,11 +43,17 @@ export type CellLook = {
  * The classes of the cell's wrapper: its hairline borders, the fill of a selected cell, and the amber of a row with a
  * warning (the warning colours of the inspector's fields, amber-600 / amber-400 text on a light amber fill).
  */
-export function cellClassName(look: { selected: boolean; warning?: boolean }): string {
+export function cellClassName(look: {
+  selected: boolean
+  warning?: boolean
+  /** Belongs with the active row (the other side of a road): violet, not the blue of the selection */
+  related?: boolean
+}): string {
   const base =
     'relative flex min-w-0 flex-col justify-center border-r border-b border-zinc-950/10 dark:border-white/10'
   if (look.selected) return `${base} bg-blue-500/10 dark:bg-blue-400/10`
-  return look.warning === true ? `${base} bg-amber-50 dark:bg-amber-950/40` : base
+  if (look.warning === true) return `${base} bg-amber-50 dark:bg-amber-950/40`
+  return look.related === true ? `${base} bg-violet-500/10 dark:bg-violet-400/15` : base
 }
 
 /**

@@ -28,6 +28,10 @@ import {
   WikiContext,
   createWikiSource,
   CopyTagsButton,
+  TagViewButton,
+  type TagView,
+  useSettingsActions,
+  useStoredShown,
 } from '@osm-editor-kit/maid-ui'
 import { useEffect, useMemo, useState } from 'react'
 import { changeType, moveFavourite, toggleFavourite, useFavouriteEntries } from '../favourites'
@@ -126,6 +130,9 @@ function FavouriteStar(props: { preset: Preset; geometry: Geometry; on: boolean 
 }
 
 /** The sidebar: what the selected feature is (iD preset), its tags and the sections of modules. */
+/** The settings key of the Tags sheet's view (`shown` in the UI settings): `sides` or `exact` */
+const TAG_VIEW_SETTING = 'tags-view'
+
 export function Inspector() {
   const { editor, engine } = useShell()
   const loadReference = referenceLoaderFor(editor)
@@ -136,6 +143,9 @@ export function Inspector() {
     [editor],
   )
   const suggestSources = useMemo(() => tagSuggestSourcesOf(editor), [editor])
+  // the view of the Tags sheet the person chose (stored with the settings): as stored, or by sides
+  const tagView: TagView = useStoredShown(TAG_VIEW_SETTING) === 'sides' ? 'sides' : 'exact'
+  const { setShown } = useSettingsActions()
   const { id, ids, select } = useSelection()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
   const entity: EntityInfo | undefined = useEngine((e) => e.entity(id))
@@ -380,7 +390,15 @@ export function Inspector() {
                 remember="tags"
                 detail={Object.keys(entity.tags).length}
                 defaultOpen
-                actions={<CopyTagsButton tags={entity.tags} />}
+                actions={
+                  <>
+                    <TagViewButton
+                      view={tagView}
+                      onChange={(view) => setShown(TAG_VIEW_SETTING, view)}
+                    />
+                    <CopyTagsButton tags={entity.tags} />
+                  </>
+                }
               >
                 <TagSheet
                   copyButton={false}
@@ -391,6 +409,7 @@ export function Inspector() {
                   readOnly={entity.readOnly}
                   onChangeTags={(tags, label) => engine.setTags(id, tags, label)}
                   suggest={suggestSources[entity.geometry]}
+                  view={tagView}
                   onUndo={() => engine.undo()}
                   onRedo={() => engine.redo()}
                 />

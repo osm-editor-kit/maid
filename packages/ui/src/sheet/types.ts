@@ -202,6 +202,13 @@ export type SheetProps = {
   orderToken?: string
   /** A host message for the status line (e.g. "Copied"). A new object shows again. */
   note?: { text: string }
+  /**
+   * The group of a row, shown as a small heading row above the first row of each run of rows in that group, as a
+   * spreadsheet's row group. Undefined: the row is in no group. The rows must already be in their group's order.
+   */
+  groupOf?: (row: SheetRow) => string | undefined
+  /** Rows that belong with the active cell's row, tinted while it is active (the other side of a road) */
+  relatedRows?: (row: SheetRow) => RowId[]
 }
 
 /**

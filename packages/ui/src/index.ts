@@ -172,7 +172,13 @@ export { breakpoints, useBreakpoint, type Breakpoint } from './useBreakpoint.ts'
 export { PLAIN_INPUT } from './plain-input.ts'
 export { SuggestTextarea } from './SuggestTextarea.tsx'
 export { Sheet } from './sheet/Sheet.tsx'
-export { CopyTagsButton, TagSheet, type TagSheetProps } from './sheet/tags/TagSheet.tsx'
+export {
+  CopyTagsButton,
+  TagSheet,
+  TagViewButton,
+  type TagSheetProps,
+  type TagView,
+} from './sheet/tags/TagSheet.tsx'
 export type { TagSheetChange } from './sheet/tags/tag-combined.ts'
 export type { TagSuggestSource } from './sheet/tags/tag-suggest.ts'
 export type {

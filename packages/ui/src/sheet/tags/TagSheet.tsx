@@ -1,12 +1,12 @@
-import { ClipboardDocumentIcon } from '@heroicons/react/16/solid'
+import { ArrowsRightLeftIcon, ClipboardDocumentIcon } from '@heroicons/react/16/solid'
 import { m } from '@osm-editor-kit/maid-i18n'
 import type { Tags } from '@osm-editor-kit/maid-presets'
-import { useState, type FocusEvent as ReactFocusEvent } from 'react'
+import { useMemo, useState, type FocusEvent as ReactFocusEvent } from 'react'
 import type { CombinedTags } from '../../inspector/fields/shared.ts'
 import { notify } from '../../Toast.tsx'
 import { Tooltip } from '../../Tooltip.tsx'
 import { Sheet } from '../Sheet.tsx'
-import type { SheetBatch, SheetClipboard } from '../types.ts'
+import type { SheetBatch, SheetClipboard, SheetRow } from '../types.ts'
 import {
   changeCombinedModel,
   copyAllCombinedText,
@@ -18,13 +18,30 @@ import {
 import {
   changeTagModel,
   initialTagModel,
+  resortTagModel,
   settleTagModel,
   syncTagModel,
   type TagModel,
 } from './tag-model.ts'
 import { planTagsPaste, serializeTagCells } from './tag-paste.ts'
+import {
+  compareSideKeys,
+  mergeSides,
+  otherSideKey,
+  sameTags,
+  sidePlaceOf,
+  splitBoth,
+} from './tag-sides.ts'
 import { withTagSuggestions, type TagSuggestSource } from './tag-suggest.ts'
-import { copyAllText, describePaste, TAG_COLUMNS, type ReadOnlyKeys } from './tags.ts'
+import {
+  codeUnits,
+  copyAllText,
+  describePaste,
+  rowKey,
+  rowValue,
+  TAG_COLUMNS,
+  type ReadOnlyKeys,
+} from './tags.ts'
 
 type TagSheetCommon = {
   /** A new feature (or another selection) is a new key: the sheet sorts and starts over. */
@@ -41,6 +58,39 @@ type TagSheetCommon = {
   suggest?: TagSuggestSource
   /** The "Copy all" button under the sheet. Default true; false when the place around it shows `CopyTagsButton`. */
   copyButton?: boolean
+  /**
+   * `exact` (default): the tags as they are stored, sorted as iD does. `sides`: one feature only, the keys of a road's
+   * sides grouped (cycleway, sidewalk, parking, with their meta keys such as `source:cycleway:…`) and `:both` shown as
+   * left and right; two equal sides are stored as `:both` again (tag-sides.ts). Several features stay `exact`.
+   */
+  view?: TagView
+}
+
+/** How the Tags sheet shows the tags (TagSheetProps.view) */
+export type TagView = 'exact' | 'sides'
+
+/**
+ * The switch between the two views of the Tags sheet, for the heading of the Tags section: pressed is the sides view.
+ */
+export function TagViewButton(props: { view: TagView; onChange: (view: TagView) => void }) {
+  const sides = props.view === 'sides'
+  return (
+    <Tooltip label={m.ui_tags_view_sides()} description={m.ui_tags_view_sides_hint()}>
+      <button
+        type="button"
+        aria-pressed={sides}
+        aria-label={m.ui_tags_view_sides()}
+        onClick={() => props.onChange(sides ? 'exact' : 'sides')}
+        className={`grid size-7 cursor-pointer place-items-center rounded-md focus-visible:outline-2 focus-visible:outline-blue-500 ${
+          sides
+            ? 'bg-zinc-950/10 text-zinc-950 hover:bg-zinc-950/15 dark:bg-white/15 dark:text-white dark:hover:bg-white/20'
+            : 'text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
+        }`}
+      >
+        <ArrowsRightLeftIcon className="size-4" aria-hidden="true" />
+      </button>
+    </Tooltip>
+  )
 }
 
 /**
@@ -103,11 +153,16 @@ export function TagSheet(props: TagSheetProps) {
   const { featureKey, readOnlyKeys, readOnly = false, onUndo, onRedo, label, suggest } = props
   const combined = props.combined
   const several = combined !== undefined
-  const tags = props.tags ?? NO_TAGS
+  const stored = props.tags ?? NO_TAGS
+  const sides = !several && props.view === 'sides'
+  const compare = sides ? compareSideKeys : codeUnits
+  // the tags the rows show: as stored, or with :both as its two sides. One object per stored tags, so the model sees
+  // a change only when the tags change.
+  const tags = useMemo(() => (sides ? splitBoth(stored) : stored), [sides, stored])
   const [model, setModel] = useState<TagModel>(() =>
     several
       ? initialCombinedModel(featureKey, combined, readOnlyKeys)
-      : initialTagModel(featureKey, tags, readOnlyKeys),
+      : initialTagModel(featureKey, tags, readOnlyKeys, compare),
   )
   const [note, setNote] = useState<{ text: string }>()
   // The host gave another feature, or other tags: the rows follow (the same state rule as useState's
@@ -117,7 +172,11 @@ export function TagSheet(props: TagSheetProps) {
   if (model.featureKey !== featureKey) {
     current = several
       ? initialCombinedModel(featureKey, combined, readOnlyKeys)
-      : initialTagModel(featureKey, tags, readOnlyKeys)
+      : initialTagModel(featureKey, tags, readOnlyKeys, compare)
+    setModel(current)
+  } else if (!several && model.compare !== compare) {
+    // the view was switched: the rows go to their places in the new order, animated
+    current = resortTagModel(model, tags, compare, readOnlyKeys)
     setModel(current)
   } else if (model.seen !== seen) {
     current = several
@@ -143,7 +202,11 @@ export function TagSheet(props: TagSheetProps) {
         setModel(change.model)
         const refusal = change.refused[0]
         if (refusal !== undefined) setNote({ text: refusal.reason })
-        if (change.label !== undefined) props.onChangeTags?.(change.tags, change.label)
+        if (change.label === undefined) return
+        // the sides view writes two equal sides as :both again; a change that ends where it began writes nothing
+        const next = sides ? mergeSides(change.tags, tags, stored) : change.tags
+        if (sides && sameTags(next, stored)) return
+        props.onChangeTags?.(next, change.label)
       }
 
   // The columns are made again when the rows change: the key column leaves out the keys the other rows have, and
@@ -170,8 +233,21 @@ export function TagSheet(props: TagSheetProps) {
     setModel((prev) => settleTagModel(prev))
   }
 
+  // the sides view: a heading per group, and the other side of the active row tinted when it has the same value
+  const groupOf = sides ? (row: SheetRow) => sidePlaceOf(rowKey(row))?.group : undefined
+  const relatedRows = sides
+    ? (row: SheetRow) => {
+        const other = otherSideKey(rowKey(row))
+        if (other === undefined) return []
+        const match = current.rows.rows.find(
+          (candidate) => rowKey(candidate) === other && rowValue(candidate) === rowValue(row),
+        )
+        return match === undefined || rowValue(row) === '' ? [] : [match.id]
+      }
+    : undefined
+
   const copyAll = () => {
-    const text = combined !== undefined ? copyAllCombinedText(combined) : copyAllText(tags)
+    const text = combined !== undefined ? copyAllCombinedText(combined) : copyAllText(stored)
     void navigator.clipboard.writeText(text).then(
       () => setNote({ text: m.ui_sheet_copied() }),
       () => setNote({ text: m.ui_sheet_copy_refused() }),
@@ -193,6 +269,8 @@ export function TagSheet(props: TagSheetProps) {
         onUndo={onUndo}
         onRedo={onRedo}
         note={note}
+        groupOf={groupOf}
+        relatedRows={relatedRows}
       />
       {props.copyButton === false ? null : (
         <div className="flex justify-end">

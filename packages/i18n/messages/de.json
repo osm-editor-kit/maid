@@ -665,6 +665,8 @@
   "ui_tags_value": "Wert",
   "ui_tags_read_only": "Der Schlüssel ist schreibgeschützt",
   "ui_tags_duplicate": "Einen Tag mit diesem Schlüssel gibt es schon",
+  "ui_tags_view_sides": "Links und rechts zeigen",
+  "ui_tags_view_sides_hint": "Gruppiert cycleway, sidewalk und parking mit ihren source- und fixme-Schlüsseln und zeigt :both als links und rechts. Zwei gleiche Seiten werden weiter als :both gespeichert.",
   "ui_tags_no_key": "Ein Tag braucht einen Schlüssel",
   "ui_tags_gone": "Die Zeile ist nicht mehr in der Tabelle",
   "ui_tags_column_fixed": "Diese Spalte lässt sich nicht ändern",

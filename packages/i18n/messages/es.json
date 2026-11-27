@@ -665,6 +665,8 @@
   "ui_tags_value": "Valor",
   "ui_tags_read_only": "La clave es de solo lectura",
   "ui_tags_duplicate": "Ya existe una etiqueta con esta clave",
+  "ui_tags_view_sides": "Mostrar izquierda y derecha",
+  "ui_tags_view_sides_hint": "Agrupa cycleway, sidewalk y parking con sus claves source y fixme, y muestra :both como izquierda y derecha. Dos lados iguales se siguen guardando como :both.",
   "ui_tags_no_key": "Una etiqueta necesita una clave",
   "ui_tags_gone": "La fila ya no está en la hoja",
   "ui_tags_column_fixed": "Esta columna no se puede cambiar",

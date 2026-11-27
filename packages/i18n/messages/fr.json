@@ -665,6 +665,8 @@
   "ui_tags_value": "Valeur",
   "ui_tags_read_only": "La clé est en lecture seule",
   "ui_tags_duplicate": "Une étiquette avec cette clé existe déjà",
+  "ui_tags_view_sides": "Afficher gauche et droite",
+  "ui_tags_view_sides_hint": "Regroupe cycleway, sidewalk et parking avec leurs clés source et fixme, et affiche :both comme gauche et droite. Deux côtés égaux restent enregistrés en :both.",
   "ui_tags_no_key": "Une étiquette a besoin d’une clé",
   "ui_tags_gone": "La ligne n’est plus dans la feuille",
   "ui_tags_column_fixed": "Cette colonne ne peut pas être modifiée",

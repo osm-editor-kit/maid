@@ -446,6 +446,128 @@ const code = await runCheck(
         selection: await page.evaluate(() => [...window.__maid.engine.selection]),
       },
     )
+
+    // --- The sides view (?harness=tags&sides=1): groups, :both as left and right, saved as :both again ---
+    await page.goto(page.url().replace('harness=tags', 'harness=tags&sides=1'))
+    await page.waitForFunction(() => window.__sheet !== undefined)
+    await frame(page)
+    const headings = () =>
+      page.$$eval('[data-group-heading]', (items) =>
+        items.map((item) => item.getAttribute('data-group-heading')),
+      )
+    const stored = async () => sorted(await tags())
+    const exactKeys = [
+      'cycleway:both',
+      'cycleway:both:lane',
+      'cycleway:both:width',
+      'cycleway:left:oneway',
+      'cycleway:right:oneway',
+      'highway',
+      'name',
+      'parking:both',
+      'sidewalk:both',
+      'source:cycleway:both:width',
+      'surface',
+      '',
+    ]
+    report(
+      'exact view: the tags as stored, sorted as iD, no groups',
+      { keys: exactKeys, headings: [] },
+      { keys: await keys(), headings: await headings() },
+    )
+    const storedBefore = await stored()
+    await page.getByRole('button', { name: 'Show left and right' }).click()
+    await rowsSettle(21)
+    report(
+      'sides view: cycleway, parking and sidewalk grouped with their source key, :both shown as left and right',
+      {
+        keys: [
+          'cycleway:left',
+          'cycleway:left:lane',
+          'cycleway:left:oneway',
+          'cycleway:left:width',
+          'source:cycleway:left:width',
+          'cycleway:right',
+          'cycleway:right:lane',
+          'cycleway:right:oneway',
+          'cycleway:right:width',
+          'source:cycleway:right:width',
+          'highway',
+          'name',
+          'parking:left',
+          'parking:right',
+          'sidewalk:left',
+          'sidewalk:right',
+          'surface',
+          '',
+        ],
+        headings: ['cycleway', 'parking', 'sidewalk'],
+        pressed: 'true',
+        stored: true,
+        calls: 0,
+      },
+      {
+        keys: await keys(),
+        headings: await headings(),
+        pressed: await page
+          .getByRole('button', { name: 'Show left and right' })
+          .getAttribute('aria-pressed'),
+        stored: storedBefore === (await stored()),
+        calls: await calls(),
+      },
+    )
+    const tinted = () =>
+      page.$$eval('[role="grid"] [data-row]', (rows) =>
+        rows
+          .filter((row) => row.querySelector('[role="gridcell"][class*="bg-violet"]') !== null)
+          .map((row) => row.querySelector<HTMLTextAreaElement>('[data-col="key"] textarea')?.value),
+      )
+    await click('Value of cycleway:left:width')
+    const sameSide = await tinted()
+    await click('Value of cycleway:left:oneway')
+    report(
+      'a selected side with the same value on the other side tints that row; a different value tints none',
+      { same: ['cycleway:right:width'], different: [] },
+      { same: sameSide, different: await tinted() },
+    )
+    await edit('Value of cycleway:left:width')
+    await press('ControlOrMeta+A')
+    await type('2')
+    await press('Enter')
+    const split = await tags()
+    report(
+      'a side changed is saved as left and right, the both key goes, the source stays both',
+      { left: '2', right: '1.5', both: undefined, source: 'Luftbild 2025', calls: 1 },
+      {
+        left: split['cycleway:left:width'],
+        right: split['cycleway:right:width'],
+        both: split['cycleway:both:width'],
+        source: split['source:cycleway:both:width'],
+        calls: await calls(),
+      },
+    )
+    await edit('Value of cycleway:right:width')
+    await press('ControlOrMeta+A')
+    await type('2')
+    await press('Enter')
+    const merged = await tags()
+    report(
+      'the other side set to the same value: saved as both again, the rows stay left and right',
+      { both: '2', left: undefined, right: undefined, shown: true },
+      {
+        both: merged['cycleway:both:width'],
+        left: merged['cycleway:left:width'],
+        right: merged['cycleway:right:width'],
+        shown: (await keys()).includes('cycleway:right:width'),
+      },
+    )
+    await page.getByRole('button', { name: 'Show left and right' }).click()
+    await rowsSettle(12)
+    report(
+      'back to the exact view: the tags as stored, no groups',
+      { keys: exactKeys, headings: [] },
+      { keys: await keys(), headings: await headings() },
+    )
   },
   'harness=tags',
   false,

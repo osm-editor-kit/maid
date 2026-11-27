@@ -7,10 +7,12 @@ import type { SheetBatch } from '../types.ts'
 import {
   applyBatch,
   NO_TAG_ROWS,
+  codeUnits,
   nextOrder,
   orderRows,
   rowsFromTags,
   rowValue,
+  type KeyOrder,
   type OrderMode,
   type ReadOnlyKeys,
   type Refusal,
@@ -26,6 +28,8 @@ export type TagModel = {
   keepIncomplete: boolean
   /** Counts the re-sorts. The sheet animates a re-sort, and nothing else (`orderToken`). */
   version: number
+  /** The order of a sort: iD's, or the groups of the sides view (resortTagModel) */
+  compare: KeyOrder
 }
 
 /** A feature was selected: sorted, and no incomplete rows. */
@@ -33,6 +37,7 @@ export function initialTagModel(
   featureKey: string,
   tags: Tags,
   readOnlyKeys?: ReadOnlyKeys,
+  compare: KeyOrder = codeUnits,
 ): TagModel {
   const select = nextOrder('select')
   return {
@@ -42,10 +47,30 @@ export function initialTagModel(
       readOnlyKeys,
       order: select.order,
       keepIncomplete: select.keepIncomplete,
+      compare,
     }),
     order: select.order,
     keepIncomplete: select.keepIncomplete,
     version: 0,
+    compare,
+  }
+}
+
+/**
+ * The view changed (the sides view on or off): the rows follow the tags of the new view and sort in its order at once,
+ * as one re-sort, so the sheet animates the rows to their new places. Rows whose key stays keep their id.
+ */
+export function resortTagModel(
+  model: TagModel,
+  tags: Tags,
+  compare: KeyOrder,
+  readOnlyKeys?: ReadOnlyKeys,
+): TagModel {
+  const synced = syncTagModel({ ...model, compare }, tags, readOnlyKeys)
+  return {
+    ...synced,
+    rows: orderRows(synced.rows, 'sorted', compare),
+    version: model.version + 1,
   }
 }
 
@@ -58,6 +83,7 @@ export function syncTagModel(model: TagModel, tags: Tags, readOnlyKeys?: ReadOnl
       readOnlyKeys,
       order: model.order,
       keepIncomplete: model.keepIncomplete,
+      compare: model.compare,
     }),
   }
 }
@@ -87,7 +113,7 @@ export function changeTagModel(
   return {
     model: {
       ...model,
-      rows: sorted ? orderRows(result.rows, 'sorted') : result.rows,
+      rows: sorted ? orderRows(result.rows, 'sorted', model.compare) : result.rows,
       order: next.order,
       keepIncomplete: next.keepIncomplete,
       version: sorted ? model.version + 1 : model.version,
@@ -106,6 +132,7 @@ export function settleTagModel(model: TagModel): TagModel {
       nextId: model.rows.nextId,
     },
     'sorted',
+    model.compare,
   )
   const same =
     kept.rows.length === model.rows.rows.length &&

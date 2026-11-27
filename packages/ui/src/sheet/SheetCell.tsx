@@ -28,6 +28,8 @@ export type SheetCellProps = {
   warning?: string
   /** This cell shows the row's exclamation mark, with the warning as its tooltip (the row's last cell) */
   warningIcon?: boolean
+  /** The row belongs with the active cell's row (SheetProps.relatedRows): tinted */
+  related?: boolean
 }
 
 /**
@@ -56,6 +58,7 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
     browsing = false,
     warning,
     warningIcon = false,
+    related = false,
   } = props
   const committed = data?.value.kind === 'value' ? data.value.text : ''
   const mixed = data?.value.kind === 'mixed' ? data.value.values : undefined
@@ -118,7 +121,7 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
       aria-readonly={readOnly || undefined}
       data-row={row.id}
       data-col={column.id}
-      className={cellClassName({ selected, warning: warning !== undefined })}
+      className={cellClassName({ selected, warning: warning !== undefined, related })}
       style={cellStyle({
         selected,
         active,

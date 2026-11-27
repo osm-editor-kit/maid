@@ -145,6 +145,8 @@ export function Sheet(props: SheetProps) {
     describePaste,
     orderToken = '',
     note,
+    groupOf,
+    relatedRows,
   } = props
   const editable = onChange !== undefined
   const reduced = useReducedMotion() === true
@@ -211,6 +213,15 @@ export function Sheet(props: SheetProps) {
   if (showTrailing) all.push(blankRow)
   const picked = state.extraRows.length > 0 ? new Set(selectedRowIds(state, shape)) : undefined
   const at = state.active
+  // the rows that belong with the active one (relatedRows): their cells are tinted, and their handles and the active
+  // row's handle are violet, so the two read as a pair
+  const activeRow = at === null ? undefined : rows.find((row) => row.id === at.row)
+  const relatedIds = activeRow === undefined ? [] : (relatedRows?.(activeRow) ?? [])
+  const tinted = new Set<RowId>(relatedIds)
+  const related = new Set<RowId>(relatedIds)
+  if (relatedIds.length > 0 && activeRow !== undefined) related.add(activeRow.id)
+  /** The keys of the group headings made in this render (a group that comes twice gets a second key) */
+  const headings = new Set<string>()
   const rect = selectionRect(state, shape)
   // A single cell is only the active cell (its ring); the fill is for a range of two or more cells
   const ranged = rect !== undefined && (rect.r0 !== rect.r1 || rect.c0 !== rect.c1)
@@ -809,11 +820,15 @@ export function Sheet(props: SheetProps) {
           ))}
         </div>
         <AnimatePresence initial={false}>
-          {all.map((row, r) => {
+          {all.flatMap((row, r) => {
             // no data yet: the trailing row and the inserted row (the pending row has texts, not data)
             const isTrailing =
               row.id === insertedId || (showTrailing && row.id === state.trailingId)
             const isPending = row.id === pending?.id
+            const group = isTrailing ? undefined : groupOf?.(row)
+            const previous = r > 0 ? all[r - 1] : undefined
+            const groupStarts =
+              group !== undefined && (previous === undefined || groupOf?.(previous) !== group)
             const whole = picked?.has(row.id) === true
             const inRange = rect !== undefined && r >= rect.r0 && r <= rect.r1
             const motionProps = reduced
@@ -823,7 +838,29 @@ export function Sheet(props: SheetProps) {
                   animate: { opacity: 1, height: 'auto' },
                   exit: { opacity: 0, height: 0 },
                 }
-            return (
+            let headingKey = `group:${group}`
+            if (groupStarts) {
+              if (headings.has(headingKey)) headingKey = `${headingKey}:${row.id}`
+              headings.add(headingKey)
+            }
+            const heading = groupStarts ? (
+              // a heading row as a spreadsheet's row group has: not a row of the grid (no cell to reach), the keys
+              // of its rows say the group to a screen reader
+              <motion.div
+                // the first run of a group keeps its key when its first row changes, so the heading moves, not blinks
+                key={headingKey}
+                aria-hidden="true"
+                data-group-heading={group}
+                className="flex h-5 items-center overflow-hidden border-b border-zinc-950/10 bg-zinc-950/[0.03] pl-3 font-mono text-[0.625rem] font-medium tracking-wide text-zinc-500 uppercase dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-400"
+                layout={reduced ? false : 'position'}
+                layoutDependency={orderToken}
+                transition={UI_SPRING}
+                {...motionProps}
+              >
+                {group}
+              </motion.div>
+            ) : null
+            const rowElement = (
               <motion.div
                 key={row.id}
                 role="row"
@@ -842,7 +879,11 @@ export function Sheet(props: SheetProps) {
                   className={`border-r border-b border-zinc-950/10 dark:border-white/10 ${
                     (inRange && state.rowsSelected) || whole
                       ? 'bg-blue-500'
-                      : 'hover:bg-zinc-950/5 dark:hover:bg-white/10'
+                      : related.has(row.id)
+                        ? 'bg-violet-400 dark:bg-violet-500'
+                        : group !== undefined
+                          ? 'bg-zinc-950/10 hover:bg-zinc-950/20 dark:bg-white/15 dark:hover:bg-white/25'
+                          : 'hover:bg-zinc-950/5 dark:hover:bg-white/10'
                   }`}
                 />
                 {columns.map((column, c) => {
@@ -873,6 +914,7 @@ export function Sheet(props: SheetProps) {
                       browsing={sameCell(browsing, ref)}
                       warning={row.warning}
                       warningIcon={c === columns.length - 1}
+                      related={tinted.has(row.id)}
                     />
                   )
                 })}
@@ -883,6 +925,7 @@ export function Sheet(props: SheetProps) {
                 ) : null}
               </motion.div>
             )
+            return heading === null ? [rowElement] : [heading, rowElement]
           })}
         </AnimatePresence>
       </div>

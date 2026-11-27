@@ -665,6 +665,8 @@
   "ui_tags_value": "Value",
   "ui_tags_read_only": "The key is read-only",
   "ui_tags_duplicate": "A tag with this key exists",
+  "ui_tags_view_sides": "Show left and right",
+  "ui_tags_view_sides_hint": "Groups cycleway, sidewalk and parking with their source and fixme keys, and shows :both as left and right. Two equal sides are still saved as :both.",
   "ui_tags_no_key": "A tag needs a key",
   "ui_tags_gone": "The row is no longer in the sheet",
   "ui_tags_column_fixed": "This column cannot be changed",

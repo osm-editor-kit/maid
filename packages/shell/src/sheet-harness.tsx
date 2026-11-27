@@ -6,7 +6,7 @@
  * `window.__bench` is a stub with the two methods runCheck waits for; the harness has no map to settle.
  */
 import type { CombinedTags } from '@osm-editor-kit/maid-model'
-import { TagSheet, type TagSheetChange } from '@osm-editor-kit/maid-ui'
+import { TagSheet, TagViewButton, type TagSheetChange, type TagView } from '@osm-editor-kit/maid-ui'
 import { NuqsAdapter } from 'nuqs/adapters/react'
 import { useEffect, useState } from 'react'
 import { useShell } from './shell-context'
@@ -50,6 +50,22 @@ Object.assign(window, {
 })
 
 const SEVERAL = new URLSearchParams(location.search).has('several')
+/** `?harness=tags&sides=1`: a road with its sides (as Torgauer Straße), and the switch of the view above the sheet */
+const SIDES = new URLSearchParams(location.search).has('sides')
+
+const SIDES_FIXTURE: Tags = {
+  highway: 'residential',
+  name: 'Torgauer Straße',
+  'cycleway:both': 'lane',
+  'cycleway:both:lane': 'advisory',
+  'cycleway:both:width': '1.5',
+  'source:cycleway:both:width': 'Luftbild 2025',
+  'cycleway:left:oneway': '-1',
+  'cycleway:right:oneway': 'yes',
+  'parking:both': 'no',
+  'sidewalk:both': 'separate',
+  surface: 'asphalt',
+}
 
 function Shortcuts() {
   useShortcuts()
@@ -57,10 +73,20 @@ function Shortcuts() {
 }
 
 function Harness() {
-  const [tags, setTags] = useState<Tags>(FIXTURE)
+  const [tags, setTags] = useState<Tags>(() => {
+    probe.tags = SIDES ? SIDES_FIXTURE : FIXTURE
+    return probe.tags
+  })
+  const [view, setView] = useState<TagView>('exact')
   return (
     <div className="mx-auto mt-8 w-[300px] px-4 text-zinc-950 dark:text-white">
+      {SIDES && (
+        <div className="flex justify-end">
+          <TagViewButton view={view} onChange={setView} />
+        </div>
+      )}
       <TagSheet
+        view={view}
         label="Tags of the feature"
         tags={tags}
         featureKey="harness"
