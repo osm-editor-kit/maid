@@ -533,6 +533,10 @@ const DIRECTION_LAYERS = new Set([
   'line-oneway-active',
   'line-two-way',
   'line-two-way-active',
+  'line-oneway-centre',
+  'line-oneway-centre-active',
+  'line-two-way-centre',
+  'line-two-way-centre-active',
   'line-sided',
   'area-sided',
 ])
@@ -838,6 +842,7 @@ function buildMainLayers(options: LayerOptions) {
       kind: ExpressionSpecification | string,
       state: 'rest' | 'active',
       visibility: 'visible' | 'none',
+      centre = false,
     ): LayerSpecification => ({
       id,
       type: 'symbol',
@@ -847,6 +852,14 @@ function buildMainLayers(options: LayerOptions) {
       layout: {
         ...markerLayout,
         'symbol-spacing': spacing,
+        // the one glyph in the middle of the line: always drawn, and the spaced glyphs keep clear of it
+        ...(centre
+          ? {
+              'symbol-placement': 'line-center',
+              'icon-allow-overlap': true,
+              'icon-ignore-placement': false,
+            }
+          : {}),
         'icon-image': glyphImage(kind, state),
         'icon-size': glyphSize(low),
         'icon-padding': squarePadding(GLYPH_BOX_WIDTH, GLYPH_BOX_HEIGHT),
@@ -892,6 +905,45 @@ function buildMainLayers(options: LayerOptions) {
         twoWayKind,
         'active',
         shownIn(!wire),
+      ),
+      // One glyph in the middle of every line, so a short one (or a short piece in a tile, where MapLibre places none
+      // along the line) shows its direction too (Tobias, 2026-11-27). Above the spaced layers: MapLibre places it first,
+      // and the spaced glyphs give way to it, so the two never stack. Rest and active again in pairs.
+      glyphLayer(
+        'line-oneway-centre',
+        ['has', 'ow'],
+        0,
+        ['get', 'ow'],
+        'rest',
+        shownIn(!wire),
+        true,
+      ),
+      glyphLayer(
+        'line-oneway-centre-active',
+        ['has', 'ow'],
+        0,
+        ['get', 'ow'],
+        'active',
+        shownIn(!wire),
+        true,
+      ),
+      glyphLayer(
+        'line-two-way-centre',
+        twoWayRest,
+        0,
+        twoWayKind,
+        'rest',
+        shownIn(!wire && lineFocus),
+        true,
+      ),
+      glyphLayer(
+        'line-two-way-centre-active',
+        ['!', ['has', 'ow']],
+        0,
+        twoWayKind,
+        'active',
+        shownIn(!wire),
+        true,
       ),
       // Side markers; closed barriers and coastline rings have theirs on the area's outline (build.ts areaFeature).
       // All give way, also embankments that start 7 px off the line: a vertex with an icon reaches 9 px.

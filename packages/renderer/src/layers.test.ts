@@ -26,6 +26,10 @@ const DIRECTION = new Set([
   'line-oneway-active',
   'line-two-way',
   'line-two-way-active',
+  'line-oneway-centre',
+  'line-oneway-centre-active',
+  'line-two-way-centre',
+  'line-two-way-centre-active',
   'line-sided',
   'area-sided',
 ])
@@ -639,6 +643,8 @@ describe('display: the wireframe and the changes in colour (iD)', () => {
     for (const [rest, active] of [
       ['line-oneway', 'line-oneway-active'],
       ['line-two-way', 'line-two-way-active'],
+      ['line-oneway-centre', 'line-oneway-centre-active'],
+      ['line-two-way-centre', 'line-two-way-centre-active'],
     ] as const) {
       // the same lines, spacing and size: MapLibre puts both on the same anchors
       expect(get(active).source).toBe(get(rest).source)
@@ -649,6 +655,20 @@ describe('display: the wireframe and the changes in colour (iD)', () => {
         '"feature-state","selected"',
       )
     }
+  })
+
+  test('every line has one glyph in its middle, drawn whatever else is there; the spaced ones give way to it', () => {
+    const layers = buildLayers(options).map(view)
+    const at = (id: string) => layers.findIndex((l) => l.id === id)
+    for (const id of ['line-oneway-centre', 'line-two-way-centre-active']) {
+      const centre = layers[at(id)]!
+      expect(centre.layout?.['symbol-placement']).toBe('line-center')
+      expect(centre.layout?.['icon-allow-overlap']).toBe(true)
+      // in the collision index, so the spaced glyphs keep clear of it
+      expect(centre.layout?.['icon-ignore-placement']).toBe(false)
+    }
+    // placed first: above the spaced layers
+    expect(at('line-oneway-centre')).toBeGreaterThan(at('line-two-way-active'))
   })
 
   test('the glyphs never cover a vertex: symbols that keep-out squares on the vertices push away', () => {

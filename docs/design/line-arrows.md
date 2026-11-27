@@ -147,6 +147,9 @@ an untagged lane or track oneway as not tagged with its default, and a way's own
   line-focused editor.
 - Each pair draws the same lines with the same spacing and image size, so the rest and the active glyph sit on the same
   anchors. Feature state (`hover`, `selected`) fades one into the other: hover and selection move nothing.
+- One more pair puts a glyph in the middle of every line (`symbol-placement: line-center`, drawn whatever is there),
+  so a short line, or a short piece in a tile where MapLibre places nothing along the line, shows its direction too.
+  It is placed first; the spaced glyphs keep clear of it.
 - Size follows the line: inside the road fill (the fill minus 2 px), 5.2 px over a thinner line.
 - The bicycle lens draws only the road sides' riding direction, as `line-pattern` images
   `maid-line-glyph-<with|against|both|missing>` (`features.ts` `ridingDirection`); the way itself shows the renderer's
