@@ -166,11 +166,12 @@ export function structureTypeEdits(structure: string, tags: Tags, type: string |
 
 /**
  * Access (iD access.js). One row per key; each row's options are the access values, with the
- * list cut per key as iD does (access: no yes and no designated; bicycle: plus dismount).
+ * list cut per key as iD does (access: no yes and no designated; bicycle: plus dismount). The labels
+ * are those of iD's access field (yes "Allowed", no "Prohibited", ...).
  */
 const accessValues = (): { value: string; label: string }[] => [
-  { value: 'yes', label: m.ui_yes() },
-  { value: 'no', label: m.ui_no() },
+  { value: 'yes', label: m.ui_access_yes() },
+  { value: 'no', label: m.ui_access_no() },
   { value: 'designated', label: m.ui_access_designated() },
   { value: 'permissive', label: m.ui_access_permissive() },
   { value: 'destination', label: m.ui_access_destination() },
@@ -180,15 +181,34 @@ const accessValues = (): { value: string; label: string }[] => [
   { value: 'unknown', label: m.ui_unknown() },
 ]
 
-/** The options of one access row (access.js:85-112). */
+/** The keys whose rows also offer use_sidepath (Maid's addition: iD lists it nowhere, the wiki documents it for these). */
+const SIDEPATH_KEYS = new Set(['foot', 'bicycle', 'horse'])
+
+/**
+ * The options of one access row (access.js:85-112): access has no yes and no designated, bicycle
+ * gets dismount before the last four (as iD's splice). Foot, bicycle and horse also offer use_sidepath.
+ */
 export function accessOptions(key: string) {
   const all = accessValues()
   const options =
     key === 'access'
       ? all.filter((option) => option.value !== 'yes' && option.value !== 'designated')
       : all
-  if (key === 'bicycle') options.push({ value: 'dismount', label: m.ui_access_dismount() })
+  if (key === 'bicycle') {
+    options.splice(options.length - 4, 0, { value: 'dismount', label: m.ui_access_dismount() })
+  }
+  if (SIDEPATH_KEYS.has(key))
+    options.push({ value: 'use_sidepath', label: m.ui_access_use_sidepath() })
   return options
+}
+
+/**
+ * The text of an access value in a row of `key`: its option's label, else the label of any access value (the
+ * access row's implied yes is "Allowed", though yes is not among its options), else the value as it is.
+ */
+export function accessValueLabel(key: string, value: string) {
+  const labelled = [...accessOptions(key), ...accessOptions('bicycle')]
+  return labelled.find((option) => option.value === value)?.label ?? value
 }
 
 /** The access a road or barrier gives by default, per tag value (access.js:115-280). */

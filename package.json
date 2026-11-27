@@ -50,6 +50,7 @@
     "check-merge": "bun tools/bench/merge-check.ts",
     "check-merge-polygon": "bun tools/bench/merge-polygon-check.ts",
     "check-multi": "bun tools/bench/multi-check.ts",
+    "check-access": "bun tools/bench/access-check.ts",
     "check-ops": "bun tools/bench/ops-check.ts",
     "check-osmchange": "bun tools/bench/osmchange-check.ts",
     "check-lanes": "bun tools/bench/lanes-check.ts",

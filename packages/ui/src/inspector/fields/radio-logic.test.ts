@@ -3,6 +3,7 @@ import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import {
   accessOptions,
   accessPlaceholder,
+  accessValueLabel,
   impliedAccess,
   radioChoices,
   radioChosen,
@@ -318,18 +319,42 @@ describe('accessOptions', () => {
     ])
   })
 
-  test('the other rows have the nine values', () => {
-    expect(accessOptions('foot')).toHaveLength(9)
-    expect(accessOptions('foot')[0]).toEqual({ value: 'yes', label: 'Yes' })
+  test('the other rows have the nine values, labelled as iD (yes is "Allowed")', () => {
+    expect(accessOptions('motor_vehicle')).toHaveLength(9)
+    expect(accessOptions('motor_vehicle')[0]).toEqual({ value: 'yes', label: 'Allowed' })
+    expect(accessOptions('motor_vehicle')[1]).toEqual({ value: 'no', label: 'Prohibited' })
   })
 
-  test('bicycle adds dismount', () => {
-    expect(
-      accessOptions('bicycle')
-        .map((option) => option.value)
-        .at(-1),
-    ).toBe('dismount')
-    expect(accessOptions('bicycle')).toHaveLength(10)
+  test('bicycle adds dismount before the last four, as iD splices it', () => {
+    expect(accessOptions('bicycle').map((option) => option.value)).toEqual([
+      'yes',
+      'no',
+      'designated',
+      'permissive',
+      'destination',
+      'dismount',
+      'customers',
+      'private',
+      'permit',
+      'unknown',
+      'use_sidepath',
+    ])
+  })
+
+  test('foot, bicycle and horse offer use_sidepath; access and motor_vehicle do not', () => {
+    const has = (key: string) =>
+      accessOptions(key).some((option) => option.value === 'use_sidepath')
+    expect([has('foot'), has('bicycle'), has('horse')]).toEqual([true, true, true])
+    expect([has('access'), has('motor_vehicle')]).toEqual([false, false])
+  })
+})
+
+describe('accessValueLabel', () => {
+  test('a listed value shows its label, any other value as it is', () => {
+    expect(accessValueLabel('foot', 'use_sidepath')).toBe('Use sidepath')
+    expect(accessValueLabel('foot', 'yes')).toBe('Allowed')
+    expect(accessValueLabel('access', 'yes')).toBe('Allowed')
+    expect(accessValueLabel('bus', 'emergency')).toBe('emergency')
   })
 })
 

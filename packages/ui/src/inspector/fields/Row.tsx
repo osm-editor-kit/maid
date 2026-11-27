@@ -71,6 +71,8 @@ const STEADY_TYPES = new Set([
   'directionalCombo',
   'localized',
   'address',
+  // keeps the rows added with its "+" (each row starts over when its own value changes)
+  'access',
   // fields that modules bring and that keep their own rows and inputs
   'streetImages',
   'surfaceSmoothness',
