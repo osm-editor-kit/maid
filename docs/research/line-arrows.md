@@ -1,55 +1,37 @@
-# Arrows on lines: drawing direction and oneway
+# Arrows on lines: drawing direction and riding direction
 
-Design proposal for Tobias to decide on. v1 2026-11-26, v2 2026-11-27 after his comments. No code has changed.
-Sketches of every case in every state, on map and imagery, with the answers to the comments:
-**https://claude.ai/artifact/RKGn9wBkgduyGvmVaGswJV** (private until shared).
+Design proposal for Tobias, worked out with him on 2026-11-26 and 2026-11-27. No code has changed. Sketches of every
+case in every state, on map and imagery: **https://claude.ai/artifact/RKGn9wBkgduyGvmVaGswJV** (private until shared).
 
-Asked for by Tobias: users find the hook for `oneway=-1` (ADR 0015) unnatural. The drawing-direction arrow should come
-closer to iD but be easier to see; oneways keep their own glyph; both should show together.
+Started because users found the hook for `oneway=-1` (ADR 0015) unnatural.
 
-## What exists
+## Concept
 
-- iD (`.reference/id` at `0194f3926`): one marker, `svg/defs.ts` `ideditor-oneway-marker-*`, 12 x 6 px, `#333`
-  (white, `#eee` on dark and rail lines, `svg/lines.js` `onewayArrowColour`), every 36 px from zoom 16, mirrored for
-  `isOneWayBackwards`, doubled for `isBiDirectional`. `oneway=no` cancels every implied oneway (`osm/way.ts`
-  `isOneWay`). iD never shows the drawing direction. Maid copies iD's implied list in `renderer/src/direction.ts`.
-- Maid: `renderer/src/direction.ts` and `direction-images.ts` draw iD's arrow, the hook for `-1`, and a white outlined
-  arrow on a selected highway without oneway. The bicycle lens draws white arrows and hooks as line patterns.
-- The TILDA package does not read `cycleway=opposite*`; that is lane tagging, not a centerline property.
+- **Two parts, one glyph per anchor.** A solid chevron is the riding direction, a solid triangle the drawing direction
+  of the line. They are combined into one image per anchor, so nothing collides on the line.
+- **Chevrons for every line, not only oneways**: one chevron (with the line), one chevron back (`-1`), a chevron each
+  way (two-way), `><` overlapping (reversible, alternating). The triangle sits in the chevron's notch, or tip to tip
+  against it for `-1`.
+- **`-1` does not turn the sides**: `:left`, `:right`, `:forward`, `:backward` follow the drawing direction (wiki,
+  [reverse-side-keys.md](reverse-side-keys.md)). So the triangle never turns; only the chevron does.
+- **Road sides** drawn beside the centerline (lanes, tracks in the bicycle lens) get chevrons only, no triangle: their
+  line direction is always the centerline's. The left lane of a two-way road points left (default
+  `cycleway:left:oneway=-1`).
+- **Colour says who**: black for all traffic, blue for bicycles only (`oneway:bicycle`, only off `highway=cycleway`;
+  contraflow is a black chevron and a blue one back), amber for an untagged oneway on tracks and separate ways
+  (bicycle lens; an amber dot). All glyphs solid, 8 px grid, thin white edge for imagery.
+- **When shown**: oneways always (from OSM 16, every 48 px). Two-way: in the standard style on hover and selection,
+  in line-focused styles (bicycle lens) always, every 96 px. Roads with a default oneway (roundabout, motorway) always
+  show their state, so `oneway=no` there shows the two-way glyph.
+- **Size follows the line**: inside the white fill on roads (fill minus 2 px), a small fixed size over thin lines.
+- `oneway=-1` and `oneway:bicycle=-1` are usually lines drawn the wrong way; Reverse (V) fixes them (ADR 0015
+  addendum).
 
-## Proposal (v2)
+Code to change (details on the page): `renderer/src/direction.ts`, `direction-images.ts`, `layers.ts`, `build.ts`,
+`selection-shape.ts`, `engine.ts`, the bicycle lens, `direction-svg.ts` and `assets/direction/*.svg`, their tests and
+checks, and a new ADR that replaces the hook part of ADR 0015.
 
-- **One combined glyph per anchor**, so drawing direction and oneway never compete for a place on the line. Oneway
-  with the line: two chevrons (they also give the drawing direction). Against the line (`-1`): chevrons back plus a
-  small drawing tick in front, visible at rest. No oneway: the tick alone. Reversible: heads outward with a bar.
-- **All glyphs solid**, a thin white edge for imagery. Colour says who: black for all traffic, blue for bicycles only
-  (contraflow counter-chevron, `oneway=no` + `oneway:bicycle=yes` on shared paths), amber for a missing oneway tag
-  (bicycle lens only).
-- **Two sizes**: roads 100 %, paths, footways, cycleways and the bicycle lens lines 72 % (`icon-size`).
-- **Rest state per style**: the standard style shows drawing ticks only on hover and selection; line-focused styles
-  (the bicycle lens) show a few at rest, every 72 px. Ticks on every open line, waterways included.
-- **Bicycle lens**: the same glyphs as line patterns. Lanes are drawn as oneway also when TILDA only assumes it
-  (`implicit_yes`). Tracks and separate ways need the tag: tagged oneway gives chevrons, tagged two-way a double-headed
-  glyph, untagged (`implicit_yes`, `assumed_no`) the amber tick.
-- Out of scope: `oneway:bus`, `oneway:psv`, `oneway:foot`. Maid may deviate from iD where its glyphs are clearer.
+## Open
 
-Code to change (details on the page): `direction.ts`, `direction-images.ts`, `layers.ts` (`icon-size`, a new
-`line-direction` layer behind a style option, pair images on the highlight), `build.ts` (`ow`, `sm`),
-`selection-shape.ts` and `engine.ts`, the bicycle lens (`ridingDirection` with "tagged or not", patterns),
-`direction-svg.ts` and `assets/direction/*.svg`, their tests and `check-bike-style`, and a new ADR that replaces the
-hook part of ADR 0015.
-
-## Decided 2026-11-27
-
-- Roads with a default oneway (roundabout, motorway, iD's implied list) always show their state: chevrons when
-  oneway, the two-way glyph for `oneway=no`.
-- Blue for bicycles is one look for every app.
-- Amber for an untagged oneway on tracks and separate ways stays.
-
-## Open question for Tobias
-
-1. Drawing ticks on hover too, or on selection only?
-
-## Follow-up
-
-The hover and selection glow is too faint in the bicycle lens, where the side lines cover it.
+Nothing for the glyphs. Possible follow-ups: a stronger hover and selection glow in the bicycle lens, where the side
+lines cover it; a validation hint that offers Reverse for `-1` ways.
