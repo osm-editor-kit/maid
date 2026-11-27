@@ -142,6 +142,20 @@ describe('zoom floors of the data layers (MapLibre zoom: OSM minus one)', () => 
 })
 
 describe('the glyph in the middle of a line', () => {
+  test('the spaced glyphs leave a line shorter than two spacings to the glyph in its middle', () => {
+    const layers = buildLayers(options).map(view) as unknown as { id: string; filter?: unknown[] }[]
+    const twoWay = layers.find((l) => l.id === 'line-two-way')!.filter!
+    expect(twoWay[0]).toBe('step')
+    // at MapLibre zoom 19 (OSM 20) a pixel is about 0.09 m at 52°, so the line needs 2 × 96 px ≈ 17.7 m
+    const at19 = twoWay[twoWay.indexOf(19) + 1] as unknown[]
+    const length = (at19[2] as unknown[])[2] as number
+    expect(length).toBeGreaterThan(17)
+    expect(length).toBeLessThan(18.5)
+    expect(layers.find((l) => l.id === 'line-two-way-centre')!.filter).toEqual([
+      'all', ['!', ['has', 'ow']], ['any', ['has', 'tr'], ['has', 'mo']],
+    ]) // prettier-ignore
+  })
+
   test('every symbol layer has a spacing MapLibre accepts (at least 1): a layer under it is never added', () => {
     for (const layer of buildLayers(options).map(view)) {
       const spacing = layer.layout?.['symbol-spacing']

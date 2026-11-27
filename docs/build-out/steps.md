@@ -863,6 +863,10 @@ Decision: [ADR 0017](../adr/0017-line-direction-glyphs.md), overview: [docs/desi
       `check-interactions` 157 ok, `check-bike-style` 78 ok.
       **Test for Tobias:** Maid Bicycle, select a short crossing and a road with lanes: a glyph in the middle, no seam
       between road and lane, the red halo around the lanes too; double-click a road and drag the new node.
+- [x] 2026-11-27: two glyphs side by side on a short line were the middle glyph and a spaced one, not a tile boundary
+      (one tile in view; the source's buffer is an eighth of a tile). The spaced glyphs now draw only lines at least two
+      spacings long on screen (`len`, metres per zoom), so a short line has its middle glyph alone. `bun run check`,
+      `check-bike-style --app bicycle` 78 ok. Open: a stretch of a long way between two junctions can still have none.
 
 ### A line drawn from a way takes its tags (2026-10-28, on main 2026-11-25)
 

@@ -835,6 +835,22 @@ function buildMainLayers(options: LayerOptions) {
     const twoWayRest: ExpressionSpecification = [
       'all', ['!', ['has', 'ow']], ['any', ['has', 'tr'], ['has', 'mo']],
     ] // prettier-ignore
+    // A spaced layer draws a line only when it is at least two spacings long on screen (`len`, metres, against the
+    // metres of a pixel at each zoom): a shorter one has the glyph in its middle alone, and no spaced glyph lands
+    // right beside it (Tobias, 2026-11-27). Filters see the zoom only at their top, so one `step` per zoom.
+    const metresPerPx = (z: number) =>
+      (40075016.686 * Math.cos((options.lat * Math.PI) / 180)) / 512 / 2 ** z
+    const longEnough = (
+      base: ExpressionSpecification,
+      spacing: number,
+    ): ExpressionSpecification => {
+      const at = (z: number): ExpressionSpecification => [
+        'all', base, ['>=', ['coalesce', ['get', 'len'], 0], Math.round(2 * spacing * metresPerPx(z) * 100) / 100],
+      ] // prettier-ignore
+      const out: (number | ExpressionSpecification)[] = [at(15)]
+      for (let z = 16; z <= 24; z++) out.push(z, at(z))
+      return ['step', ['zoom'], ...out] as unknown as ExpressionSpecification
+    }
     const glyphLayer = (
       id: string,
       filter: ExpressionSpecification,
@@ -875,7 +891,7 @@ function buildMainLayers(options: LayerOptions) {
       // A line that always shows its riding direction (build.ts `ow`): every 48 px.
       glyphLayer(
         'line-oneway',
-        ['has', 'ow'],
+        longEnough(['has', 'ow'], GLYPH_SPACING),
         GLYPH_SPACING,
         ['get', 'ow'],
         'rest',
@@ -883,7 +899,7 @@ function buildMainLayers(options: LayerOptions) {
       ),
       glyphLayer(
         'line-oneway-active',
-        ['has', 'ow'],
+        longEnough(['has', 'ow'], GLYPH_SPACING),
         GLYPH_SPACING,
         ['get', 'ow'],
         'active',
@@ -893,7 +909,7 @@ function buildMainLayers(options: LayerOptions) {
       // At rest only in a line-focused editor (LayerOptions.lineFocus), which also marks an untagged cycleway or path.
       glyphLayer(
         'line-two-way',
-        twoWayRest,
+        longEnough(twoWayRest, GLYPH_REST_SPACING),
         GLYPH_REST_SPACING,
         twoWayKind,
         'rest',
@@ -901,7 +917,7 @@ function buildMainLayers(options: LayerOptions) {
       ),
       glyphLayer(
         'line-two-way-active',
-        ['!', ['has', 'ow']],
+        longEnough(['!', ['has', 'ow']], GLYPH_REST_SPACING),
         GLYPH_REST_SPACING,
         twoWayKind,
         'active',

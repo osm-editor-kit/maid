@@ -66,6 +66,8 @@ export type LineProps = {
   lt?: 1
   /** the glyph's opacity under a lens that dims the line (restyleLine), only when it is not 1 */
   ao?: number
+  /** length of the whole way in metres, rounded: the spaced glyphs leave a short line to the one in its middle */
+  len?: number
   /** side marker kind (a key of SIDE_KINDS), only on sided lines */
   side?: string
   /** what an edit changed (edits.ts), only on an edited line: the edits highlight colours it */
@@ -164,6 +166,20 @@ function dashKey(dash: number[] | undefined, width: number) {
 
 const DEG = Math.PI / 180
 /** Signed area in m² (positive = counter-clockwise) and perimeter in m, on a local flat projection */
+/** The length of a line in metres, on a sphere of the Web Mercator radius (good to a fraction of a per cent here) */
+function lineMetres(coords: Position[]) {
+  let sum = 0
+  for (let i = 1; i < coords.length; i++) {
+    const [lon1, lat1] = coords[i - 1]!
+    const [lon2, lat2] = coords[i]!
+    const k = Math.PI / 180
+    const x = (lon2! - lon1!) * k * Math.cos(((lat1! + lat2!) / 2) * k)
+    const y = (lat2! - lat1!) * k
+    sum += Math.hypot(x, y) * 6378137
+  }
+  return sum
+}
+
 function ringMetrics(ring: Position[]) {
   const kx = 111320 * Math.cos(ring[0]![1]! * DEG)
   const ky = 110540
@@ -283,6 +299,7 @@ function lineFeature(
   if (isTravelled(tags)) props.tr = 1
   if (!ow && needsRidingTag(tags)) props.mo = 1
   if (isLightGlyph(tags)) props.lt = 1
+  props.len = Math.round(lineMetres(coords))
   const side = sidedOf(tags)
   if (side) props.side = side
   markLevels(props, floorsOf(tags), tags)
