@@ -44,6 +44,27 @@ const code = await runCheck(
       await page.locator(`textarea[aria-label="${label}"]`).click()
       await frame(page)
     }
+    // a click selects a cell, a double click edits it (as in Google Sheets)
+    const edit = async (label: string) => {
+      await page.locator(`textarea[aria-label="${label}"]`).dblclick()
+      await frame(page)
+    }
+    const editing = () =>
+      page.evaluate(() => {
+        const active = document.activeElement
+        return active instanceof HTMLTextAreaElement ? !active.readOnly : false
+      })
+    // a removed row plays its exit animation first (AnimatePresence keeps it until then)
+    const rowsSettle = (count: number) =>
+      page
+        .waitForFunction(
+          (n) => document.querySelectorAll('[role="grid"] [data-row]').length === n,
+          count,
+          { timeout: 3000 },
+        )
+        .catch(() => undefined)
+    const selectedCells = () =>
+      page.locator('[role="grid"] [role="gridcell"][aria-selected="true"]').count()
     const outside = async () => {
       await page.mouse.click(4, 4)
       await frame(page)
@@ -81,14 +102,48 @@ const code = await runCheck(
     )
 
     // Escape puts the value back and changes nothing
-    await click('Value of lit')
-    await click('Value of lit')
+    await edit('Value of lit')
     await type('XYZ')
     await press('Escape')
     report(
       'Escape cancels an edit: the value stays, no change is made',
       { lit: 'yes', calls: 0 },
       { lit: (await tags()).lit, calls: await calls() },
+    )
+
+    // A click selects (also a second click on the active cell); Cmd/Ctrl+A there selects the whole table, while in an
+    // edit it selects the cell's text only; Escape leaves the edit and keeps the cell selected
+    await fresh()
+    await click('Value of lit')
+    await click('Value of lit')
+    report(
+      'a second click on the selected cell keeps it selected, not edited',
+      false,
+      await editing(),
+    )
+    await press('ControlOrMeta+A')
+    report(
+      'Cmd/Ctrl+A on a selected cell selects every row of the table (5 tags, 10 cells), not the text',
+      { cells: 10, editing: false },
+      { cells: await selectedCells(), editing: await editing() },
+    )
+    await press('Escape')
+    await edit('Value of lit')
+    await press('ControlOrMeta+A')
+    report(
+      'in an edit Cmd/Ctrl+A selects only the text of that cell',
+      { editing: true, cells: 0, text: 'yes' },
+      {
+        editing: await editing(),
+        cells: await selectedCells(),
+        text: await page.evaluate(() => String(getSelection())),
+      },
+    )
+    await press('Escape')
+    report(
+      'Escape leaves the edit, and the cell stays selected',
+      { editing: false, focus: 'Value of lit' },
+      { editing: await editing(), focus: await focused() },
     )
 
     // Tab and Shift+Tab move along the row, and Enter edits the cell in focus
@@ -146,10 +201,87 @@ const code = await runCheck(
       { focus: await focused(), calls: await calls() },
     )
 
+    // A copied tag pasted into the empty row while its key exists: the row is kept and its key cell is edited
+    await fresh()
+    await writeClipboard('highway=residential')
+    await click('Key of new row')
+    await press('ControlOrMeta+V')
+    report(
+      'a tag pasted into the empty row whose key exists is kept as a row, its key cell in an edit, no change made',
+      { focus: 'Key of highway', editing: true, value: 'residential', calls: 0, warning: 0 },
+      {
+        focus: await focused(),
+        editing: await editing(),
+        value: await page.locator('textarea[aria-label="Value of highway"]').last().inputValue(),
+        calls: await calls(),
+        warning: await page.locator('[data-row-warning]').count(),
+      },
+    )
+    await press('Escape')
+    report(
+      'after the edit the row is checked: amber, with an exclamation mark that says it will be ignored',
+      { warning: 1, says: true, editing: false },
+      {
+        warning: await page.locator('[data-row-warning]').count(),
+        says:
+          (
+            await page
+              .locator('textarea[aria-label="Key of highway"]')
+              .last()
+              .getAttribute('aria-description')
+          )?.includes('will be ignored') ?? false,
+        editing: await editing(),
+      },
+    )
+    await press('ArrowDown')
+    await rowsSettle(6)
+    report(
+      'leaving the row with the problem still there drops it, and the line under the sheet says so',
+      {
+        keys: ['highway', 'lit', 'maxspeed', 'name', 'surface', ''],
+        calls: 0,
+        said: true,
+      },
+      {
+        keys: await keys(),
+        calls: await calls(),
+        said: (await status())?.includes('Row ignored') ?? false,
+      },
+    )
+    await click('Key of new row')
+    await press('ControlOrMeta+V')
+    await type(':note')
+    await press('Enter')
+    report(
+      'a pasted row whose key is changed becomes a tag when the edit ends, as one change',
+      { tag: 'residential', highway: 'residential', calls: 1, label: 'Added a tag', warning: 0 },
+      {
+        tag: (await tags())['highway:note'],
+        highway: (await tags()).highway,
+        calls: await calls(),
+        label: await lastLabel(),
+        warning: await page.locator('[data-row-warning]').count(),
+      },
+    )
+    await click('Key of new row')
+    await press('ControlOrMeta+V')
+    await press('Enter')
+    report(
+      'Enter on a row with a problem keeps the focus on it',
+      { focus: 'Key of highway', warning: 1 },
+      { focus: await focused(), warning: await page.locator('[data-row-warning]').count() },
+    )
+    await outside()
+    await rowsSettle(7)
+    report(
+      'leaving the sheet with the problem still there drops the row',
+      { rows: 7, calls: 1 },
+      { rows: (await keys()).length, calls: await calls() },
+    )
+
     // Renaming a key keeps the row in place while the focus is in the sheet, and sorts it after
     await fresh()
-    await click('Key of highway')
-    await click('Key of highway')
+    await edit('Key of highway')
     await press('ControlOrMeta+A')
     await type('zhighway')
     await press('Enter')
@@ -171,8 +303,7 @@ const code = await runCheck(
     )
 
     // Clearing a value removes the tag and keeps the row until the focus leaves
-    await click('Value of name')
-    await click('Value of name')
+    await edit('Value of name')
     await press('ControlOrMeta+A')
     await press('Backspace')
     await press('Enter')
@@ -272,8 +403,7 @@ const code = await runCheck(
     )
 
     // A value of 300 characters is kept and marked invalid
-    await click('Value of maxspeed')
-    await click('Value of maxspeed')
+    await edit('Value of maxspeed')
     await press('ControlOrMeta+A')
     await type('x'.repeat(300))
     report(

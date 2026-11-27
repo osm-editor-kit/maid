@@ -114,6 +114,50 @@ describe('planTagsPaste: the plan of a paste into the Tags sheet', () => {
       'Several lines cannot go into one value',
     ])
   })
+  describe('one tag pasted onto the new row whose key is on another row', () => {
+    const paste = (text: string, anchorCol: 'key' | 'value', editing: boolean) =>
+      planTagsPaste(
+        {
+          text,
+          rows: sheetRows(names),
+          columns: TAG_COLUMNS,
+          anchor: { row: 't0', col: anchorCol },
+          selection: [{ row: 't0', col: anchorCol }],
+          editing,
+          newRowId,
+        },
+        { tags: names, previous: rowsFromTags(names, NO_TAG_ROWS) },
+      )
+    const key = Object.keys(names)[0] ?? ''
+
+    it('becomes a pending row with its key cell open, and changes nothing', () => {
+      const plan = paste(`${key}=other`, 'key', false)
+      if (plan === 'native') throw new Error('expected a plan')
+      expect(plan.changes).toEqual([])
+      expect(plan.pending).toEqual({ cells: { key, value: 'other' }, focus: 'key' })
+    })
+
+    it('also from an open edit of the key cell', () => {
+      const plan = paste(`${key}=other`, 'key', true)
+      if (plan === 'native') throw new Error('expected a plan')
+      expect(plan.pending?.focus).toBe('key')
+    })
+
+    it('an open edit of a value cell takes the text as it is', () => {
+      expect(paste(`${key}=other`, 'value', true)).toBe('native')
+    })
+
+    it('a key that is new is added as before, and several lines merge as before', () => {
+      const added = paste('fresh=1', 'key', false)
+      if (added === 'native') throw new Error('expected a plan')
+      expect(added.pending).toBeUndefined()
+      expect(added.changes[0]?.type).toBe('insert')
+      const several = paste(`${key}=other\nfresh=1`, 'key', false)
+      if (several === 'native') throw new Error('expected a plan')
+      expect(several.pending).toBeUndefined()
+      expect(several.changes.map((change) => change.type).sort()).toEqual(['insert', 'set'])
+    })
+  })
 })
 
 describe('serializeTagCells: what a copy of some cells writes', () => {

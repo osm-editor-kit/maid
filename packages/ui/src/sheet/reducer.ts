@@ -29,6 +29,7 @@ export function initialSheetState(): SheetState {
     tabOrigin: null,
     extraRows: [],
     inserted: null,
+    pending: null,
     trailingId: 't0',
     nextId: 1,
   }
@@ -42,18 +43,27 @@ export function initialSheetState(): SheetState {
 export function shapeOf(
   rows: SheetRow[],
   columns: SheetColumn[],
-  options: { trailingId?: RowId; sheetReadOnly?: boolean; inserted?: SheetState['inserted'] } = {},
+  options: {
+    trailingId?: RowId
+    sheetReadOnly?: boolean
+    inserted?: SheetState['inserted']
+    pending?: SheetState['pending']
+  } = {},
 ): SheetShape {
   const rowById = new Map<RowId, SheetRow>(rows.map((row): [RowId, SheetRow] => [row.id, row]))
   const colById = new Map<ColId, SheetColumn>(
     columns.map((col): [ColId, SheetColumn] => [col.id, col]),
   )
-  // an inserted row sits right under its row; when that row is gone it is not in the grid
+  // an inserted or pending row sits right under its row; when that row is gone it is not in the grid. A pending
+  // row without a row above it is the last row before the trailing one.
+  const pending = options.pending ?? null
   const rowIds: RowId[] = []
   for (const row of rows) {
     rowIds.push(row.id)
     if (options.inserted?.after === row.id) rowIds.push(options.inserted.id)
+    if (pending !== null && pending.after === row.id) rowIds.push(pending.id)
   }
+  if (pending !== null && pending.after === null) rowIds.push(pending.id)
   if (options.trailingId !== undefined) rowIds.push(options.trailingId)
   return {
     rowIds,
@@ -124,7 +134,11 @@ export function selectedRowIds(state: SheetState, shape: SheetShape): RowId[] {
     if (id !== undefined) wanted.add(id)
   }
   return shape.rowIds.filter(
-    (id) => wanted.has(id) && id !== state.trailingId && id !== state.inserted?.id,
+    (id) =>
+      wanted.has(id) &&
+      id !== state.trailingId &&
+      id !== state.inserted?.id &&
+      id !== state.pending?.id,
   )
 }
 
@@ -169,7 +183,8 @@ function textOf(cell: SheetCellData | undefined): string | undefined {
 function insertBelow(state: SheetState, shape: SheetShape, row: RowId): SheetState {
   const col = shape.colIds[0]
   if (col === undefined || !shape.rowIds.includes(row)) return state
-  if (row === state.trailingId || row === state.inserted?.id) return state
+  if (row === state.trailingId || row === state.inserted?.id || row === state.pending?.id)
+    return state
   const id = `t${state.nextId}`
   return {
     ...state,
@@ -311,7 +326,12 @@ function step(state: SheetState, action: SheetAction, shape: SheetShape): SheetS
     }
     case 'toggleRow': {
       const row = action.row
-      if (!shape.rowIds.includes(row) || row === state.trailingId || row === state.inserted?.id)
+      if (
+        !shape.rowIds.includes(row) ||
+        row === state.trailingId ||
+        row === state.inserted?.id ||
+        row === state.pending?.id
+      )
         return state
       const col = action.col ?? state.active?.col ?? shape.colIds[0]
       if (col === undefined) return state
@@ -340,6 +360,29 @@ function step(state: SheetState, action: SheetAction, shape: SheetShape): SheetS
     case 'insertBelow': {
       const row = action.row ?? state.active?.row
       return row === undefined ? state : insertBelow(state, shape, row)
+    }
+    case 'openPending': {
+      if (!shape.colIds.includes(action.focus)) return state
+      const onInserted = state.inserted !== null && state.inserted.id === action.at
+      if (!onInserted && action.at !== state.trailingId) return state
+      const id = `t${state.nextId}`
+      return {
+        ...state,
+        active: { row: id, col: action.focus },
+        anchor: null,
+        rowsSelected: false,
+        extraRows: [],
+        mode: 'edit',
+        editStart: 'keep',
+        tabOrigin: null,
+        inserted: null,
+        pending: {
+          id,
+          after: onInserted ? (state.inserted?.after ?? null) : null,
+          cells: action.cells,
+        },
+        nextId: state.nextId + 1,
+      }
     }
     case 'leave':
       return {
@@ -398,7 +441,14 @@ function step(state: SheetState, action: SheetAction, shape: SheetShape): SheetS
       const extraRows = state.extraRows.filter((id) => shape.rowIds.includes(id))
       const inserted =
         state.inserted !== null && shape.rowIds.includes(state.inserted.id) ? state.inserted : null
-      const kept: SheetState = { ...state, extraRows, inserted }
+      // a pending row whose row above is gone stays, at the end
+      const pending =
+        state.pending !== null &&
+        state.pending.after !== null &&
+        !shape.rowIds.includes(state.pending.after)
+          ? { ...state.pending, after: null }
+          : state.pending
+      const kept: SheetState = { ...state, extraRows, inserted, pending }
       const at = state.active
       if (at === null) return kept
       if (shape.rowIds.length === 0) {
@@ -468,6 +518,10 @@ export function commitEdit(
   const col = columns.find((c) => c.id === at.col)
   if (col === undefined || shape.readOnly(at)) {
     return { state: settle(finishEdit(state, shape, after)) }
+  }
+
+  if (state.pending !== null && at.row === state.pending.id) {
+    return commitPending(state, shape, rows, columns, col, text, after)
   }
 
   const row = rows.find((r) => r.id === at.row)
@@ -541,6 +595,104 @@ export function commitEdit(
   const batch: SheetBatch | undefined =
     change === undefined ? undefined : { cause: 'edit', changes: [change] }
   return { state: settle(finishEdit(working, nextShape, after)), batch, invalid }
+}
+
+/** The text of each column of a pending row, '' for a column it has no text in. */
+function pendingTexts(
+  pending: NonNullable<SheetState['pending']>,
+  columns: SheetColumn[],
+): Record<ColId, string> {
+  return Object.fromEntries(
+    columns.map((col): [ColId, string] => [col.id, pending.cells[col.id] ?? '']),
+  )
+}
+
+/**
+ * What is wrong with a pending row, or undefined when it can become data. Checked when an edit in it ends, never
+ * while it is typed. A `unique` column must have a text that no other row has: a row whose every text equals
+ * another row's repeats it (`ui_sheet_row_repeated`), else the column's text is on another row
+ * (`ui_sheet_duplicate`); an empty one is a problem too. A row that is all empty has none: it just goes.
+ */
+export function pendingProblem(
+  pending: NonNullable<SheetState['pending']>,
+  rows: SheetRow[],
+  columns: SheetColumn[],
+): string | undefined {
+  const texts = pendingTexts(pending, columns)
+  if (columns.every((col) => texts[col.id] === '')) return undefined
+  const same = rows.find((row) =>
+    columns.every((col) => textOf(row.cells[col.id]) === texts[col.id]),
+  )
+  if (same !== undefined) return m.ui_sheet_row_repeated()
+  for (const col of columns) {
+    if (col.unique !== true) continue
+    const value = texts[col.id] ?? ''
+    if (value === '') return m.ui_sheet_row_empty({ column: col.header })
+    if (rows.some((row) => textOf(row.cells[col.id]) === value)) {
+      return m.ui_sheet_duplicate({ column: col.header, value })
+    }
+  }
+  return undefined
+}
+
+/**
+ * An edit in the pending row: the text goes into the row (cleaned), no batch. When the edit would move the focus out
+ * of the row and the row has a problem, the focus stays on the cell instead, so the person sees the warning first.
+ */
+function commitPending(
+  state: SheetState,
+  shape: SheetShape,
+  rows: SheetRow[],
+  columns: SheetColumn[],
+  col: SheetColumn,
+  text: string,
+  after: EndThen,
+): CommitResult {
+  const pending = state.pending
+  if (pending === null) return { state }
+  const cleaned = col.clean !== undefined ? col.clean(text) : text
+  const working: SheetState = {
+    ...state,
+    pending: { ...pending, cells: { ...pending.cells, [col.id]: cleaned } },
+  }
+  const invalid = col.validate?.(cleaned, { id: pending.id, label: '', cells: {} })
+  let next = finishEdit(working, shape, after)
+  const leaves = next.active?.row !== pending.id
+  if (leaves && working.pending !== null && pendingProblem(working.pending, rows, columns)) {
+    next = finishEdit(working, shape, 'stay')
+  }
+  return { state: settle(next), invalid }
+}
+
+/** What resolvePending gives: the next state, the insert (when the row became data) or why it was dropped. */
+export type PendingResult = { state: SheetState; batch?: SheetBatch; dropped?: string }
+
+/**
+ * The pending row once the focus is not on it (or `leaving`: the focus left the sheet): it becomes one `insert`
+ * (cause 'edit', under its row), is dropped with the reason when it has a problem, or goes without a word when it is
+ * empty. A state whose focus is still on the row is returned as it is.
+ */
+export function resolvePending(
+  state: SheetState,
+  rows: SheetRow[],
+  columns: SheetColumn[],
+  leaving = false,
+): PendingResult {
+  const pending = state.pending
+  if (pending === null) return { state }
+  if (!leaving && state.active?.row === pending.id) return { state }
+  const anchor = state.anchor?.row === pending.id ? null : state.anchor
+  const next: SheetState = { ...state, pending: null, anchor }
+  const texts = pendingTexts(pending, columns)
+  if (columns.every((col) => texts[col.id] === '')) return { state: next }
+  const problem = pendingProblem(pending, rows, columns)
+  if (problem !== undefined) return { state: next, dropped: problem }
+  const cells = Object.fromEntries(Object.entries(texts).filter(([, value]) => value !== ''))
+  const change: SheetChange =
+    pending.after === null
+      ? { type: 'insert', row: pending.id, cells }
+      : { type: 'insert', row: pending.id, cells, after: pending.after }
+  return { state: next, batch: { cause: 'edit', changes: [change] } }
 }
 
 /**

@@ -21,6 +21,9 @@
  * 9. `SheetProps` lives here with a type-only import of `ReactNode`; it is erased at runtime, so this file
  *    still has no React in it.
  * 10. `SheetKeyEvent` and `SheetKeyResult` live in keys.ts (they are the key layer's, not the contract's).
+ * 11. A pending row (`SheetState.pending`) holds texts that are not data yet: a pasted row the host could not take as it
+ *     is (a tag whose key is on another row). Its cells are edited in the sheet; it is checked when an edit in it
+ *     ends (`pendingProblem`), and becomes data (`insert`) or is dropped when the focus leaves it (`resolvePending`).
  */
 import type { ReactNode } from 'react'
 
@@ -63,6 +66,11 @@ export type SheetRow = {
   cells: Record<ColId, SheetCellData>
   /** The whole row cannot be edited, pasted over or removed. */
   readOnly?: boolean
+  /**
+   * What is wrong with the row and what the sheet will do about it (the pending row: `pendingProblem`). The row is
+   * amber and shows an exclamation mark with this text. Set by the sheet, not by the host.
+   */
+  warning?: string
 }
 
 /** A suggestion for a cell: what is written when it is taken, and how it is shown. */
@@ -154,7 +162,18 @@ export type SheetClipboard = {
     selection: CellRef[]
     editing: boolean
     newRowId: () => RowId
-  }) => { changes: SheetChange[]; report: PasteReport; focus?: CellRef } | 'native'
+  }) =>
+    | {
+        changes: SheetChange[]
+        report: PasteReport
+        focus?: CellRef
+        /**
+         * A row the plan could not take as data (its key is on another row): the sheet shows it as a pending row in
+         * place of the new row, with `focus` (a column) in edit mode, so the person can fix it there.
+         */
+        pending?: { cells: Record<ColId, string>; focus: ColId }
+      }
+    | 'native'
 }
 
 /** Props of the grid. `rows` is controlled; ids are stable for the life of a row. */
@@ -219,6 +238,12 @@ export type SheetState = {
    * not a row of the host: its first commit is an `insert` with `after`. It goes when the focus leaves it.
    */
   inserted: { id: RowId; after: RowId } | null
+  /**
+   * A row of texts that is not data yet (decision 11): under `after`, or at the end (before the trailing row) when
+   * `after` is null. Edits in it change `cells` and give no batch; when the focus leaves it, it becomes an `insert`
+   * or is dropped (`resolvePending`).
+   */
+  pending: { id: RowId; after: RowId | null; cells: Record<ColId, string> } | null
   /** Id of the trailing empty row (a position in the shape, not a row of the host). */
   trailingId: RowId
   /** Next number for a minted id (`t<n>`). */
@@ -253,6 +278,11 @@ export type SheetAction =
   | { type: 'toggleRow'; row: RowId; col?: ColId }
   /** An empty row under `row` (default: the active one), with the focus in its first cell */
   | { type: 'insertBelow'; row?: RowId }
+  /**
+   * A pending row in place of the new row `at` (the trailing or the inserted row), with `focus` in edit mode and the
+   * caret after its text. An earlier pending row is replaced: resolve it first.
+   */
+  | { type: 'openPending'; at: RowId; cells: Record<ColId, string>; focus: ColId }
   /** The focus left the sheet: the range collapses and an inserted row that stayed empty goes */
   | { type: 'leave' }
   | { type: 'selectAll' }

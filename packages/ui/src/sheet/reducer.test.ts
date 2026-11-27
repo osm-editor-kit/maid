@@ -3,7 +3,9 @@ import {
   clearSelection,
   commitEdit,
   initialSheetState,
+  pendingProblem,
   removeRows,
+  resolvePending,
   selectedCells,
   selectedRowIds,
   sheetReducer,
@@ -792,5 +794,122 @@ describe('sheetReducer: Cmd/Ctrl+click picks single rows', () => {
       { type: 'remove', row: 'a' },
     ])
     expect(removeRows(['l'], all)).toBeUndefined()
+  })
+})
+
+describe('the pending row: a pasted row that is not data yet', () => {
+  const open = (cells: Record<string, string>, from: SheetState = focus(cell('t0', 'key'))) =>
+    sheetReducer(from, { type: 'openPending', at: 't0', cells, focus: 'key' }, shape)
+  const shapeWith = (state: SheetState) =>
+    shapeOf(rows, columns, { trailingId: 't0', pending: state.pending })
+
+  it('opens in place of the trailing row, its cell in edit mode, before the trailing row', () => {
+    const next = open({ key: 'highway', value: 'residential' })
+    expect(next.pending).toEqual({
+      id: 't1',
+      after: null,
+      cells: { key: 'highway', value: 'residential' },
+    })
+    expect(next.active).toEqual(cell('t1', 'key'))
+    expect(next.mode).toBe('edit')
+    expect(next.editStart).toBe('keep')
+    expect(shapeWith(next).rowIds).toEqual(['a', 'b', 'c', 't1', 't0'])
+  })
+
+  it('opens in place of an inserted row, under its row; not on a row with data', () => {
+    const inserted = sheetReducer(focus(cell('a', 'key')), { type: 'insertBelow' }, shape)
+    const id = inserted.inserted?.id ?? ''
+    const next = sheetReducer(
+      inserted,
+      { type: 'openPending', at: id, cells: { key: 'x' }, focus: 'key' },
+      shapeOf(rows, columns, { trailingId: 't0', inserted: inserted.inserted }),
+    )
+    expect(next.inserted).toBeNull()
+    expect(next.pending?.after).toBe('a')
+    expect(shapeWith(next).rowIds).toEqual(['a', next.pending?.id ?? '', 'b', 'c', 't0'])
+    const refused = sheetReducer(
+      focus(cell('a', 'key')),
+      { type: 'openPending', at: 'a', cells: { key: 'x' }, focus: 'key' },
+      shape,
+    )
+    expect(refused.pending).toBeNull()
+  })
+
+  it('pendingProblem: a repeated row, a key on another row, an empty key, or none', () => {
+    const pending = (cells: Record<string, string>) => ({ id: 'p', after: null, cells })
+    expect(pendingProblem(pending({ key: 'highway', value: 'residential' }), rows, columns)).toBe(
+      'This row repeats another row',
+    )
+    expect(pendingProblem(pending({ key: 'highway', value: 'primary' }), rows, columns)).toBe(
+      'Key "highway" is already on another row',
+    )
+    expect(pendingProblem(pending({ value: 'x' }), rows, columns)).toBe('Key is empty')
+    expect(pendingProblem(pending({ key: 'highway:ref', value: 'x' }), rows, columns)).toBe(
+      undefined,
+    )
+    expect(pendingProblem(pending({}), rows, columns)).toBe(undefined)
+  })
+
+  it('an edit in it gives no batch; with a problem Enter keeps the focus on the cell', () => {
+    const start = open({ key: 'highway', value: 'residential' })
+    const result = commitEdit(start, shapeWith(start), rows, columns, ' highway ', 'down')
+    expect(result.batch).toBeUndefined()
+    expect(result.state.mode).toBe('navigate')
+    expect(result.state.active).toEqual(cell('t1', 'key'))
+    expect(result.state.pending?.cells.key).toBe('highway')
+    expect(result.refused).toBeUndefined()
+  })
+
+  it('a fixed key lets Enter move on; the focus is off the row', () => {
+    const start = open({ key: 'highway', value: 'residential' })
+    const result = commitEdit(start, shapeWith(start), rows, columns, 'highway:note', 'down')
+    expect(result.batch).toBeUndefined()
+    expect(result.state.active).toEqual(cell('t0', 'key'))
+    expect(result.state.pending?.cells.key).toBe('highway:note')
+  })
+
+  it('resolvePending: the row becomes one insert once the focus is off it', () => {
+    const start = open({ key: 'highway', value: 'residential' })
+    const moved = commitEdit(start, shapeWith(start), rows, columns, 'highway:note', 'down').state
+    const result = resolvePending(moved, rows, columns)
+    expect(result.state.pending).toBeNull()
+    expect(result.batch).toEqual({
+      cause: 'edit',
+      changes: [
+        { type: 'insert', row: 't1', cells: { key: 'highway:note', value: 'residential' } },
+      ],
+    })
+    expect(result.dropped).toBeUndefined()
+  })
+
+  it('resolvePending: a row with a problem is dropped with the reason, an empty one without', () => {
+    const start = open({ key: 'highway', value: 'residential' })
+    const away = { ...start, mode: 'navigate' as const, active: cell('a', 'key') }
+    const dropped = resolvePending(away, rows, columns)
+    expect(dropped.state.pending).toBeNull()
+    expect(dropped.batch).toBeUndefined()
+    expect(dropped.dropped).toBe('This row repeats another row')
+    const empty = resolvePending({ ...open({}), active: cell('a', 'key') }, rows, columns)
+    expect(empty).toEqual({ state: { ...open({}), active: cell('a', 'key'), pending: null } })
+  })
+
+  it('resolvePending: nothing while the focus is on the row, unless the focus leaves the sheet', () => {
+    const start = open({ key: 'highway', value: 'residential' })
+    expect(resolvePending(start, rows, columns).state).toBe(start)
+    expect(resolvePending(start, rows, columns, true).dropped).toBe('This row repeats another row')
+  })
+
+  it('is never a selected row, and a row above it that goes moves it to the end', () => {
+    const start = open({ key: 'highway', value: 'x' })
+    const all = sheetReducer(start, { type: 'selectAll' }, shapeWith(start))
+    expect(selectedRowIds(all, shapeWith(all))).toEqual(['a', 'b', 'c'])
+    const under = { ...start, pending: { id: 't1', after: 'b', cells: { key: 'x' } } }
+    const fewer = [rowA, rowC]
+    const next = sheetReducer(
+      under,
+      { type: 'rowsChanged', previousRowIds: ['a', 'b', 't1', 'c', 't0'] },
+      shapeOf(fewer, columns, { trailingId: 't0', pending: { ...under.pending, after: null } }),
+    )
+    expect(next.pending?.after).toBeNull()
   })
 })

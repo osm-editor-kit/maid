@@ -23,7 +23,9 @@ import {
   clearSelection,
   commitEdit,
   initialSheetState,
+  pendingProblem,
   removeRows,
+  resolvePending,
   selectedCells,
   selectedRowIds,
   selectionRect,
@@ -60,12 +62,12 @@ type Track = {
   kind: string
   cell?: CellRef
   rowAnchor?: RowId
-  wasActive: boolean
   shift: boolean
   moved: boolean
   last?: CellRef
   lastRow?: RowId
-  /** The press was on a cell's list button: the click opens the cell with all of its suggestions */
+  /** The press was on a cell's list button: the click opens the cell with all of its suggestions (a mouse click on
+   * any other cell only selects it; a double click edits, as in Google Sheets) */
   browse?: boolean
   /** A Cmd/Ctrl+click that picked a row: the click does not open the cell */
   toggle?: boolean
@@ -152,6 +154,7 @@ export function Sheet(props: SheetProps) {
     trailingId: showTrailing ? state.trailingId : undefined,
     sheetReadOnly: !editable,
     inserted: showTrailing ? state.inserted : null,
+    pending: showTrailing ? state.pending : null,
   })
   const [seenIds, setSeenIds] = useState<RowId[]>(shape.rowIds)
   const [mintRowId] = useState(newRowIds)
@@ -177,12 +180,34 @@ export function Sheet(props: SheetProps) {
     () => ({ id: insertedId ?? '', label: m.ui_sheet_new_row(), cells: {} }),
     [insertedId],
   )
-  // The inserted row sits under its row, the trailing row at the end (the order shapeOf gives the grid).
+  // The pending row: its texts as cells, and its problem as a warning while it is not edited (checked when an edit
+  // in it ends, never while it is typed).
+  const pending = showTrailing ? state.pending : null
+  let pendingRow: SheetRow | undefined
+  if (pending !== null) {
+    const editingIt = state.mode === 'edit' && state.active?.row === pending.id
+    const problem = editingIt ? undefined : pendingProblem(pending, rows, columns)
+    const firstText = pending.cells[columns[0]?.id ?? ''] ?? ''
+    pendingRow = {
+      id: pending.id,
+      label: firstText === '' ? m.ui_sheet_new_row() : firstText,
+      cells: Object.fromEntries(
+        Object.entries(pending.cells).map(([col, text]): [ColId, SheetCellData] => [
+          col,
+          { value: { kind: 'value', text } },
+        ]),
+      ),
+      ...(problem === undefined ? {} : { warning: m.ui_sheet_row_ignored({ problem }) }),
+    }
+  }
+  // The inserted and the pending row sit under their row, the trailing row at the end (the order shapeOf gives).
   const all: SheetRow[] = []
   for (const row of rows) {
     all.push(row)
     if (insertedId !== undefined && state.inserted?.after === row.id) all.push(insertedRow)
+    if (pendingRow !== undefined && pending?.after === row.id) all.push(pendingRow)
   }
+  if (pendingRow !== undefined && pending?.after === null) all.push(pendingRow)
   if (showTrailing) all.push(blankRow)
   const picked = state.extraRows.length > 0 ? new Set(selectedRowIds(state, shape)) : undefined
   const at = state.active
@@ -222,7 +247,13 @@ export function Sheet(props: SheetProps) {
     const target = pendingFocus.current
     if (target === null) return
     pendingFocus.current = null
-    cellInput(grid.current, target)?.focus({ preventScroll: true })
+    const input = cellInput(grid.current, target)
+    input?.focus({ preventScroll: true })
+    // a cell that opens in edit mode (the pending row) has the caret after its text
+    if (input !== null && !input.readOnly) {
+      const end = input.value.length
+      input.setSelectionRange(end, end)
+    }
   })
 
   // A message without a refusal goes after a while; one with refused lines stays until closed.
@@ -232,9 +263,23 @@ export function Sheet(props: SheetProps) {
     return () => window.clearTimeout(timer)
   }, [status])
 
+  /**
+   * The pending row once the focus is off it (or `leaving` the sheet): its insert goes to the host, or the line under
+   * the sheet says why it was dropped. Every change of state that can move the focus goes through here.
+   */
+  function resolved(next: SheetState, leaving = false): SheetState {
+    const result = resolvePending(next, rows, columns, leaving)
+    if (result.batch !== undefined && onChange !== undefined) onChange(result.batch)
+    if (result.dropped !== undefined) {
+      setStatus({ text: m.ui_sheet_row_dropped({ problem: result.dropped }), refused: [] })
+    }
+    return result.state
+  }
+
   function moveTo(next: SheetState): void {
-    setState(next)
-    pendingFocus.current = next.active
+    const settled = resolved(next)
+    setState(settled)
+    pendingFocus.current = settled.active
   }
 
   /** Ends an edit with the draft (the input's value): one batch, and the state as `after` says. */
@@ -338,10 +383,24 @@ export function Sheet(props: SheetProps) {
     if (out.changes.length > 0 && onChange !== undefined) {
       onChange({ cause: 'paste', changes: out.changes })
     }
+    const onNewRow = anchor.row === state.trailingId || anchor.row === state.inserted?.id
+    if (out.pending !== undefined && showTrailing && onNewRow) {
+      // a row the host cannot take as it is: it stays as a pending row, its cell open for the fix
+      next = sheetReducer(
+        next,
+        { type: 'openPending', at: anchor.row, cells: out.pending.cells, focus: out.pending.focus },
+        shape,
+      )
+      setDraftNote(undefined)
+      setState(next)
+      pendingFocus.current = next.active
+      return true
+    }
     setStatus({
       text: (describePaste ?? defaultDescribePaste)(out.report),
       refused: out.report.refused,
     })
+    next = resolved(next)
     setState(next)
     pendingFocus.current = out.focus ?? next.active
     return true
@@ -523,20 +582,19 @@ export function Sheet(props: SheetProps) {
       const from = event.shiftKey && base.active !== null ? base.active.row : rowId
       track.current = {
         kind: event.pointerType,
-        wasActive: false,
         shift: event.shiftKey,
         moved: false,
         rowAnchor: from,
         lastRow: rowId,
       }
-      setState(sheetReducer(base, { type: 'selectRows', from, to: rowId }, shape))
+      setState(resolved(sheetReducer(base, { type: 'selectRows', from, to: rowId }, shape)))
       listen()
       return
     }
     const cellElement = target.closest<HTMLElement>('[data-col]')
     const cell = cellElement === null ? undefined : cellRefOf(cellElement)
     if (cell === undefined) {
-      if (open !== null) setState(base)
+      if (open !== null) setState(resolved(base))
       return
     }
     // A mouse keeps the focus where the grid puts it: the press does not start a text selection.
@@ -548,7 +606,6 @@ export function Sheet(props: SheetProps) {
       track.current = {
         kind: event.pointerType,
         cell,
-        wasActive: false,
         shift: false,
         moved: false,
         toggle: true,
@@ -561,13 +618,13 @@ export function Sheet(props: SheetProps) {
       kind: event.pointerType,
       cell,
       last: cell,
-      // the list button opens the cell at once, whether it was active or not
-      wasActive: browse || (sameCell(base.active, cell) && base.mode === 'navigate'),
       shift: event.shiftKey,
       moved: false,
       browse,
     }
-    setState(sheetReducer(base, { type: 'activate', cell, extend: event.shiftKey }, shape))
+    setState(
+      resolved(sheetReducer(base, { type: 'activate', cell, extend: event.shiftKey }, shape)),
+    )
     listen()
   }
 
@@ -578,7 +635,10 @@ export function Sheet(props: SheetProps) {
     moveTo(next)
   }
 
-  /** A click on the active cell edits it; a tap (touch, pen) edits at once. */
+  /**
+   * A mouse click only selects, also on the active cell (as in Google Sheets: Cmd/Ctrl+A then selects the table, not
+   * the text); its list button opens it. A tap (touch, pen) edits at once.
+   */
   function onClick(): void {
     const current = track.current
     track.current = undefined
@@ -590,11 +650,24 @@ export function Sheet(props: SheetProps) {
       current.cell === undefined
     )
       return
-    if (current.kind === 'mouse' && !current.wasActive) return
+    if (current.kind === 'mouse' && current.browse !== true) return
     const input = cellInput(grid.current, current.cell)
     if (input === null) return
     input.focus({ preventScroll: true })
     setBrowsing(current.browse === true ? current.cell : null)
+    beginEdit(input, 'keep')
+  }
+
+  /** A double click edits the cell, the text kept and the caret at its end. */
+  function onDoubleClick(event: ReactMouseEvent<HTMLDivElement>): void {
+    if (!(event.target instanceof Element) || event.target.closest('[data-row-handle]') !== null)
+      return
+    const cellElement = event.target.closest<HTMLElement>('[data-col]')
+    const cell = cellElement === null ? undefined : cellRefOf(cellElement)
+    if (cell === undefined || !sameCell(state.active, cell) || state.mode !== 'navigate') return
+    const input = cellInput(grid.current, cell)
+    if (input === null) return
+    input.focus({ preventScroll: true })
     beginEdit(input, 'keep')
   }
 
@@ -616,7 +689,7 @@ export function Sheet(props: SheetProps) {
     const input = event.target
     if (input instanceof HTMLTextAreaElement && !input.readOnly)
       base = leaveEdit(input, 'stay', state)
-    if (leaving) base = sheetReducer(base, { type: 'leave' }, shape)
+    if (leaving) base = sheetReducer(resolved(base, true), { type: 'leave' }, shape)
     if (base !== state) setState(base)
   }
 
@@ -634,12 +707,17 @@ export function Sheet(props: SheetProps) {
     const target = event.target
     if (!(target instanceof Element)) return
     const rowId = target.closest<HTMLElement>('[data-row]')?.dataset.row
-    if (rowId === undefined || rowId === insertedId || (showTrailing && rowId === state.trailingId))
+    if (
+      rowId === undefined ||
+      rowId === insertedId ||
+      rowId === pending?.id ||
+      (showTrailing && rowId === state.trailingId)
+    )
       return
     const open = openInput(grid.current)
     if (open !== null && open === target) return
     event.preventDefault()
-    const base = open !== null ? leaveEdit(open, 'stay', state) : state
+    const base = resolved(open !== null ? leaveEdit(open, 'stay', state) : state)
     let next = base
     if (!selectedRowIds(base, shape).includes(rowId)) {
       next = sheetReducer(base, { type: 'selectRows', from: rowId }, shape)
@@ -700,6 +778,7 @@ export function Sheet(props: SheetProps) {
         onKeyDown={onKeyDown}
         onPointerDown={onPointerDown}
         onClick={onClick}
+        onDoubleClick={onDoubleClick}
         onContextMenu={onContextMenu}
         onFocus={onFocus}
         onBlur={onBlur}
@@ -731,9 +810,10 @@ export function Sheet(props: SheetProps) {
         </div>
         <AnimatePresence initial={false}>
           {all.map((row, r) => {
-            // no data yet: the trailing row and the inserted row
+            // no data yet: the trailing row and the inserted row (the pending row has texts, not data)
             const isTrailing =
               row.id === insertedId || (showTrailing && row.id === state.trailingId)
+            const isPending = row.id === pending?.id
             const whole = picked?.has(row.id) === true
             const inRange = rect !== undefined && r >= rect.r0 && r <= rect.r1
             const motionProps = reduced
@@ -791,10 +871,12 @@ export function Sheet(props: SheetProps) {
                       readOnly={shape.readOnly(ref)}
                       tabIndex={sameCell(tabStop, ref) ? 0 : -1}
                       browsing={sameCell(browsing, ref)}
+                      warning={row.warning}
+                      warningIcon={c === columns.length - 1}
                     />
                   )
                 })}
-                {rowActions !== undefined && !isTrailing ? (
+                {rowActions !== undefined && !isTrailing && !isPending ? (
                   <div role="gridcell" className="flex items-center gap-0.5 px-1">
                     {rowActions(row)}
                   </div>

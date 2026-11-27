@@ -162,7 +162,7 @@ Every cell is a real `<input>`: `readOnly` in navigation mode (caret hidden), wr
 
 | Key or gesture | Navigation mode | Edit mode |
 | --- | --- | --- |
-| Click | Activates the cell; a click on the active cell starts editing (keep) | Places the caret |
+| Click | Activates the cell, also the active one: a click never edits with the mouse (as in Google Sheets, 2026-11-27: Cmd/Ctrl+A after a click selects the table, not the text). The list button of a cell opens it | Places the caret |
 | Double click, Enter, F2 | Edit, text kept, caret at the end | Enter: commit, go down in the column the Tab run began in (key, Tab, value, Enter lands on the next key) |
 | Typing a character, or IME start | Edit, text replaced: the handler sets `input.readOnly = false` and selects all before the key's default action, so dead keys and IME work | types |
 | Escape | Collapses a range to the active cell; else nothing | Puts the value back, closes the list first if open; `stopPropagation` as `DraftInput` |
@@ -180,6 +180,8 @@ Every cell is a real `<input>`: `readOnly` in navigation mode (caret hidden), wr
 | Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z, Ctrl+Y | `onUndo` / `onRedo` (the editor's undo). The active cell stays on its row id | The input's own undo, never the editor's |
 
 A change of the cell's value from outside during an edit keeps the draft; the commit wins. Blur commits (as `useDraft`), clears the range and lets the host sort.
+
+Pending row (2026-11-27, `SheetState.pending`): one `key=value` pasted onto the new row whose key is on another row is not merged into that row. It becomes a row of texts that is not data yet, with its key cell in edit mode, so a copied tag can start a new one. It is checked only when an edit in it ends (`pendingProblem`: a row that repeats another, a key on another row, an empty key); with a problem it turns amber and shows an exclamation mark whose tooltip says what is wrong and that the row will be ignored, and Enter keeps the focus on it. When the focus leaves the row or the sheet it becomes one `insert` (an undo step) or, with the problem still there, is dropped and the line under the sheet says so (`resolvePending`). Typing a key that exists in the new row still jumps to that row's value, and a paste of several lines still merges (section 6).
 
 Touch (the phone layout): a tap activates and edits at once; the remove button of each row is always visible (`pointer-coarse:opacity-100`, as `REVEAL`); suggestions work; paste works through the system's paste menu in a key cell (the plan above), and the section gets a "Copy all" button from the host. Desktop only: range selection by drag, row handles, Shift and Cmd keys, cut.
 

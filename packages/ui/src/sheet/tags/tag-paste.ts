@@ -15,6 +15,7 @@ import type {
   SheetRow,
 } from '../types.ts'
 import {
+  cleanText,
   copyRowsText,
   planTagPaste,
   rowKey,
@@ -69,17 +70,41 @@ export type TagPasteContext = {
 }
 
 export type TagPasteResult =
-  | { changes: SheetChange[]; report: PasteReport; focus?: CellRef }
+  | {
+      changes: SheetChange[]
+      report: PasteReport
+      focus?: CellRef
+      pending?: { cells: Record<ColId, string>; focus: ColId }
+    }
   | 'native'
 
-/** The paste plan of the Tags sheet, for the grid's `clipboard.plan`. */
+/**
+ * The paste plan of the Tags sheet, for the grid's `clipboard.plan`. One tag pasted onto the new row whose key is on
+ * another row is not merged into that row: it becomes a pending row with its key cell open, so the person can change
+ * the key (a copied tag as the start of a new one). The sheet checks it when the edit ends.
+ */
 export function planTagsPaste(input: TagPasteInput, context: TagPasteContext): TagPasteResult {
   const parsed = parseTagText(input.text)
+  const anchorOnNewRow = !input.rows.some((row) => row.id === input.anchor.row)
+  const only = parsed.entries.length === 1 ? parsed.entries[0] : undefined
+  // an open edit of a value cell takes the text as it is (tagPasteRoute)
+  const native = input.editing && input.anchor.col !== 'key'
+  if (anchorOnNewRow && !native && only !== undefined && parsed.refused.length === 0) {
+    const key = cleanText(only.key)
+    const value = cleanText(only.value)
+    if (key !== '' && context.previous.rows.some((row) => rowKey(row) === key)) {
+      return {
+        changes: [],
+        report: { added: 0, replaced: 0, unchanged: 0, refused: [] },
+        pending: { cells: { key, value }, focus: 'key' },
+      }
+    }
+  }
   const route = tagPasteRoute({
     text: input.text,
     editing: input.editing,
     anchorIsKey: input.anchor.col === 'key',
-    anchorOnNewRow: !input.rows.some((row) => row.id === input.anchor.row),
+    anchorOnNewRow,
     selectionHasKey: input.selection.some((cell) => cell.col === 'key'),
     oneLine: !/[\r\n]/.test(input.text),
     linesParse: parsed.refused.length === 0,

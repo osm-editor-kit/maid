@@ -13,10 +13,11 @@ export const EDGE_RIGHT = 2
 export const EDGE_BOTTOM = 4
 export const EDGE_LEFT = 8
 
-/** blue-500: the range outline. blue-600: the active cell. red-500: an invalid cell. */
+/** blue-500: the range outline. blue-600: the active cell. red-500: an invalid cell. amber-500: a row with a warning. */
 const RANGE = '#3b82f6'
 const ACTIVE = '#2563eb'
 const INVALID = '#ef4444'
+const WARNING = '#f59e0b'
 
 /** The outline sides of the cell at row `r`, column `c` of a range (0 for a cell outside it). */
 export function rangeEdges(r: number, c: number, rect: SelectionRect): number {
@@ -33,14 +34,20 @@ export type CellLook = {
   active: boolean
   editing: boolean
   invalid: boolean
+  /** The row has a problem the sheet will act on (SheetRow.warning) */
+  warning?: boolean
   edges: number
 }
 
-/** The classes of the cell's wrapper: its hairline borders, and the fill of a selected cell. */
-export function cellClassName(look: { selected: boolean }): string {
+/**
+ * The classes of the cell's wrapper: its hairline borders, the fill of a selected cell, and the amber of a row with a
+ * warning (the warning colours of the inspector's fields, amber-600 / amber-400 text on a light amber fill).
+ */
+export function cellClassName(look: { selected: boolean; warning?: boolean }): string {
   const base =
     'relative flex min-w-0 flex-col justify-center border-r border-b border-zinc-950/10 dark:border-white/10'
-  return look.selected ? `${base} bg-blue-500/10 dark:bg-blue-400/10` : base
+  if (look.selected) return `${base} bg-blue-500/10 dark:bg-blue-400/10`
+  return look.warning === true ? `${base} bg-amber-50 dark:bg-amber-950/40` : base
 }
 
 /**
@@ -55,6 +62,7 @@ export function cellStyle(look: CellLook): CSSProperties | undefined {
   if (look.edges & EDGE_RIGHT) rings.push(`inset -2px 0 0 0 ${RANGE}`)
   if (look.active) rings.push(`inset 0 0 0 ${look.editing ? 3 : 2}px ${ACTIVE}`)
   if (look.invalid) rings.push(`inset 0 0 0 1px ${INVALID}`)
+  else if (look.warning === true) rings.push(`inset 0 0 0 1px ${WARNING}`)
   return rings.length === 0 ? undefined : { boxShadow: rings.join(', ') }
 }
 

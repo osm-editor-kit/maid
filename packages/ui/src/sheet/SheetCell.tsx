@@ -1,7 +1,8 @@
-import { ChevronDownIcon } from '@heroicons/react/16/solid'
+import { ChevronDownIcon, ExclamationTriangleIcon } from '@heroicons/react/16/solid'
 import { m } from '@osm-editor-kit/maid-i18n'
 import { memo, useId, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { PLAIN_INPUT } from '../plain-input.ts'
+import { Tooltip } from '../Tooltip.tsx'
 import { cellClassName, cellStyle, inputClassName } from './cell-look.ts'
 import { SuggestList } from './SuggestList.tsx'
 import type { SheetCellData, SheetColumn, SheetRow } from './types.ts'
@@ -23,6 +24,10 @@ export type SheetCellProps = {
   tabIndex: number
   /** Opened with the list button: all suggestions are listed until the text changes */
   browsing?: boolean
+  /** The row's problem (SheetRow.warning): the cell is amber */
+  warning?: string
+  /** This cell shows the row's exclamation mark, with the warning as its tooltip (the row's last cell) */
+  warningIcon?: boolean
 }
 
 /**
@@ -49,6 +54,8 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
     readOnly,
     tabIndex,
     browsing = false,
+    warning,
+    warningIcon = false,
   } = props
   const committed = data?.value.kind === 'value' ? data.value.text : ''
   const mixed = data?.value.kind === 'mixed' ? data.value.values : undefined
@@ -111,8 +118,15 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
       aria-readonly={readOnly || undefined}
       data-row={row.id}
       data-col={column.id}
-      className={cellClassName({ selected })}
-      style={cellStyle({ selected, active, editing, invalid: invalid !== undefined, edges })}
+      className={cellClassName({ selected, warning: warning !== undefined })}
+      style={cellStyle({
+        selected,
+        active,
+        editing,
+        invalid: invalid !== undefined,
+        warning: warning !== undefined,
+        edges,
+      })}
     >
       <textarea
         {...PLAIN_INPUT}
@@ -132,7 +146,7 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
         aria-label={m.ui_cell_label({ column: column.header, row: row.label })}
         aria-invalid={invalid !== undefined ? true : undefined}
         aria-describedby={invalid !== undefined ? messageId : undefined}
-        aria-description={mixed ? m.ui_cell_mixed({ count: mixed.length }) : undefined}
+        aria-description={warning ?? (mixed ? m.ui_cell_mixed({ count: mixed.length }) : undefined)}
         title={mixedTitle ?? (editing || value === '' ? undefined : value)}
         placeholder={mixed ? m.ui_multiple_values() : trailing ? column.header : undefined}
         // a tag is one line, as in a text input: a pasted line break becomes a space
@@ -149,9 +163,20 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
           mixed: mixed !== undefined,
           editing,
           open,
-        })}${suggest !== undefined && !readOnly ? ' pr-6' : ''}`}
+        })}${(suggest !== undefined && !readOnly) || (warning !== undefined && warningIcon) ? ' pr-6' : ''}`}
       />
-      {suggest !== undefined && !readOnly ? (
+      {warning !== undefined && warningIcon ? (
+        <Tooltip label={warning}>
+          <span
+            role="img"
+            data-row-warning=""
+            aria-label={m.ui_sheet_row_warning()}
+            className="absolute top-1 right-0.5 inline-flex size-5 items-center justify-center text-amber-600 dark:text-amber-400"
+          >
+            <ExclamationTriangleIcon className="size-4" aria-hidden="true" />
+          </span>
+        </Tooltip>
+      ) : suggest !== undefined && !readOnly ? (
         <button
           type="button"
           tabIndex={-1}

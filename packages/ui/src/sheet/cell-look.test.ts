@@ -142,3 +142,17 @@ describe('counterText: the length of a value, from 10 characters before the limi
     expect(counterText('x'.repeat(256))).toBe('256 / 255 characters, 1 character too long')
   })
 })
+
+describe('a row with a warning (the pending row)', () => {
+  const plain = { selected: false, active: false, editing: false, invalid: false, edges: 0 }
+  it('is amber: a light fill and an amber line; an invalid cell keeps its red line', () => {
+    expect(cellClassName({ selected: false, warning: true })).toContain('bg-amber-50')
+    expect(cellStyle({ ...plain, warning: true })?.boxShadow).toBe('inset 0 0 0 1px #f59e0b')
+    expect(cellStyle({ ...plain, warning: true, invalid: true })?.boxShadow).toBe(
+      'inset 0 0 0 1px #ef4444',
+    )
+  })
+  it('a selected cell shows the selection fill', () => {
+    expect(cellClassName({ selected: true, warning: true })).not.toContain('amber')
+  })
+})
