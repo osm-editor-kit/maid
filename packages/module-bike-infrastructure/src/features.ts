@@ -64,8 +64,9 @@ const HIGHWAY = 'highway'
  * What is tagged counts as it is: `yes` one way, `no` and `car_not_bike` both ways. TILDA's guesses count only where
  * they are safe (Tobias, 2026-11-27): a lane painted on the carriageway runs with the traffic beside it (`implicit_yes`,
  * on the left of a two-way road against the line, the default of `cycleway:left:oneway`), and a road (a bicycle road)
- * is two-way unless tagged. A track or a path should say how it is ridden: without a tag it gets 0, drawn as "not
- * tagged". A footway where bicycles are allowed is two-way unless tagged.
+ * is two-way unless tagged. A track or a way of its own (a cycleway, a path, a sidewalk where bicycles may ride)
+ * should say how it is ridden: without a tag it gets 0, drawn as "not tagged". The TILDA checklist says the same: it
+ * shows such a oneway as not tagged (`assumed`) or as a guess (`guess`).
  */
 export function ridingDirection(result: {
   _side: Side
@@ -84,7 +85,7 @@ export function ridingDirection(result: {
   const road =
     result._side === 'self' &&
     (group === 'sharedMotor' || result.category?.startsWith('bicycleRoad'))
-  if (road || group === 'footwayBicycle') return 2
+  if (road) return 2
   return 0
 }
 

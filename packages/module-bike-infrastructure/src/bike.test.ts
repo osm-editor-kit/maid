@@ -59,8 +59,8 @@ describe('features', () => {
         dashed: true,
         sidepath: 'yes',
         sign: 'DE:239,1022-10',
-        // a footway where bicycles are allowed is two-way unless tagged (ridingDirection)
-        dir: 2,
+        // a way of its own should say how it is ridden: not tagged (ridingDirection)
+        dir: 0,
       },
       { kind: 'sign', wayId: 'w1', side: 'self', sign: 'DE:239,1022-10', rotate: 0 },
     ])
