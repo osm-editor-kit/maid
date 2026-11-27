@@ -130,6 +130,8 @@ export function FieldRow(props: {
   const labelId = useId()
   // the label bar's container for the control's own buttons: set by a callback ref, so no ref is read in render
   const [labelActions, setLabelActions] = useState<HTMLElement | null>(null)
+  // the same for the buttons on the right, beside the "i", revert and trash
+  const [endActions, setEndActions] = useState<HTMLElement | null>(null)
   const key = field.key
   // The keys of this row that the features differ on (several features only; none for one feature)
   const mixedKeys = mixedKeysOf(field, combined)
@@ -176,6 +178,7 @@ export function FieldRow(props: {
       onChange={onChange}
       onChangeTags={onChangeTags}
       labelActions={labelActions}
+      endActions={endActions}
       address={field.type === 'address' ? address : undefined}
       renderIcon={renderIcon}
     />
@@ -212,6 +215,8 @@ export function FieldRow(props: {
         {compact ? <div className="max-w-full min-w-0">{control}</div> : null}
         <div className={`flex min-w-0 items-center gap-1 ${compact ? 'ml-auto shrink-0' : ''}`}>
           {hint ? <span className={HINT}>{hint}</span> : null}
+          {/* the control's buttons on the right (FieldProps.endActions); hidden while it is empty */}
+          <span ref={setEndActions} className="flex shrink-0 items-center gap-1 empty:hidden" />
           {field.reference ? (
             <InfoPopover
               label={field.label}

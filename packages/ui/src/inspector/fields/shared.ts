@@ -40,6 +40,11 @@ export type FieldProps = {
    * absent: none; controls that ignore it are unaffected.
    */
   labelActions?: HTMLElement | null
+  /**
+   * The element with the row's buttons on the right of the label bar, before the "i", revert and trash. A control
+   * renders a button of its own there with createPortal (the access field's "+"). Null or absent: none.
+   */
+  endActions?: HTMLElement | null
   /** The address field's place: its country and the features near the feature. Only the address field reads it. */
   address?: AddressContext
   /**

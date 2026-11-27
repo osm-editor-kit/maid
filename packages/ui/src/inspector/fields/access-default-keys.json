@@ -1,0 +1,13 @@
+{
+  "description": "The rows the access field always shows, per tag of the feature (the first matching tag wins, else default). Every other access key shows only when it is set or added with \"+\". Chosen from taginfo, 2026-11-27: docs/research/access-field-default-keys.md.",
+  "default": ["access", "foot", "bicycle", "motor_vehicle"],
+  "byTag": {
+    "highway": {
+      "track": ["access", "foot", "horse", "bicycle", "motor_vehicle"],
+      "bridleway": ["access", "foot", "horse", "bicycle", "motor_vehicle"],
+      "cycleway": ["access", "foot", "bicycle", "motor_vehicle", "moped", "mofa"],
+      "primary": ["access", "foot", "bicycle", "motor_vehicle", "hgv"],
+      "secondary": ["access", "foot", "bicycle", "motor_vehicle", "hgv"]
+    }
+  }
+}

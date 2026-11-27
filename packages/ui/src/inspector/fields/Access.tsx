@@ -4,20 +4,26 @@ import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useEffect, useId, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Tooltip } from '../../Tooltip.tsx'
-import { accessKeyLabel, accessRowKeys, addableAccessKeys } from './access-logic.ts'
+import {
+  accessDefaultKeys,
+  accessKeyLabel,
+  accessRowKeys,
+  addableAccessKeys,
+} from './access-logic.ts'
 import { ComboField } from './Combo.tsx'
 import { ComboInput } from './ComboInput.tsx'
 import { multipleValues, mixedKeysOf, mixedOf } from './mixed-logic.ts'
 import { accessOptions, accessPlaceholder, accessValueLabel } from './radio-logic.ts'
 import type { CombinedTags, FieldProps } from './shared.ts'
-import { LABEL, ROW_BUTTON } from './shared.ts'
+import { LABEL, REVEAL, ROW_BUTTON } from './shared.ts'
 
 /**
  * Access: one compact combo per key, as iD's access field, with the additions of Tobias's iD pull request
  * openstreetmap/iD#12011:
- * - the rows are the field's own keys (access, foot, motor_vehicle, bicycle, horse) and every other access key
- *   that is set (mofa, bus, vehicle, …; ACCESS_KEYS), in the wiki's order (accessRowKeys);
- * - "+" in the label bar opens a row under the title that picks a further key (another mode of transport); the
+ * - the rows are the default keys of the feature (access-default-keys.json: access, foot, bicycle, motor_vehicle;
+ *   horse on tracks and bridleways, …) and every other access key that is set (mofa, bus, vehicle, …;
+ *   ACCESS_KEYS), in the wiki's order (accessRowKeys);
+ * - "+" with the buttons on the right of the label bar (beside "i" and the trash) opens a row under the title that picks a further key (another mode of transport); the
  *   new row is shown empty and takes the focus, and is written once it gets a value;
  * - values and placeholders show as the option's label ("Allowed", "Private", "Use sidepath"), a value with no
  *   option as it is, in italics.
@@ -29,14 +35,18 @@ import { LABEL, ROW_BUTTON } from './shared.ts'
  * starts over when its own value changes.
  */
 export function AccessField(props: FieldProps) {
-  const { field, tags, onChange, combined, features, labelActions } = props
+  const { field, tags, onChange, combined, features, endActions } = props
   // keys added with "+" that have no value yet; a key stays here after it got one (its row stays either way)
   const [added, setAdded] = useState<string[]>([])
   const [picking, setPicking] = useState(false)
   // the row that takes the focus once it is drawn: the key just added
   const [focusKey, setFocusKey] = useState<string>()
   const setKeys = Object.keys(tags).filter((key) => (tags[key] ?? '') !== '')
-  const rows = accessRowKeys(field.keys ?? [], [
+  // the features' own tags when several are selected (the shared tags lack the highway of some), else the tags
+  const defaults = accessDefaultKeys(
+    features !== undefined && features.length > 0 ? features : [tags],
+  )
+  const rows = accessRowKeys(defaults, field.keys ?? [], [
     ...setKeys,
     ...mixedKeysOf(field, combined),
     ...added,
@@ -71,7 +81,7 @@ export function AccessField(props: FieldProps) {
           />
         ))}
       </div>
-      {onChange && labelActions && addable.length > 0
+      {onChange && endActions && addable.length > 0
         ? createPortal(
             <Tooltip label={m.ui_access_add()}>
               <button
@@ -80,12 +90,12 @@ export function AccessField(props: FieldProps) {
                 aria-expanded={picking}
                 // a click while the row is open first blurs it (which closes it), then opens it again
                 onClick={() => setPicking(true)}
-                className={ROW_BUTTON}
+                className={`${ROW_BUTTON} ${REVEAL}`}
               >
                 <PlusIcon aria-hidden="true" className="size-4" />
               </button>
             </Tooltip>,
-            labelActions,
+            endActions,
           )
         : null}
     </div>

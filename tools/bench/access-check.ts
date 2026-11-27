@@ -1,7 +1,7 @@
 /**
  * Check of the inspector's "Allowed Access" field (packages/ui fields/Access.tsx), shared by every app: on a
- * residential road with foot=use_sidepath and mofa=no, the values and placeholders show as labels, the set
- * mofa gets a row of its own, "+" adds a row for another mode of transport whose value is written as one undo
+ * residential road with foot=use_sidepath and mofa=no, the rows are the road's default keys (no horse), the values
+ * and placeholders show as labels, the set mofa gets a row of its own, "+" sits on the right of the label bar, "+" adds a row for another mode of transport whose value is written as one undo
  * step, and the field's trash removes every access key.
  *
  *   bun tools/bench/access-check.ts [scene] [--app <app>]
@@ -61,9 +61,27 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
   const rowLabels = () => field.locator('label').allInnerTexts()
 
   report(
-    'the rows: the five of the field and the set mofa, in the wiki order',
-    ['Access', 'Foot', 'Horse', 'Bicycle', 'Motor vehicle', 'Mofa'],
+    'the rows of a residential road (no horse) and the set mofa, in the wiki order',
+    ['Access', 'Foot', 'Bicycle', 'Motor vehicle', 'Mofa'],
     await rowLabels(),
+  )
+  // "+" sits with the buttons on the right of the label bar, beside "i" and the trash
+  const plus = sidebar.getByRole('button', { name: 'Add a mode of transport', exact: true })
+  const trash = field.getByRole('button', { name: /^Remove/ }).first()
+  const [plusBox, trashBox, fieldBox] = [
+    await plus.boundingBox(),
+    await trash.boundingBox(),
+    await field.boundingBox(),
+  ]
+  report(
+    'the "+" is on the right, before the trash and on its line',
+    true,
+    !!plusBox &&
+      !!trashBox &&
+      !!fieldBox &&
+      plusBox.x > fieldBox.x + fieldBox.width / 2 &&
+      plusBox.x < trashBox.x &&
+      Math.abs(plusBox.y - trashBox.y) < 4,
   )
   report('foot=use_sidepath shows as its label', 'Use sidepath', await input('Foot').inputValue())
   report('mofa=no shows as its label', 'Prohibited', await input('Mofa').inputValue())
@@ -79,7 +97,7 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
 
   // --- "+" adds a row for a bus; its value is one undo step ---
   const stepBefore = await page.evaluate(() => window.__maid.engine.undoState().undoLabel ?? null)
-  await sidebar.getByRole('button', { name: 'Add a mode of transport', exact: true }).click()
+  await plus.click()
   const picker = field.getByPlaceholder('Add a mode of transport', { exact: true })
   report(
     'the "+" opens the key picker, focused',
