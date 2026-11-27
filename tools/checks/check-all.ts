@@ -377,7 +377,8 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   },
   'bike-style': {
     maid: 0,
-    bicycle: 74,
+    // 2026-11-27: + 4 for the two "not tagged" cases (ADR 0017)
+    bicycle: 78,
     parking: 0,
     indoor: 0,
     lanes: 0,
