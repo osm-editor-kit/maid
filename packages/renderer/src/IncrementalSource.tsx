@@ -6,8 +6,9 @@
  * the dense fixture is about 5 MB of GeoJSON, a node drag changes a few dozen features of it.
  *
  * Imperative on purpose (AGENTS.md: performance calls stay in the renderer behind a small API):
- * - react-map-gl's `<Source>` gets one collection object that never changes identity, so it never calls `setData`; its
- *   `features` are kept at the latest list, so a source made again (a rebuild of the style) starts from the latest data.
+ * - react-map-gl's `<Source>` gets one collection object that never changes identity, so it never calls `setData`. That
+ *   object is never changed either: MapLibre keeps it and reads it again later (incremental.ts `updater`). A source that
+ *   was not made from it, or was made again, gets the whole latest collection once.
  * - Updates go out one at a time per source, the next one waits until the tiles of the last are rebuilt: overlapping
  *   updates left tiles in an inconsistent state (sender.ts, the same rule for the OSM data).
  * Every feature gets a numeric `id` here when it has none; `updateData` removes features by it.

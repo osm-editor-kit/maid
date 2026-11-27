@@ -1,7 +1,9 @@
 import { join } from 'node:path'
 /**
  * Runs the MapLibre reproduction pages in Chrome and prints their results.
- *   bun tools/maplibre-repro/run.ts [runs per mode]
+ *   bun tools/maplibre-repro/run.ts [runs per mode] [modes, comma-separated]
+ * A mode starting with `order` opens updatedata-order.html, `mutated` updatedata-mutated.html, any other
+ * updatedata-overlap.html; the mode is the page's query string.
  * Serves MapLibre from this repo's node_modules, so no request leaves the machine.
  */
 import { chromium } from '@playwright/test'
@@ -30,7 +32,11 @@ for (const query of (process.argv[3] ?? 'order,gap=5&restyle=1,serial=1&restyle=
       (url) => url.hostname !== 'localhost',
       (route) => route.abort(),
     )
-    const file = query.startsWith('order') ? 'updatedata-order.html' : 'updatedata-overlap.html'
+    const file = query.startsWith('order')
+      ? 'updatedata-order.html'
+      : query.startsWith('mutated')
+        ? 'updatedata-mutated.html'
+        : 'updatedata-overlap.html'
     await page.goto(`http://localhost:${server.port}/${file}?${query}`)
     const result = await page
       .waitForFunction(() => (window as any).__result, undefined, { timeout: 60000 })
