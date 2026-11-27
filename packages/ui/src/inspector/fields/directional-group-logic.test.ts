@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import {
+  disabledSubSides,
   groupDirectionalFields,
   subFieldSuffix,
   UNUSED_SIDE_VALUES,
@@ -172,5 +173,64 @@ describe('unusedSides', () => {
       mixed: { kind: 'mixed', values: ['no', 'lane'], missing: false },
     }
     expect(unusedSides({ left: mixed, right: mixed })).toEqual({ left: false, right: false })
+  })
+})
+
+describe('disabledSubSides: a sub field is disabled on an off side, except what stays valid there', () => {
+  const parent = field('parking', 'parking:both')
+  const sidesOf = (tags: Record<string, string>) =>
+    sideStates(directionalKeys('parking:both'), tags)
+  const disabled = (subKey: string, tags: Record<string, string>) =>
+    disabledSubSides(parent, field('sub', subKey), sidesOf(tags))
+
+  test('orientation is disabled on a side that is no, none or separate, with the value that says so', () => {
+    expect(disabled('parking:both:orientation', { 'parking:left': 'no' })).toEqual({
+      left: 'no',
+      right: undefined,
+    })
+    expect(disabled('parking:both:orientation', { 'parking:both': 'none' })).toEqual({
+      left: 'none',
+      right: 'none',
+    })
+    expect(disabled('parking:both:orientation', { 'parking:right': 'separate' })).toEqual({
+      left: undefined,
+      right: 'separate',
+    })
+  })
+
+  test('reason and restriction stay enabled on a parking side that is no or none (the Tags sheet list)', () => {
+    expect(disabled('parking:both:reason', { 'parking:left': 'no' })).toEqual({
+      left: undefined,
+      right: undefined,
+    })
+    expect(disabled('parking:both:restriction', { 'parking:both': 'no' })).toEqual({
+      left: undefined,
+      right: undefined,
+    })
+    expect(disabled('parking:both:restriction:conditional', { parking: 'none' })).toEqual({
+      left: undefined,
+      right: undefined,
+    })
+    expect(disabled('parking:both:restriction:hgv', { 'parking:left': 'no' }).left).toBeUndefined()
+  })
+
+  test('separate allows nothing, not even the restriction', () => {
+    expect(disabled('parking:both:restriction', { 'parking:left': 'separate' }).left).toBe(
+      'separate',
+    )
+    expect(disabled('parking:both:reason', { 'parking:left': 'separate' }).left).toBe('separate')
+  })
+
+  test('a side that is used disables nothing', () => {
+    expect(disabled('parking:both:orientation', { 'parking:both': 'lane' })).toEqual({
+      left: undefined,
+      right: undefined,
+    })
+  })
+
+  test('a parent that is no group of the list disables every sub field of an off side', () => {
+    const other = field('x', 'foo:both')
+    const sides = sideStates(directionalKeys('foo:both'), { 'foo:left': 'no' })
+    expect(disabledSubSides(other, field('sub', 'foo:both:restriction'), sides).left).toBe('no')
   })
 })

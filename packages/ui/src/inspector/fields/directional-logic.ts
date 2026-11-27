@@ -36,11 +36,6 @@ function nonEmpty(value: string | undefined): value is string {
   return value !== undefined && value !== ''
 }
 
-/** The first value that is not empty. */
-function firstValue(...values: (string | undefined)[]) {
-  return values.find(nonEmpty)
-}
-
 /**
  * Whether `value` is a part of `tagKey` after a colon, as iD's `:<value>(:|$)` test on the key:
  * `left` is a part of `cycleway:left`, `lane` is not a part of any key.
@@ -63,7 +58,7 @@ function sideKeyOf(keys: DirectionalKeys, side: DirectionalSide) {
  * as iD's read does: `both` means yes; a direction gives yes for its side and no for the other;
  * any other value is the value of both sides; the `:both` key is the value of both sides.
  */
-function sideValue(keys: DirectionalKeys, tags: Tags, side: DirectionalSide) {
+export function sideValue(keys: DirectionalKeys, tags: Tags, side: DirectionalSide) {
   const own = tags[sideKeyOf(keys, side)]
   if (nonEmpty(own)) return own
   const fallback = tags[keys.fallback]
@@ -84,8 +79,8 @@ export function directionalValues(keys: DirectionalKeys, tags: Tags) {
 /**
  * The edits for choosing `value` on one side (undefined clears the side), as iD's `change`
  * (directional_combo.js:88-128) with the explicit side winning on read:
- * - the other side gets the value it had; a `:both` or direction value is turned into yes or no
- *   for it first;
+ * - the other side gets the value it had, as sideValue reads it; a `:both` or direction value is turned into yes or
+ *   no for it first;
  * - when both sides end with the same value, the common key holds it and the side keys go;
  * - otherwise both side keys hold their values and the common keys go.
  * Only keys whose value changes are returned, in the order: the side, the common key, the other
@@ -101,15 +96,9 @@ export function directionalWrite(
   const sideKey = sideKeyOf(keys, side)
   const otherSide: DirectionalSide = side === 'left' ? 'right' : 'left'
   const otherKey = sideKeyOf(keys, otherSide)
-  const fallback = tags[keys.fallback]
-
-  let otherValue = firstValue(tags[otherKey], tags[keys.common], tags[keys.other])
-  if (fallback === 'both' && !nonEmpty(tags[otherKey])) {
-    otherValue = 'yes'
-  } else if (nonEmpty(fallback) && !nonEmpty(tags[otherKey])) {
-    if (isPartOf(otherKey, fallback)) otherValue = 'yes'
-    else if (isPartOf(sideKey, fallback)) otherValue = 'no'
-  }
+  // the other side keeps what the field shows for it (sideValue), so that contradicting common keys (`sidewalk=no`
+  // beside `sidewalk:both=yes`) are written the way they are read: the spelling without `:both` wins in both
+  const otherValue = sideValue(keys, tags, otherSide)
 
   const written = new Map<string, string | undefined>()
   if (next === otherValue) {

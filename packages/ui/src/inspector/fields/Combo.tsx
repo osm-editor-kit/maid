@@ -10,13 +10,29 @@ import type { FieldProps } from './shared.ts'
  * written on commit (blur), as cleaned by combo-logic.ts. No suggestions come from elsewhere.
  * Several features: a mixed key is an empty input, "Multiple values", its values as the title
  * (keyDisplay). `placeholder` overrides the placeholder of the empty input (access rows).
- * `disabled` shows the value without editing it; `describedBy` is the id of the element that says why.
+ * `disabled` shows the value without editing it; `describedBy` is the id of the element that says why; `invalid` marks
+ * the value as an error.
  */
 export function ComboField(
-  props: FieldProps & { placeholder?: string; disabled?: boolean; describedBy?: string },
+  props: FieldProps & {
+    placeholder?: string
+    disabled?: boolean
+    describedBy?: string
+    invalid?: boolean
+  },
 ) {
-  const { field, tags, id, onChange, combined, placeholder, disabled, describedBy, renderIcon } =
-    props
+  const {
+    field,
+    tags,
+    id,
+    onChange,
+    combined,
+    placeholder,
+    disabled,
+    describedBy,
+    invalid,
+    renderIcon,
+  } = props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
   const display = keyDisplay(key, tags, combined, field.placeholder)
@@ -32,6 +48,7 @@ export function ComboField(
       onChange={onChange}
       disabled={disabled}
       describedBy={describedBy}
+      invalid={invalid}
       renderIcon={renderIcon}
     />
   )

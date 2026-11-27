@@ -21,5 +21,6 @@
   "traffic_sign_remove": "Supprimer",
   "traffic_sign_remove_sign": "Supprimer {sign}",
   "traffic_sign_loading": "Chargement des panneaux…",
-  "traffic_sign_mixed": "Valeurs multiples"
+  "traffic_sign_mixed": "Valeurs multiples",
+  "traffic_sign_placeholder_example": "p. ex. {example}"
 }

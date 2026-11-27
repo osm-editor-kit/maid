@@ -59,6 +59,8 @@ export function ComboInput(props: {
   disabled?: boolean
   /** The id of the element that describes the input (the reason it is disabled). */
   describedBy?: string
+  /** The value is an error: red border, `aria-invalid` (a value left on a side that is off). */
+  invalid?: boolean
   /** Draws the icons of the values (FieldProps.renderIcon). Absent: no icons, no icon slots. */
   renderIcon?: IconRenderer
 }) {
@@ -73,6 +75,7 @@ export function ComboInput(props: {
     onChange,
     disabled,
     describedBy,
+    invalid,
     renderIcon,
   } = props
   const baseId = useId()
@@ -85,6 +88,17 @@ export function ComboInput(props: {
   const [state, setState] = useState<ComboKeyState>(() => comboStart(shown.text))
   const latest = useRef<ComboKeyState>(state)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // The draft starts over when the value changes from outside (another side's choice, an undo), and not otherwise:
+  // the input is never remounted for it, so a focused input keeps its focus. `latest` follows the state below.
+  const [seenText, setSeenText] = useState(shown.text)
+  if (seenText !== shown.text) {
+    setSeenText(shown.text)
+    setState(comboStart(shown.text))
+  }
+  useLayoutEffect(() => {
+    latest.current = state
+  }, [state])
 
   /** Keeps the newest state for the handlers, and renders it. */
   function apply(next: ComboKeyState) {
@@ -207,7 +221,7 @@ export function ComboInput(props: {
           aria-autocomplete="both"
           aria-activedescendant={listVisible && active >= 0 ? optionId(active) : undefined}
           className={`${INPUT} ${LIMITED} ${italic ? 'italic' : ''} ${renderIcon && inputIcon !== undefined ? 'pl-10' : ''}`}
-          aria-invalid={limit.invalid}
+          aria-invalid={limit.invalid || (invalid ? true : undefined)}
           aria-describedby={limit.describedBy(describedBy)}
           onChange={(event) => {
             const input = event.currentTarget

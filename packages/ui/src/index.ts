@@ -112,7 +112,12 @@ export { FavouritesPanel } from './FavouritesPanel.tsx'
 export { FavouriteNumberField } from './FavouriteNumberField.tsx'
 export { AreaIcon, GeometryIcon, LineIcon } from './GeometryIcons.tsx'
 export { setBearing, setPitch, useBearing, usePitch } from './bearing.ts'
-export { setWayHeading, useWayHeading } from './way-heading.ts'
+export {
+  onWayHeadingWanted,
+  setWayHeading,
+  useWayHeading,
+  wayHeadingWanted,
+} from './way-heading.ts'
 export {
   getSettings,
   loadStoredSettings,

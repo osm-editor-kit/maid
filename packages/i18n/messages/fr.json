@@ -704,6 +704,7 @@
   "ui_access_key_school_bus": "Car scolaire",
   "ui_access_key_disabled": "Personnes handicapées",
   "ui_multiple_values": "Plusieurs valeurs",
+  "ui_field_mixed_hint": "mixte",
   "ui_not_set": "non défini",
   "ui_sheet_new_row": "nouvelle ligne",
   "ui_sheet_copied": "Copié",

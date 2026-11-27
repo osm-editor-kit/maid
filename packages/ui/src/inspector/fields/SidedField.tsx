@@ -8,7 +8,7 @@ import { InfoPopover, type ReferenceLoader } from '../../InfoPopover.tsx'
 import { useWayHeading } from '../../way-heading.ts'
 import { isModified, isPresent, removeEdits, revertEdits, type TagEdit } from '../logic.ts'
 import { shownText } from './combo-logic.ts'
-import { unusedSides, type SidedRow } from './directional-group-logic.ts'
+import { disabledSubSides, type SidedRow } from './directional-group-logic.ts'
 import { directionalKeys, sideStates, type DirectionalSide } from './directional-logic.ts'
 import { DIRECTIONAL_SIDES, ReversedHint, SideComboInput, sideLabel } from './Directional.tsx'
 import { mixedKeysOf } from './mixed-logic.ts'
@@ -16,6 +16,7 @@ import { RelatedAddButtons, RelatedDetails, type RelatedRow } from './Related.ts
 import { ACTION_BUTTON, INFO_BUTTON } from './Row.tsx'
 import { LABEL, writeEdits, type CombinedTags, type FieldProps } from './shared.ts'
 import { sideCompass, type CompassPoint } from './side-compass.ts'
+import { sideOffError } from './side-off.ts'
 
 type BlockProps = {
   tags: Tags
@@ -144,7 +145,8 @@ function SidedFieldRow(props: BlockProps & { row: SidedRow }) {
           id={ids[side]}
           field={field}
           side={side}
-          unusedReason={unused[side]}
+          unusedReason={unused[side]?.reason}
+          staleHint={unused[side]?.staleHint}
           tags={tags}
           combined={combined}
           features={features}
@@ -156,26 +158,42 @@ function SidedFieldRow(props: BlockProps & { row: SidedRow }) {
   )
 }
 
-/** Why each side of a sub row is not used: the parent's value there, as its option label (unusedSides) */
+/** Why a side of a sub row is not used, and what to do about a value left there */
+type UnusedSide = {
+  /** The parent's value there, as its option label */
+  reason: string
+  /** Remove it (no, none) or move it to the separately mapped way (separate), as the Tags sheet says it */
+  staleHint: string
+}
+
+/**
+ * The sides of a sub row that are not used: the parent's side is off (no, none, separate) and the sub field is not one
+ * that stays valid there (disabledSubSides, the list of the Tags sheet). A side that is used has no entry.
+ */
 function unusedReasonsOf(
   row: SidedRow,
   tags: Tags,
   combined: CombinedTags | undefined,
   features: readonly Tags[] | undefined,
-): Record<DirectionalSide, string | undefined> {
-  const { parent } = row
+): Record<DirectionalSide, UnusedSide | undefined> {
+  const { parent, field } = row
   if (parent?.key === undefined) return { left: undefined, right: undefined }
+  const parentKeys = directionalKeys(parent.key)
   // the parent's sides as the parent reads them; a side that several features differ on is mixed, so it is used
-  const sides = sideStates(directionalKeys(parent.key), tags, combined, features)
-  const unused = unusedSides(sides)
-  const reason = (side: DirectionalSide) =>
-    unused[side]
-      ? m.directional_unused_hint({
-          field: parent.label,
-          value: shownText(parent, sides[side].value).text,
-        })
-      : undefined
-  return { left: reason('left'), right: reason('right') }
+  const sides = sideStates(parentKeys, tags, combined, features)
+  const disabled = disabledSubSides(parent, field, sides)
+  const unused = (side: DirectionalSide): UnusedSide | undefined => {
+    const off = disabled[side]
+    if (off === undefined) return undefined
+    return {
+      reason: m.directional_unused_hint({
+        field: parent.label,
+        value: shownText(parent, sides[side].value).text,
+      }),
+      staleHint: sideOffError(off, parentKeys[side]),
+    }
+  }
+  return { left: unused('left'), right: unused('right') }
 }
 
 /** A side's combo; its label is the title line's word over it, "<field>, <side>" for a screen reader */
@@ -184,6 +202,7 @@ function SideCell(props: {
   field: Field
   side: DirectionalSide
   unusedReason: string | undefined
+  staleHint: string | undefined
   tags: Tags
   combined?: CombinedTags
   features?: readonly Tags[]

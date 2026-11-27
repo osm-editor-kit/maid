@@ -6,12 +6,18 @@ import {
   type SideState,
 } from './directional-logic.ts'
 import type { CombinedTags } from './shared.ts'
+import {
+  isSideOffValue,
+  SIDE_OFF_VALUES,
+  sideGroupOfKey,
+  suffixAllowedWhenOff,
+} from './side-off.ts'
 
 /**
  * The values of a parent's side that make the sub field of that side meaningless (no parking, no cycle
- * lane on that side). A sub field's combo of such a side is disabled. One list for every parent.
+ * lane on that side). One list for every parent, shared with the Tags sheet (side-off.ts).
  */
-export const UNUSED_SIDE_VALUES: readonly string[] = ['separate', 'no', 'none']
+export const UNUSED_SIDE_VALUES: readonly string[] = SIDE_OFF_VALUES
 
 /**
  * The suffix that a sub field adds to the side keys of its parent: `:orientation` for `parking:both` and
@@ -71,15 +77,42 @@ export function groupDirectionalFields(fields: readonly Field[]): DirectionalBlo
 }
 
 /**
- * Which sides of a sub field are not used, from the parent's sides (sideStates over the parent's key, as the
- * parent reads them: `parking:both=no` is no on both sides). A side that is mixed over several features is used.
+ * Which sides of the parent are off, from the parent's sides (sideStates over the parent's key, as the parent reads
+ * them: `parking:both=no` is no on both sides). A side that is mixed over several features is used.
  */
 export function unusedSides(
   parentSides: Record<DirectionalSide, SideState>,
 ): Record<DirectionalSide, boolean> {
-  const unused = (state: SideState) =>
-    state.value !== undefined && UNUSED_SIDE_VALUES.includes(state.value)
+  const unused = (state: SideState) => isSideOffValue(state.value)
   return { left: unused(parentSides.left), right: unused(parentSides.right) }
+}
+
+/**
+ * The sides of a sub field that are disabled, with the value of the parent that turns the side off (no, none,
+ * separate): a side that is off (unusedSides) disables the sub field, except the attributes that stay valid there
+ * (`reason` and `restriction` of parking; side-off.ts, the list the Tags sheet uses). Undefined: the side is
+ * enabled. A parent that is no group of the list (an unknown key) disables every sub field of its off side.
+ */
+export function disabledSubSides(
+  parent: Field,
+  sub: Field,
+  parentSides: Record<DirectionalSide, SideState>,
+): Record<DirectionalSide, string | undefined> {
+  const suffix =
+    parent.key === undefined || sub.key === undefined
+      ? undefined
+      : subFieldSuffix(parent.key, sub.key)
+  const group = parent.key === undefined ? undefined : sideGroupOfKey(parent.key)
+  const disabled = (side: DirectionalSide) => {
+    const value = parentSides[side].value
+    if (!isSideOffValue(value)) return undefined
+    const allowed =
+      group !== undefined &&
+      suffix !== undefined &&
+      suffixAllowedWhenOff(group, value, suffix.slice(1))
+    return allowed ? undefined : value
+  }
+  return { left: disabled('left'), right: disabled('right') }
 }
 
 /** A row of a sided field's block: the directional field, or a sub field under its parent's row (`parent`) */

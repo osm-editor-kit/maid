@@ -704,6 +704,7 @@
   "ui_access_key_school_bus": "School bus",
   "ui_access_key_disabled": "Disabled",
   "ui_multiple_values": "Multiple values",
+  "ui_field_mixed_hint": "mixed",
   "ui_not_set": "not set",
   "ui_sheet_new_row": "new row",
   "ui_sheet_copied": "Copied",

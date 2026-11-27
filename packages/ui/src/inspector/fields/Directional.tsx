@@ -1,3 +1,4 @@
+import { XMarkIcon } from '@heroicons/react/16/solid'
 import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useId } from 'react'
@@ -11,7 +12,7 @@ import {
 } from './directional-logic.ts'
 import { FallbackField } from './Fallback.tsx'
 import type { CombinedTags, FieldProps } from './shared.ts'
-import { LABEL, writeEdits } from './shared.ts'
+import { LABEL, ROW_BUTTON, writeEdits } from './shared.ts'
 
 /** The two sides, in the order they are shown */
 export const DIRECTIONAL_SIDES: readonly DirectionalSide[] = ['left', 'right']
@@ -116,7 +117,10 @@ function DirectionalSideCombo(props: {
  * (`label` names it for the combo). The side shows its own key, or what the common keys say (sideStates); a choice
  * writes the tags as iD does (directionalWrite), several features only the side's key (sideOnlyWrite). `unusedReason`:
  * the side is not used (a sub field whose parent says so): the combo is disabled, keeps its value, and the reason is
- * its description. Used by a side's row (DirectionalSideCombo) and by a side of a sided field (SidedField.tsx).
+ * its description. `staleHint`: what to do about a value that is left on such a side (remove it; move it to the
+ * separately mapped way): the value is shown as an error with the hint and a button that removes just this side's
+ * value, the only edit the side takes. Used by a side's row (DirectionalSideCombo) and by a side of a sided field
+ * (SidedField.tsx).
  */
 export function SideComboInput(props: {
   id: string
@@ -129,10 +133,23 @@ export function SideComboInput(props: {
   onChange: FieldProps['onChange']
   onChangeTags?: FieldProps['onChangeTags']
   unusedReason?: string
+  staleHint?: string
 }) {
-  const { id, field, side, label, tags, combined, features, onChange, onChangeTags, unusedReason } =
-    props
+  const {
+    id,
+    field,
+    side,
+    label,
+    tags,
+    combined,
+    features,
+    onChange,
+    onChangeTags,
+    unusedReason,
+    staleHint,
+  } = props
   const reasonId = useId()
+  const staleId = useId()
   const key = field.key
   if (key === undefined) return null
   const keys = directionalKeys(key)
@@ -153,6 +170,9 @@ export function SideComboInput(props: {
     ? { [sideKey]: state.mixed }
     : undefined
   const unused = unusedReason !== undefined
+  // a value that stays on a side that is not used is an error, cleared for this side alone
+  const stale =
+    unused && staleHint !== undefined && (value !== undefined || state.mixed !== undefined)
   // one side's choice: a side that is not used takes none
   const choose = (next: string | undefined) =>
     writeEdits(
@@ -161,23 +181,53 @@ export function SideComboInput(props: {
         ? directionalWrite(keys, tags, side, next)
         : sideOnlyWrite(keys, tags, side, next),
     )
+  // the button of a stale value: clears this side alone; several features: the side's key on all of them, a mixed one too
+  const clear = () =>
+    writeEdits(
+      { onChange, onChangeTags },
+      features === undefined
+        ? directionalWrite(keys, tags, side, undefined)
+        : [{ key: sideKey, value: undefined }],
+    )
+  // several features write one edit for all: it can clear only a value stored under the side's own key. A value that
+  // comes from `:both` or the common key of some feature needs that feature alone, so there is no button then
+  const clearable =
+    features === undefined || features.some((featureTags) => featureTags[sideKey] !== undefined)
   return (
     <>
       <ComboField
-        // the combo's draft starts over when this side's value changes elsewhere
-        key={`${sideKey}=${value ?? ''}|${state.mixed ? JSON.stringify(state.mixed) : ''}`}
+        // no key by the value: the combo starts its draft over when the value changes (ComboInput) and keeps its focus
         field={sideField}
         tags={sideTags}
         combined={sideCombined}
         id={id}
         onChange={onChange && !unused ? (_key, next) => choose(next) : undefined}
         disabled={unused}
-        describedBy={unused ? reasonId : undefined}
+        invalid={stale}
+        describedBy={stale ? staleId : unused ? reasonId : undefined}
       />
       {unused ? (
         <span id={reasonId} className="sr-only">
           {unusedReason}
         </span>
+      ) : null}
+      {stale ? (
+        <p className="flex min-w-0 items-start gap-1 text-xs text-red-600 dark:text-red-400">
+          <span id={staleId} className="min-w-0 flex-1">
+            {staleHint}
+          </span>
+          {onChange && clearable ? (
+            <button
+              type="button"
+              aria-label={m.ui_remove_named({ label })}
+              title={m.ui_remove_named({ label })}
+              className={ROW_BUTTON}
+              onClick={clear}
+            >
+              <XMarkIcon aria-hidden="true" className="size-4" />
+            </button>
+          ) : null}
+        </p>
       ) : null}
     </>
   )

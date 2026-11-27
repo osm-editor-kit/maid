@@ -10,6 +10,7 @@ import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import type { InspectorFieldType } from '@osm-editor-kit/maid-ui'
 import type { Country } from '@osm-editor-kit/osm-traffic-sign-field'
 import { lazy, Suspense } from 'react'
+import { m } from './messages.ts'
 import { applySignTagChanges } from './tag-changes.ts'
 import { trafficSignTexts } from './texts.ts'
 
@@ -64,7 +65,7 @@ function PlainSignInput({ field, tags, id, onChange }: SignFieldProps) {
       className={INPUT_CLASS}
       defaultValue={current}
       readOnly={!onChange}
-      placeholder="e.g. DE:274-30"
+      placeholder={m.traffic_sign_placeholder_example({ example: 'DE:274-30' })}
       onKeyDown={(event) => {
         if (event.key === 'Enter') event.currentTarget.blur()
       }}

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import type { Combined } from '../../inspector/fields/shared.ts'
 import {
   applySideBatch,
   shownAfterPlain,
@@ -17,6 +18,7 @@ import {
   sidePlaceOf,
   sideRowId,
   sideSheetRows,
+  sidesOff,
   allowedWhenOff,
   splitBoth,
 } from './tag-sides.ts'
@@ -182,6 +184,8 @@ describe('sideLayout: the tags with no side on top, the sided ones as rows of th
       { group: 'sidewalk', rows: [{ pattern: 'sidewalk:{side}', right: 'separate' }] },
       {
         group: 'cycleway',
+        // the plain `cycleway` is a common key: it decides which side is off (sidesOff)
+        common: { cycleway: 'lane' },
         rows: [
           { pattern: 'cycleway:{side}:oneway', left: '-1', right: 'yes' },
           { pattern: 'cycleway:{side}:width', left: '1.5', right: '1.5' },
@@ -346,6 +350,112 @@ describe('a side that is off (no, none, separate): its other cells are locked, a
   it('an empty cell on that side is locked', () => {
     expect(cell(3, 'value')).toEqual({ value: { kind: 'value', text: '' }, readOnly: true })
     expect(cell(3, 'right')?.readOnly).toBe(false)
+  })
+})
+
+describe('sidesOff: the common keys of the group count as the inspector reads them', () => {
+  const rows = (...patterns: string[]) => patterns.map((pattern) => ({ pattern }))
+  const surface = rows('sidewalk:{side}:surface')
+
+  it('the plain key of the group turns off both sides: sidewalk=no, none, separate', () => {
+    expect(sidesOff('sidewalk', surface, { sidewalk: 'no' })).toEqual({ left: 'no', right: 'no' })
+    expect(sidesOff('sidewalk', surface, { sidewalk: 'none' })).toEqual({
+      left: 'none',
+      right: 'none',
+    })
+    expect(sidesOff('sidewalk', surface, { sidewalk: 'separate' })).toEqual({
+      left: 'separate',
+      right: 'separate',
+    })
+    expect(sidesOff('cycleway', rows('cycleway:{side}:width'), { cycleway: 'no' })).toEqual({
+      left: 'no',
+      right: 'no',
+    })
+  })
+
+  it('a direction turns off the other side: sidewalk=left, sidewalk=right; both and used values turn off nothing', () => {
+    expect(sidesOff('sidewalk', surface, { sidewalk: 'left' })).toEqual({ right: 'no' })
+    expect(sidesOff('sidewalk', surface, { sidewalk: 'right' })).toEqual({ left: 'no' })
+    expect(sidesOff('sidewalk', surface, { sidewalk: 'both' })).toEqual({})
+    expect(sidesOff('cycleway', rows('cycleway:{side}:width'), { cycleway: 'lane' })).toEqual({})
+  })
+
+  it('a :both key that could not be split counts: cycleway:both=no', () => {
+    expect(sidesOff('cycleway', rows('cycleway:{side}:width'), { 'cycleway:both': 'no' })).toEqual({
+      left: 'no',
+      right: 'no',
+    })
+  })
+
+  it('the spelling without :both wins over :both, as the inspector reads them', () => {
+    expect(sidesOff('sidewalk', surface, { sidewalk: 'no', 'sidewalk:both': 'yes' })).toEqual({
+      left: 'no',
+      right: 'no',
+    })
+    expect(sidesOff('sidewalk', surface, { sidewalk: 'yes', 'sidewalk:both': 'no' })).toEqual({})
+  })
+
+  it('a side key of its own wins over the common key', () => {
+    const own = rows('sidewalk:{side}')
+    expect(sidesOff('sidewalk', [{ ...own[0]!, right: 'yes' }], { sidewalk: 'no' })).toEqual({
+      left: 'no',
+    })
+    expect(
+      sidesOff('sidewalk', [{ pattern: 'sidewalk:{side}', left: 'separate' }], {
+        sidewalk: 'both',
+      }),
+    ).toEqual({ left: 'separate' })
+  })
+
+  it('several features: only a value all of them share counts', () => {
+    const mixed: Combined = { kind: 'mixed', values: ['no', 'lane'], missing: false }
+    expect(sidesOff('sidewalk', surface, { sidewalk: { kind: 'one', value: 'no' } })).toEqual({
+      left: 'no',
+      right: 'no',
+    })
+    expect(sidesOff('sidewalk', surface, { sidewalk: mixed })).toEqual({})
+    // a mixed key of the left side is not off, the right side still follows the common key
+    expect(
+      sidesOff('sidewalk', [{ pattern: 'sidewalk:{side}', left: mixed }], {
+        sidewalk: { kind: 'one', value: 'no' },
+      }),
+    ).toEqual({ right: 'no' })
+  })
+
+  it('sideLayout keeps the common keys of each group for the sheet', () => {
+    const layout = sideLayout({
+      sidewalk: 'no',
+      'sidewalk:both:surface': 'paved',
+      'sidewalk:left:surface': 'paved',
+      highway: 'residential',
+    })
+    expect(layout.groups[0]?.common).toEqual({ sidewalk: 'no' })
+    expect(sideLayout({ 'cycleway:left:width': '1' }).groups[0]?.common).toBeUndefined()
+  })
+})
+
+describe('sideSheetRows: a side that is off by a common key is locked, a value left on it is an error', () => {
+  const rows = [
+    { pattern: 'sidewalk:{side}:surface', left: 'paved', right: 'paved' },
+    { pattern: 'sidewalk:{side}:width' },
+  ]
+
+  it('sidewalk=right: the left side is off, the right side is not', () => {
+    const sheet = sideSheetRows(rows, 'sidewalk', undefined, { sidewalk: 'right' })
+    expect(sheet[0]?.cells.value?.invalid).toContain('sidewalk:left')
+    expect(sheet[0]?.cells.right?.invalid).toBeUndefined()
+    expect(sheet[1]?.cells.value).toEqual({ value: { kind: 'value', text: '' }, readOnly: true })
+  })
+
+  it('sidewalk=separate: both sides tell the person to move the tag', () => {
+    const sheet = sideSheetRows(rows, 'sidewalk', undefined, { sidewalk: 'separate' })
+    expect(sheet[0]?.cells.value?.invalid).toContain('separate')
+    expect(sheet[0]?.cells.right?.invalid).toContain('separate')
+  })
+
+  it('without the common keys nothing is off', () => {
+    const sheet = sideSheetRows(rows, 'sidewalk')
+    expect(sheet[0]?.cells.value?.invalid).toBeUndefined()
   })
 })
 

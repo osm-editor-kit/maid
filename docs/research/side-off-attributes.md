@@ -164,7 +164,7 @@ Inferred, with one read point. A meta key on the side key itself (`source:parkin
 
 ## Adopted (2026-11-27)
 
-`packages/ui/src/sheet/tags/side-off-attributes.json` takes this answer with prefix entries: parking `no` and `none` allow `restriction`, `restriction:*`, `reason`, `reason:*` (the vehicle classes, `:conditional` and `:reason` are below them); cycleway `separate` allows `lane`. The open doubts (`sidewalk:<side>:kerb` with `separate`, `cycleway:<side>:traffic_sign`) are left out until Tobias decides.
+`packages/ui/src/inspector/fields/side-off-attributes.json` takes this answer with prefix entries: parking `no` and `none` allow `restriction`, `restriction:*`, `reason`, `reason:*` (the vehicle classes, `:conditional` and `:reason` are below them); cycleway `separate` allows `lane`. The open doubts (`sidewalk:<side>:kerb` with `separate`, `cycleway:<side>:traffic_sign`) are left out until Tobias decides.
 
 Tobias, 2026-11-27: `none` is the same as `no`. `cycleway:<side>:lane` with `separate` is not allowed after all: in the fixtures (Alexanderstraße w112128422, Memhardstraße, Grunerstraße) it is a `:lane` left over from a painted lane after the side was set to `separate`, an error to clean up. `sidewalk:<side>:kerb` with `separate` and `cycleway:<side>:traffic_sign` with `no` or `separate` stay out.
 

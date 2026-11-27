@@ -21,6 +21,16 @@ function sorted(edits: TagEdit[]): TagEdit[] {
   return [...edits].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
 }
 
+/** The tags after the edits (an undefined value removes the key) */
+function applyEdits(tags: Tags, edits: TagEdit[]): Tags {
+  const out: Record<string, string> = { ...tags }
+  for (const { key, value } of edits) {
+    if (value === undefined) delete out[key]
+    else out[key] = value
+  }
+  return out
+}
+
 function write(
   keys: ReturnType<typeof directionalKeys>,
   tags: Tags,
@@ -247,6 +257,32 @@ describe('directionalWrite (write)', () => {
 
   test('clearing a side when nothing is set changes nothing', () => {
     expect(write(cycleway, {}, 'left', undefined)).toEqual([])
+  })
+})
+
+describe('directionalWrite with contradicting common keys: the other side keeps what the field shows', () => {
+  test('sidewalk=no beside sidewalk:both=yes: the spelling without :both wins on read, and on write', () => {
+    const tags = { sidewalk: 'no', 'sidewalk:both': 'yes' }
+    // read: no on both sides
+    expect(directionalValues(sidewalk, tags)).toEqual({ left: 'no', right: 'no' })
+    // write: left = separate leaves the right side at no, not yes
+    const edits = write(sidewalk, tags, 'left', 'separate')
+    const after = applyEdits(tags, edits)
+    expect(after).toEqual({ 'sidewalk:left': 'separate', 'sidewalk:right': 'no' })
+    expect(directionalValues(sidewalk, after)).toEqual({ left: 'separate', right: 'no' })
+  })
+
+  test('the field on the plain key reads and writes the same way', () => {
+    const tags = { cycleway: 'lane', 'cycleway:both': 'track' }
+    expect(directionalValues(cycleway, tags)).toEqual({ left: 'lane', right: 'lane' })
+    const after = applyEdits(tags, write(cycleway, tags, 'right', 'no'))
+    expect(after).toEqual({ 'cycleway:left': 'lane', 'cycleway:right': 'no' })
+  })
+
+  test('choosing what the other side shows writes one common key and drops the contradicting spelling', () => {
+    const tags = { sidewalk: 'no', 'sidewalk:both': 'yes' }
+    const after = applyEdits(tags, write(sidewalk, tags, 'left', 'no'))
+    expect(after).toEqual({ 'sidewalk:both': 'no' })
   })
 })
 

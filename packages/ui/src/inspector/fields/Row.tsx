@@ -26,9 +26,6 @@ import type {
 } from './shared.ts'
 import { HINT, LABEL, REVEAL, ROW_BUTTON, writeEdits } from './shared.ts'
 
-/** The hint in the label line of a row whose key is mixed over several features (where a combo's label is). */
-const MIXED_HINT = 'mixed'
-
 /**
  * The "i" among the row's buttons, in their square look. It fades in while the pointer or the
  * focus is in this field's row (the group is named, so a group around all rows does not count),
@@ -155,7 +152,7 @@ export function FieldRow(props: {
   )
     return null
   // the label bar repeats nothing the control shows: a combo's input shows its option's label already
-  const hint = mixedKeys.length > 0 ? MIXED_HINT : undefined
+  const hint = mixedKeys.length > 0 ? m.ui_field_mixed_hint() : undefined
   // a mixed key has no value in the tags, but removing the field removes it from every feature
   const present = isPresent(field, tags) || mixedKeys.length > 0
   // and a mixed key has no single base value to go back to, so there is no revert

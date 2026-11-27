@@ -10,16 +10,20 @@
  */
 import { m } from '@osm-editor-kit/maid-i18n'
 import type { Tags } from '@osm-editor-kit/maid-presets'
+import { directionalKeys, sideValue } from '../../inspector/fields/directional-logic.ts'
 import type { Combined, CombinedTags } from '../../inspector/fields/shared.ts'
+import {
+  isSideOffValue,
+  SIDE_GROUPS,
+  sideOffError,
+  suffixAllowedWhenOff,
+  type SideGroup,
+} from '../../inspector/fields/side-off.ts'
 import type { CellValue, SheetBatch, SheetRow } from '../types.ts'
-import offAttributes from './side-off-attributes.json'
 import { cellValueOf, type TagSheetChange } from './tag-combined.ts'
 import { cleanText, codeUnits, NONE, readOnlyText, type ReadOnlyKeys } from './tags.ts'
 
-/** The keys whose parts describe the two sides of a road, in the order the groups are shown: from the edge of the
- * road outwards, as the street is crossed */
-export const SIDE_GROUPS = ['sidewalk', 'cycleway', 'parking'] as const
-export type SideGroup = (typeof SIDE_GROUPS)[number]
+export { SIDE_GROUPS, type SideGroup }
 
 const GROUPS = new Set<string>(SIDE_GROUPS)
 
@@ -153,8 +157,16 @@ export function keyOfPattern(pattern: string, side: Side): string {
  */
 export type SideRow<V = string> = { pattern: string; left?: V; right?: V }
 
-/** The sided keys of one group, a row per pattern, in the order of the sides view */
-export type SideGroupRows<V = string> = { group: SideGroup; rows: SideRow<V>[] }
+/**
+ * The sided keys of one group, a row per pattern, in the order of the sides view. `common`: the group's keys with no
+ * side that say something about both sides (`sidewalk=no`, and a `sidewalk:both` that could not be split), which the
+ * rows do not show; absent when there are none. They decide which side is off (sidesOff).
+ */
+export type SideGroupRows<V = string> = {
+  group: SideGroup
+  rows: SideRow<V>[]
+  common?: Record<string, V>
+}
 
 /**
  * The shown tags of the sides view, split: the tags with no side (shown in the two-column table on top, the plain
@@ -188,7 +200,14 @@ export function sideLayout<V>(shown: Readonly<Record<string, V>>): {
     const sorted = [...rows.values()].sort((a, b) =>
       compareSideKeys(keyOfPattern(a.pattern, 'left'), keyOfPattern(b.pattern, 'left')),
     )
-    groups.push({ group, rows: sorted })
+    const common: Record<string, V> = {}
+    for (const key of [group, `${group}:both`]) {
+      const value = plain[key]
+      if (value !== undefined) common[key] = value
+    }
+    groups.push(
+      Object.keys(common).length === 0 ? { group, rows: sorted } : { group, rows: sorted, common },
+    )
   }
   return { plain, groups }
 }
@@ -392,42 +411,51 @@ function sideCell(value: string | Combined): CellValue {
   return typeof value === 'string' ? { kind: 'value', text: value } : cellValueOf(value)
 }
 
-/** The values of a side's own key that say the side has nothing on the road: no cycleway, sidewalk or parking there */
-const SIDE_OFF = new Set(['no', 'none', 'separate'])
-
-/** The attributes a side that is off may still have, by group and value (side-off-attributes.json) */
-const OFF_ATTRIBUTES = offAttributes as unknown as Partial<
-  Record<SideGroup, Partial<Record<string, readonly string[]>>>
->
-
 /**
  * True when a group row may have a value on a side that is off: the side key's own meta keys (`source:parking:left`
  * describes the "no"), and the attributes listed for the group and value (`parking:left:restriction` says why there
- * is no parking).
+ * is no parking). The list is shared with the inspector's sub fields (side-off.ts).
  */
 export function allowedWhenOff(group: SideGroup, value: string, pattern: string): boolean {
   const suffix = (pattern.split(SIDE_TOKEN)[1] ?? '').replace(/^:/, '')
-  if (suffix === '') return true
-  // `restriction:*` allows every suffix below `restriction` (the vehicle classes, `:conditional`, `:reason`)
-  return (OFF_ATTRIBUTES[group]?.[value] ?? []).some((entry) =>
-    entry.endsWith(':*') ? suffix.startsWith(entry.slice(0, -1)) : entry === suffix,
-  )
+  return suffixAllowedWhenOff(group, value, suffix)
+}
+
+/** The value of a combined cell when every feature has it: the text of a single value, else undefined */
+function singleValue(value: string | Combined | undefined): string | undefined {
+  return typeof value === 'string' ? value : value?.kind === 'one' ? value.value : undefined
 }
 
 /**
- * The sides a group's own key turns off (`cycleway:left=no`, `sidewalk:right=separate`): the side and its value. For
- * several features only a value they all share counts.
+ * The sides a group turns off, as the inspector reads them (directional-logic's sideValue: the side's own key, else the
+ * common keys, `sidewalk=no`, `sidewalk=left` for the other side, `cycleway:both=no`): the side and its value
+ * (no, none, separate). `common`: the group's keys with no side (SideGroupRows.common). For several features only a
+ * value they all share counts: a side whose key, or the common key it falls back to, is mixed is not off.
  */
 export function sidesOff(
   group: SideGroup,
   rows: readonly SideRow<string | Combined>[],
+  common: Readonly<Record<string, string | Combined>> = {},
 ): Partial<Record<Side, string>> {
+  const keys = directionalKeys(`${group}:both`)
   const own = rows.find((row) => row.pattern === `${group}:${SIDE_TOKEN}`)
+  const commonMixed = [keys.fallback, keys.both].some(
+    (key) => common[key] !== undefined && singleValue(common[key]) === undefined,
+  )
   const off: Partial<Record<Side, string>> = {}
   for (const side of ['left', 'right'] as const) {
-    const value = own?.[side]
-    const text = typeof value === 'string' ? value : value?.kind === 'one' ? value.value : undefined
-    if (text !== undefined && SIDE_OFF.has(text)) off[side] = text
+    const cell = own?.[side]
+    // a mixed side key, or a mixed common key behind a side with no key of its own, is no value all features share
+    if (cell !== undefined ? singleValue(cell) === undefined : commonMixed) continue
+    const tags: Record<string, string> = {}
+    for (const key of [keys.fallback, keys.both]) {
+      const value = singleValue(common[key])
+      if (value !== undefined) tags[key] = value
+    }
+    const sideText = singleValue(cell)
+    if (sideText !== undefined) tags[keys[side]] = sideText
+    const value = sideValue(keys, tags, side)
+    if (isSideOffValue(value)) off[side] = value
   }
   return off
 }
@@ -435,15 +463,17 @@ export function sidesOff(
 /**
  * A group's rows as rows of the Tags sheet: the pattern as the key, the left side in the value column and the right
  * side in the column after it (`right`), each cell only when that side has a tag. The cells are named by their side.
- * A side that is off (`sidesOff`: no, none, separate) has its other cells locked and grey; a value left there is
- * invalid, with what to do about it (remove it; move it to the separately mapped way).
+ * A side that is off (`sidesOff`: no, none, separate; also by the group's keys with no side, `common`) has its other
+ * cells locked and grey; a value left there is invalid, with what to do about it (remove it; move it to the separately
+ * mapped way).
  */
 export function sideSheetRows(
   rows: readonly SideRow<string | Combined>[],
   group: SideGroup,
   readOnlyKey: ReadOnlyKeys = NONE,
+  common: Readonly<Record<string, string | Combined>> = {},
 ): SheetRow[] {
-  const off = sidesOff(group, rows)
+  const off = sidesOff(group, rows, common)
   const own = `${group}:${SIDE_TOKEN}`
   return rows.map((row) => {
     // a pattern is no key taginfo knows: no list for it. A row with a read-only side cannot be renamed or removed.
@@ -477,10 +507,7 @@ export function sideSheetRows(
           ? { value: { kind: 'value', text: '' }, readOnly: true }
           : {
               ...cell,
-              invalid:
-                offValue === 'separate'
-                  ? m.ui_tags_side_separate({ key })
-                  : m.ui_tags_side_none({ key, value: offValue }),
+              invalid: sideOffError(offValue, key),
             }
     }
     return {

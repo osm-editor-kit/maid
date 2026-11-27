@@ -21,5 +21,6 @@
   "traffic_sign_remove": "Remove",
   "traffic_sign_remove_sign": "Remove {sign}",
   "traffic_sign_loading": "Loading signs…",
-  "traffic_sign_mixed": "Multiple values"
+  "traffic_sign_mixed": "Multiple values",
+  "traffic_sign_placeholder_example": "e.g. {example}"
 }

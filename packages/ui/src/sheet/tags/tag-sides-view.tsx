@@ -75,7 +75,9 @@ export function groupSheetRows(
   groups: readonly SideGroupRows<string | Combined>[],
   readOnlyKey?: ReadOnlyKeys,
 ): SheetRow[] {
-  return groups.flatMap((group) => sideSheetRows(group.rows, group.group, readOnlyKey))
+  return groups.flatMap((group) =>
+    sideSheetRows(group.rows, group.group, readOnlyKey, group.common),
+  )
 }
 
 /** The headline above the first row of each group: its name over the keys, the two sides over their columns */
