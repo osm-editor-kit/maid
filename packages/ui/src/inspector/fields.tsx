@@ -349,7 +349,7 @@ export function PresetFields(props: {
               measure={measure}
               address={address}
               renderIcon={renderIcon}
-              excludedKeys={block.field.type === 'access' ? accessExcluded : undefined}
+              excludedKeys={single.type === 'access' ? accessExcluded : undefined}
             />
           </div>
         )
