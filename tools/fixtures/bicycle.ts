@@ -22,7 +22,7 @@ export type Case = {
   westward?: boolean
   /**
    * The riding direction of each line, as `side:dir` sorted (module-bike-infrastructure features.ts
-   * ridingDirection: 1 with the line, -1 against it, 2 both ways, `-` no arrows). Checked by check-bike-style.
+   * ridingDirection: 1 with the line, -1 against it, 2 both ways, 0 not tagged, `-` none). Checked by check-bike-style.
    */
   dirs?: string[]
 }
@@ -438,6 +438,19 @@ export const DIRECTIONS: Case[] = [
     },
     expect: ['left:cycleway_adjoining', 'right:data_no'],
     dirs: ['left:2'],
+  },
+  {
+    // a track should say how it is ridden: without a tag the lens shows "not tagged" (ADR 0021)
+    name: 'D tracks both, oneway not tagged',
+    tags: { highway: 'secondary', 'cycleway:both': 'track' },
+    expect: ['left:cycleway_adjoining', 'right:cycleway_adjoining'],
+    dirs: ['left:0', 'right:0'],
+  },
+  {
+    name: 'D cycleway, oneway not tagged',
+    tags: { highway: 'cycleway', traffic_sign: 'DE:237' },
+    expect: ['self:cycleway_adjoiningOrIsolated'],
+    dirs: ['self:0'],
   },
 ]
 

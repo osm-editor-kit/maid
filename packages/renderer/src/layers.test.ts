@@ -21,7 +21,7 @@ import {
 import { CONE_IMAGE, CONE_IMAGE_WIDE, CONE_ZOOM, PIN_HEAD_ABOVE } from './viewfield'
 
 /** The data layers whose selection copies keep their own minzoom */
-const DIRECTION = new Set(['line-oneway', 'line-sided', 'area-sided'])
+const DIRECTION = new Set(['line-oneway', 'line-two-way', 'line-sided', 'area-sided'])
 
 const options: LayerOptions = {
   dashes: new Map(),
@@ -29,6 +29,8 @@ const options: LayerOptions = {
   labels: true,
   icons: true,
   pins: 'fit',
+  // a line-focused editor, so every data layer is visible (the two-way glyph is hidden without it, test below)
+  lineFocus: true,
 }
 
 /** The fields the rules are about, read without the library's union type */
@@ -614,10 +616,28 @@ describe('display: the wireframe and the changes in colour (iD)', () => {
     expect(visible(buildLayers(options), 'line-oneway')).toBe(true)
   })
 
-  test('the arrows never cover a vertex: symbols that keep-out squares on the vertices push away', () => {
+  test('the two-way glyph at rest is shown in a line-focused editor only', () => {
+    expect(visible(buildLayers({ ...options, lineFocus: false }), 'line-two-way')).toBe(false)
+    expect(visible(buildLayers(options), 'line-two-way')).toBe(true)
+  })
+
+  test('a line hides its rest glyph while it is hovered or selected: the highlight draws the active one', () => {
+    const oneway = buildLayers(options).find((l) => view(l).id === 'line-oneway') as {
+      paint?: Record<string, unknown>
+    }
+    expect(JSON.stringify(oneway.paint?.['icon-opacity'])).toContain('"feature-state","hover"')
+  })
+
+  test('the glyphs never cover a vertex: symbols that keep-out squares on the vertices push away', () => {
     const layers = buildLayers(options).map(view)
     const at = (id: string) => layers.findIndex((l) => l.id === id)
-    for (const id of ['line-oneway', 'highlight-direction', 'line-sided', 'area-sided']) {
+    for (const id of [
+      'line-oneway',
+      'line-two-way',
+      'highlight-direction',
+      'line-sided',
+      'area-sided',
+    ]) {
       const arrow = layers[at(id)]!
       expect(arrow.type).toBe('symbol')
       // dropped where something is placed, blocking nothing themselves

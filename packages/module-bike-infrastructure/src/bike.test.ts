@@ -59,6 +59,8 @@ describe('features', () => {
         dashed: true,
         sidepath: 'yes',
         sign: 'DE:239,1022-10',
+        // a footway where bicycles are allowed is two-way unless tagged (ridingDirection)
+        dir: 2,
       },
       { kind: 'sign', wayId: 'w1', side: 'self', sign: 'DE:239,1022-10', rotate: 0 },
     ])
@@ -141,14 +143,18 @@ describe('riding direction', () => {
         return `${p.side}:${p.dir ?? '-'}`
       })
 
-  test('the way itself: with the line for oneway=yes, against it for -1, both ways when nothing says one way', () => {
+  test('the way itself: with the line for oneway=yes, against it for -1, not tagged when nothing says', () => {
     const cycleway = { highway: 'cycleway', traffic_sign: 'DE:237' }
     expect(dirs({ ...cycleway, oneway: 'yes' })).toEqual(['self:1'])
     // TILDA gives oneway=yes for -1 too: the tag decides
     expect(dirs({ ...cycleway, oneway: '-1' })).toEqual(['self:-1'])
-    // nothing tagged: TILDA assumes both ways, and the line shows it
-    expect(dirs(cycleway)).toEqual(['self:2'])
+    // nothing tagged: TILDA assumes both ways, but a cycleway should say how it is ridden (ADR 0021)
+    expect(dirs(cycleway)).toEqual(['self:0'])
+    expect(dirs({ ...cycleway, oneway: 'no' })).toEqual(['self:2'])
     const path = { highway: 'path', bicycle: 'designated', foot: 'designated', segregated: 'no' }
+    expect(dirs(path)).toEqual(['self:0'])
+    // a bicycle road is a road: two-way unless tagged
+    expect(dirs({ highway: 'residential', bicycle_road: 'yes' })).toEqual(['self:2'])
     expect(dirs({ ...path, oneway: 'no', 'oneway:bicycle': '-1' })).toEqual(['self:-1'])
     // cars one way against the line, bicycles both ways
     expect(
@@ -183,6 +189,8 @@ describe('riding direction', () => {
         'cycleway:right': 'no',
       }),
     ).toEqual(['left:2'])
+    // tracks without a tag: TILDA guesses one way, the lens asks for the tag (lanes keep TILDA's guess, above)
+    expect(dirs({ highway: 'secondary', 'cycleway:both': 'track' })).toEqual(['left:0', 'right:0'])
   })
 })
 
@@ -242,7 +250,7 @@ describe('layers', () => {
     ])
   })
 
-  test('each part has its arrows, on its own offset; the hook of a side turns away from the road', () => {
+  test('each part has its riding direction, on its own offset: the rest glyphs of the renderer', () => {
     const arrows = BIKE_LAYERS.filter((layer) => layer.id.endsWith('-arrows'))
     expect(arrows.map((layer) => layer.id)).toEqual([
       'bike-self-arrows',
@@ -251,10 +259,16 @@ describe('layers', () => {
       'bike-right-cycleway-arrows',
       'bike-right-sidewalk-arrows',
     ])
-    const hook = (id: string) =>
-      (arrows.find((layer) => layer.id === id)!.paint!['line-pattern'] as unknown[])[3]
-    expect(hook('bike-left-cycleway-arrows')).toBe('maid-line-arrow-reversed')
-    expect(hook('bike-right-cycleway-arrows')).toBe('maid-line-arrow-reversed-right')
+    const pattern = arrows.find((layer) => layer.id === 'bike-left-cycleway-arrows')!.paint![
+      'line-pattern'
+    ]
+    expect(pattern).toEqual([
+      'match', ['get', 'dir'],
+      -1, 'maid-line-glyph-against',
+      2, 'maid-line-glyph-both',
+      0, 'maid-line-glyph-missing',
+      'maid-line-glyph-with',
+    ]) // prettier-ignore
   })
 
   test('only a centre line has the white casing', () => {

@@ -1,12 +1,19 @@
 /**
- * Which lines carry direction arrows and which carry side markers, decided as iD does
- * (modules/osm/way.ts `isOneWay`, `isSided`; modules/osm/tags.ts; modules/svg/lines.js).
- * Pure: the builder calls these, the layers name the images that `direction-images.ts` draws.
+ * Which lines carry a direction glyph and which carry side markers. The riding direction follows iD's one-way tags
+ * (modules/osm/way.ts `isOneWay`, modules/osm/tags.ts), drawn with Maid's own glyphs (glyph.ts, ADR 0021); side
+ * markers are iD's (`isSided`, modules/svg/lines.js). Pure: the builder calls these, the layers name the images that
+ * `direction-images.ts` draws.
  */
 import type { Tags } from '@osm-editor-kit/maid-style'
-
-/** 1: arrow along the way, -1: against it, 2: both ways (alternating, reversible) */
-export type OneWay = 1 | -1 | 2
+import {
+  GLYPH_HEIGHT,
+  GLYPH_KINDS,
+  glyphWidth,
+  type GlyphKind,
+  type GlyphShape,
+  type GlyphState,
+  type GlyphTone,
+} from './glyph'
 
 /** iD's osmOneWayForwardTags: tags that make a way one-way in its drawing direction, by key */
 const FORWARD = new Map<string, Set<string>>([
@@ -21,36 +28,72 @@ const FORWARD = new Map<string, Set<string>>([
   ['waterway', new Set(['canal', 'ditch', 'drain', 'fish_pass', 'flowline', 'pressurised', 'river', 'spillway', 'stream', 'tidal_channel'])],
 ]) // prettier-ignore
 
-/**
- * The direction of a one-way line, or undefined. `oneway=no` wins over everything. Both-ways
- * wins over backwards, as iD draws a both-ways line with its arrows in both directions.
- */
-export function onewayOf(tags: Tags) {
-  if (tags.oneway === 'no') return undefined
+/** Whether a tag other than `oneway` makes the way one-way by default (a roundabout, a motorway, a river) */
+function onewayByDefault(tags: Tags) {
+  for (const [key, values] of FORWARD) {
+    if (key === 'oneway') continue
+    const value = tags[key]
+    if (value !== undefined && values.has(value)) return true
+  }
+  return false
+}
+
+/** The riding direction of all traffic, from `oneway` and the tags that imply it */
+function mainDirection(tags: Tags): GlyphKind | undefined {
+  // `oneway=no` wins, as in iD; on a way that is one-way by default it says two-way out loud (Tobias, 2026-11-27)
+  if (tags.oneway === 'no') return onewayByDefault(tags) ? 'both' : undefined
   if (
     tags.oneway === 'alternating' ||
     tags.oneway === 'reversible' ||
     tags.conveying === 'reversible'
   )
-    return 2
-  if (tags.oneway === '-1' || tags.conveying === 'backward') return -1
-  for (const [key, values] of FORWARD) {
-    const value = tags[key]
-    if (value !== undefined && values.has(value)) return 1
-  }
+    return 'reversible'
+  if (tags.oneway === '-1' || tags.conveying === 'backward') return 'against'
+  if (tags.oneway === 'yes' || onewayByDefault(tags)) return 'with'
   return undefined
 }
 
 /**
- * Arrow colour for a one-way line, as iD's onewayArrowColour: white on dark lines, grey on
- * pedestrian and rail lines, else the default dark grey (undefined here: the layer's default).
+ * The glyph a line always shows (at rest too), or undefined for a line that is two-way by default and shows its
+ * riding direction only on hover and selection (or at rest in a line-focused style, layers.ts `line-two-way`).
+ * `oneway:bicycle` counts off `highway=cycleway` only, where `oneway` is the cyclists' own (Tobias, 2026-11-27): on a
+ * one-way road `oneway:bicycle=no` adds the bicycles' way back, on a two-way path `oneway:bicycle=yes|-1` makes it
+ * one way for bicycles.
  */
-export function arrowColour(tags: Tags) {
-  if (tags.highway === 'construction' && tags.bridge) return '#fff'
-  if (tags.highway === 'pedestrian') return '#eee'
-  if (tags.railway && !tags.highway) return '#eee'
-  if (tags.aeroway === 'runway') return '#fff'
-  return undefined
+export function ridingOf(tags: Tags): GlyphKind | undefined {
+  const main = mainDirection(tags)
+  const bicycle = tags.highway === 'cycleway' ? undefined : tags['oneway:bicycle']
+  if (bicycle === 'no' && main === 'with') return 'contraflow'
+  if (bicycle === 'no' && main === 'against') return 'contraflow-against'
+  if (main === undefined || main === 'both') {
+    if (bicycle === 'yes') return 'bike-with'
+    if (bicycle === '-1') return 'bike-against'
+  }
+  return main
+}
+
+/**
+ * Lines that traffic uses, so a two-way one has a riding direction worth showing (`both` on hover and selection, and
+ * at rest in a line-focused style). Any other open line (a fence, a power line) shows only its drawing direction.
+ */
+export function isTravelled(tags: Tags) {
+  return (
+    tags.highway !== undefined ||
+    (tags.railway !== undefined && tags.railway !== 'platform') ||
+    tags.route === 'ferry' ||
+    tags.aerialway !== undefined
+  )
+}
+
+/**
+ * Lines whose glyph is light (white parts, dark edge), where iD draws its arrows white or grey: dark lines (a bridge
+ * under construction, a runway), pedestrian streets and rail (iD's onewayArrowColour).
+ */
+export function isLightGlyph(tags: Tags) {
+  if (tags.highway === 'construction' && tags.bridge) return true
+  if (tags.highway === 'pedestrian') return true
+  if (tags.railway && !tags.highway) return true
+  return tags.aeroway === 'runway'
 }
 
 /**
@@ -147,58 +190,85 @@ export const SIDE_KINDS: Record<string, SideKind> = {
 }
 
 /**
- * The arrows and side markers are symbols along the line (`symbol-placement: line`), one every ARROW_SPACING or
- * SIDE_SPACING px, so that MapLibre can drop the one that would cover a vertex: the nodes win, a marker may go
- * (Tobias, 2026-10-28). They do not block each other or the labels (`icon-ignore-placement`). An image is one
- * marker. The spacings are iD's (svg/lines.js).
+ * The glyphs and side markers are symbols along the line (`symbol-placement: line`), so that MapLibre can drop the one
+ * that would cover a vertex: the nodes win, a marker may go (Tobias, 2026-10-28). They do not block each other or the
+ * labels (`icon-ignore-placement`). An image is one marker.
  */
-export const ARROW_SPACING = 36
-export const ARROW_HEIGHT = 6
-/** iD's arrow is 10 x 5 units of 1.2 px; half a px more on each side for its outline */
-export const ARROW_WIDTH = 13
+/** A glyph every 48 px: they are wider than iD's arrows (iD: 36) and need the room (Tobias, 2026-11-27) */
+export const GLYPH_SPACING = 48
+/** The two-way glyph at rest in a line-focused style: a reminder, not a pattern, so twice as far apart */
+export const GLYPH_REST_SPACING = 96
+/** iD's side markers, every 30 px (svg/lines.js) */
 export const SIDE_SPACING = 30
 
-/**
- * The arrow's shape, from `oneway`: forward, both ways, and `reversed` for a line whose traffic runs against its
- * drawing direction (`oneway=-1`): a hook that starts along the line and turns back, so the arrow says "drawn this way,
- * driven that way" (Tobias, 2026-11-22). iD mirrors the arrow (`backward`), which cannot be told from a line drawn
- * the other way; Maid draws the hook instead. `backward` stays an image for a module that wants the mirrored arrow.
- */
-export type ArrowShape = 'forward' | 'backward' | 'both' | 'reversed'
-const SHAPE_OF: Record<OneWay, ArrowShape> = { 1: 'forward', [-1]: 'reversed', 2: 'both' }
-const SHAPES = new Set<string>(['forward', 'backward', 'both', 'reversed'])
-/**
- * The hook of `reversed` reaches this far to one side of the line (px): its image is twice as high, with the line
- * through its middle
- */
-export const HOOK_REACH = 6
-export const HOOK_HEIGHT = 2 * HOOK_REACH + 2
-/** The arrow's colour when the feature has no `ac` */
-export const ARROW_DEFAULT_COLOUR = '#333'
-/** Colours of the arrows that are built ahead; other colours (the lens dims them) are built on demand */
-export const ARROW_COLOURS = [ARROW_DEFAULT_COLOUR, '#fff', '#eee']
-
-/** Image ids (direction-images.ts draws them): `maid-arrow-<shape>-<colour>`, `maid-side-<kind>` */
-export const ARROW_IMAGE_PREFIX = 'maid-arrow-'
+/** Image ids (direction-images.ts draws them): `maid-glyph-<kind>-<state>-<tone>`, `maid-side-<kind>` */
+export const GLYPH_IMAGE_PREFIX = 'maid-glyph-'
 export const SIDE_IMAGE_PREFIX = 'maid-side-'
-/** The selected way's direction (engine.ts, the highlight source): white with a dark outline, a symbol icon */
-export const SELECTED_ARROW_IMAGE = 'maid-selected-arrow'
-export const SELECTED_ARROW_HEIGHT = 8
-/** The same arrow as a line pattern, as wide as ARROW_SPACING, for maps without vertices (the relations map) */
+/** Every glyph the map draws: the kinds, and `drawn` for an open line that no one travels (a fence) */
+const MAP_GLYPHS: readonly GlyphShape[] = [...GLYPH_KINDS, 'drawn']
+const TONES: readonly GlyphTone[] = ['ink', 'light']
+
+export function glyphImageId(kind: GlyphShape, state: GlyphState, tone: GlyphTone = 'ink') {
+  return `${GLYPH_IMAGE_PREFIX}${kind}-${state}-${tone}`
+}
+
+/** Every glyph image the map may ask for (direction-images.ts builds them ahead) */
+export function glyphImageIds() {
+  const ids: string[] = []
+  for (const kind of MAP_GLYPHS)
+    for (const state of ['rest', 'active'] as const)
+      for (const tone of TONES)
+        if (!(kind === 'drawn' && state === 'rest')) ids.push(glyphImageId(kind, state, tone))
+  return ids
+}
+
+/** The kind, state and tone that a glyph image id names, or undefined for another id */
+export function parseGlyphImageId(
+  id: string,
+): { kind: GlyphShape; state: GlyphState; tone: GlyphTone } | undefined {
+  if (!id.startsWith(GLYPH_IMAGE_PREFIX)) return undefined
+  const parts = id.slice(GLYPH_IMAGE_PREFIX.length).split('-')
+  const tone = parts.pop() as GlyphTone
+  const state = parts.pop() as GlyphState
+  const kind = parts.join('-') as GlyphShape
+  if (!MAP_GLYPHS.includes(kind) || !TONES.includes(tone)) return undefined
+  if (state !== 'rest' && state !== 'active') return undefined
+  return { kind, state, tone }
+}
+
+/** The widest glyph (px, large size): every glyph image is this wide, so all collide alike near a vertex */
+export const GLYPH_BOX_WIDTH = Math.ceil(
+  Math.max(...GLYPH_KINDS.map((kind) => glyphWidth(kind, 'active'))) + 2,
+)
+/** Image height: the glyph and its edge */
+export const GLYPH_BOX_HEIGHT = GLYPH_HEIGHT + 2
+
+/**
+ * The glyph's size against the line (layers.ts): on a road it stays inside the fill, 1 px clear of each casing (the
+ * fill width minus 2 px, at most the full 8 px); a line thinner than a readable glyph (paths, cycleways) gets the
+ * smallest size, 5.2 px, and the glyph lies over the line on its edge.
+ */
+export const GLYPH_MIN_SCALE = 0.65
+
+/** The selected way's direction as a line pattern, for maps without vertices (the relations map): white, dark edge */
 export const SELECTED_ARROW_PATTERN = 'maid-selected-arrow-pattern'
+export const SELECTED_ARROW_HEIGHT = 8
+/** The pattern repeats every this many px */
+export const SELECTED_ARROW_SPACING = 36
+
 /**
  * A transparent square on every drawn vertex (layers.ts `arrow-keepout-*`): it is never seen, but takes
- * its place in MapLibre's collision index, so no arrow or side marker is placed on a vertex.
+ * its place in MapLibre's collision index, so no glyph or side marker is placed on a vertex.
  */
 export const KEEPOUT_IMAGE = 'maid-keepout'
 export const KEEPOUT_SIZE = 8
 
 /**
- * MapLibre does not turn a line icon's collision box with the line. This padding makes an arrow's box (ARROW_WIDTH
- * by `height`) a square of ARROW_WIDTH + 2 px, which holds the arrow at every angle.
+ * MapLibre does not turn a line icon's collision box with the line. This padding makes a box `width` by `height` a
+ * square of `width` + 2 px, which holds the icon at every angle.
  */
-export function arrowPadding(height: number): [number, number, number, number] {
-  const vertical = (ARROW_WIDTH + 2 - height) / 2
+export function squarePadding(width: number, height: number): [number, number, number, number] {
+  const vertical = (width + 2 - height) / 2
   return [vertical, 1, vertical, 1]
 }
 
@@ -218,44 +288,23 @@ function sideReach(kind: SideKind) {
 /**
  * A side marker's icon (direction-images.ts) in px: one marker, 2 units along the line, and as high as the marker's
  * farthest edge on both sides, so the line runs through its middle. Its collision box is not turned with the line
- * (arrowPadding): on a line across the screen it is the marker's, on one up the screen it is longer along the line
+ * (squarePadding): on a line across the screen it is the marker's, on one up the screen it is longer along the line
  * than the marker. Either way it holds the marker where it meets a vertex on the line.
  */
 export function sideIconSize(kind: SideKind) {
   return { width: 2 * SIDE_UNIT + 1, height: Math.ceil(2 * sideReach(kind) * SIDE_UNIT + 1) }
 }
 
-/** The arrow image for a line's direction and colour. layers.ts builds the same id in an expression. */
-export function arrowImageId(oneway: OneWay, colour = ARROW_DEFAULT_COLOUR) {
-  return `${ARROW_IMAGE_PREFIX}${SHAPE_OF[oneway]}-${colour}`
-}
-
-/** The shape and colour that an arrow image id names, or undefined for another id */
-export function parseArrowImageId(id: string): { shape: ArrowShape; colour: string } | undefined {
-  if (!id.startsWith(ARROW_IMAGE_PREFIX)) return undefined
-  const rest = id.slice(ARROW_IMAGE_PREFIX.length)
-  const dash = rest.indexOf('-')
-  const shape = rest.slice(0, dash)
-  if (dash < 0 || !SHAPES.has(shape)) return undefined
-  return { shape: shape as ArrowShape, colour: rest.slice(dash + 1) }
-}
-
 /**
- * Arrows for a module's own lines (the bicycle infrastructure): white with a dark outline, so they read on any line
- * colour, as a line pattern (`line-pattern`, one arrow every LINE_ARROW_SPACING px), which follows the layer's
- * `line-offset`; a symbol does not. The layer's `line-width` is LINE_ARROW_HEIGHT. Ids: `maid-line-arrow-<shape>`,
- * shape `forward`, `both`, `reversed` (the hook to the left of the line's direction) or `reversed-right`.
+ * The riding direction of a module's own lines (the bicycle lens) as a line pattern (`line-pattern`, one glyph every
+ * LINE_GLYPH_SPACING px), which follows the layer's `line-offset`; a symbol does not. The rest glyph at the small size,
+ * ink with its white edge. The layer's `line-width` is LINE_GLYPH_HEIGHT. Ids: `maid-line-glyph-<kind>`.
  */
-export const LINE_ARROW_PREFIX = 'maid-line-arrow-'
-export const LINE_ARROW_SPACING = 56
-export const LINE_ARROW_HEIGHT = HOOK_HEIGHT
-export type LineArrowShape = 'forward' | 'both' | 'reversed' | 'reversed-right'
-export const LINE_ARROW_SHAPES: readonly LineArrowShape[] = [
-  'forward',
-  'both',
-  'reversed',
-  'reversed-right',
-]
-export function lineArrowImageId(shape: LineArrowShape) {
-  return `${LINE_ARROW_PREFIX}${shape}`
+export const LINE_GLYPH_PREFIX = 'maid-line-glyph-'
+export const LINE_GLYPH_SPACING = 56
+export const LINE_GLYPH_HEIGHT = 8
+export type LineGlyphKind = 'with' | 'against' | 'both' | 'missing'
+export const LINE_GLYPH_KINDS: readonly LineGlyphKind[] = ['with', 'against', 'both', 'missing']
+export function lineGlyphImageId(kind: LineGlyphKind) {
+  return `${LINE_GLYPH_PREFIX}${kind}`
 }

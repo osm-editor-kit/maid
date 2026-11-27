@@ -1,9 +1,10 @@
-// The shape points and direction arrows of the selected ways, for the highlight source (the engine's refreshShape()).
+// The shape points and direction glyphs of the selected ways, for the highlight source (the engine's refreshShape()).
 // Pure over the data and the selection: the caller keeps the result and sends it.
 import type { Feature } from 'geojson'
-import { wayVertices } from './build'
+import { lineStrokeWidths, wayVertices } from './build'
 import type { OsmData } from './data'
-import { onewayOf } from './direction'
+import { isLightGlyph, isTravelled, ridingOf } from './direction'
+import type { GlyphShape } from './glyph'
 
 /**
  * The shape points of the selection, in the small highlight source: all nodes of the selected
@@ -32,12 +33,8 @@ export function selectionShape(
     }
   }
   const shape = new Map<string, Feature>()
-  // The direction of each selected open highway without arrows of its own: the way's line, drawn
-  // with arrows (layers.ts highlight-direction). iD does not show a way's direction; this is Maid's.
-  const directions: Feature[] = []
   for (const wayId of ways) {
-    const vertices = wayVertices(data, wayId)
-    for (const vertex of vertices) {
+    for (const vertex of wayVertices(data, wayId)) {
       const id = vertex.properties?.id
       if (typeof id !== 'string') continue
       vertex.properties =
@@ -46,17 +43,45 @@ export function selectionShape(
           : { id, state: 'shape' }
       shape.set(id, vertex)
     }
-    const way = data.way(wayId)
-    const closed = way !== undefined && way.nodes[0] === way.nodes[way.nodes.length - 1]
-    if (way?.tags.highway && !closed && !onewayOf(way.tags) && vertices.length >= 2)
-      directions.push({
-        type: 'Feature',
-        properties: { id: wayId, state: 'direction' },
-        geometry: {
-          type: 'LineString',
-          coordinates: vertices.map((v) => v.geometry.coordinates),
-        },
-      })
+  }
+  // the direction glyphs of each selected way (not of the ways of a selected vertex: their own glyphs stay)
+  const directions: Feature[] = []
+  for (const id of selectedIds) {
+    const feature = id.startsWith('w') ? directionFeature(data, id, 'direction') : undefined
+    if (feature) directions.push(feature)
   }
   return { nodes: new Set(shape.keys()), features: [...shape.values(), ...directions] }
+}
+
+/**
+ * The way's line with its active glyph (layers.ts highlight-direction): the riding direction with the drawing triangle
+ * (glyph.ts), for a selected (`direction`) or the hovered way (`hover-direction`). iD shows neither; this is Maid's
+ * (ADR 0021). A line traffic uses and that has no glyph of its own is two-way (`both`); any other open line shows its
+ * drawing direction alone (`drawn`); a closed way that is neither (a building, a fenced area) shows nothing.
+ */
+export function directionFeature(
+  data: OsmData,
+  wayId: string,
+  state: 'direction' | 'hover-direction',
+): Feature | undefined {
+  const way = data.way(wayId)
+  if (!way) return undefined
+  const closed = way.nodes[0] === way.nodes[way.nodes.length - 1]
+  const g: GlyphShape | undefined =
+    ridingOf(way.tags) ?? (isTravelled(way.tags) ? 'both' : closed ? undefined : 'drawn')
+  if (g === undefined) return undefined
+  const coordinates = wayVertices(data, wayId).map((vertex) => vertex.geometry.coordinates)
+  if (coordinates.length < 2) return undefined
+  return {
+    type: 'Feature',
+    // the stroke widths, so the glyph has the size it has on the data layer (layers.ts glyphSize)
+    properties: {
+      id: wayId,
+      state,
+      g,
+      ...lineStrokeWidths(way.tags),
+      ...(isLightGlyph(way.tags) ? { lt: 1 } : {}),
+    },
+    geometry: { type: 'LineString', coordinates },
+  }
 }

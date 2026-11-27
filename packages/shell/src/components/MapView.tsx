@@ -203,6 +203,7 @@ export function MapView() {
     labels: config.labels,
     icons: config.icons,
     pins: config.pins,
+    lineFocus: config.lineFocus,
     lat: initialCamera.lat,
     dashes,
     selectionOnly,

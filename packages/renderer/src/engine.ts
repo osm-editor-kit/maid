@@ -86,7 +86,7 @@ import { pickAllFeatures, pickFeature } from './pick'
 import { PresetsHold } from './presets-hold'
 import { movedOf, redrawEntities } from './redraw'
 import { relatedIds } from './related'
-import { selectionShape } from './selection-shape'
+import { directionFeature, selectionShape } from './selection-shape'
 import { Sender } from './sender'
 import type { TagsOfFeature } from './set-tags-each'
 import type { Loc, Point } from './snap'
@@ -1878,6 +1878,8 @@ export class MaidEngine {
       this.fieldFeatures = []
       this.refreshShape()
     }
+    // a hovered way that is selected now has the selection's glyphs
+    this.refreshHoverDirection()
     // a feature that is not on the map changes nothing, so ask for a frame explicitly
     void map.once('render').then(shown)
     map.triggerRepaint()
@@ -1898,6 +1900,22 @@ export class MaidEngine {
     this.pushHighlight()
   }
 
+  /**
+   * The hovered way's glyphs with the drawing triangle (selection-shape.ts directionFeature), unless it is selected:
+   * the selection has its own. The data layer hides the way's rest glyphs while it is hovered (layers.ts line-oneway).
+   */
+  private hoverDirection: Feature | undefined
+
+  private refreshHoverDirection() {
+    const id = this.hoverId
+    const before = this.hoverDirection
+    this.hoverDirection =
+      id?.startsWith('w') && !this.selectedIds.includes(id)
+        ? directionFeature(this.data, id, 'hover-direction')
+        : undefined
+    if (before !== this.hoverDirection) this.pushHighlight()
+  }
+
   private shapeFeatures: Feature[] = []
   private previewFeatures: Feature[] = []
 
@@ -1906,6 +1924,7 @@ export class MaidEngine {
       type: 'FeatureCollection',
       features: [
         ...this.shapeFeatures,
+        ...(this.hoverDirection ? [this.hoverDirection] : []),
         ...this.handles.list,
         ...this.previewFeatures,
         ...this.fieldFeatures,

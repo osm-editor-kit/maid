@@ -13,13 +13,13 @@
   ],
   "zoom": 18,
   "counts": {
-    "node": 174,
-    "way": 58,
+    "node": 180,
+    "way": 60,
     "relation": 0
   },
   "source": {
     "script": "tools/fixtures/bicycle.ts"
   },
   "attribution": "Made up for the tests, not OSM data",
-  "sha256": "889b9d3114b2e969bdb31ddf5122bb4054711606323c272c0daa07fb362b3a9f"
+  "sha256": "0cfe9e5525aba176c97c1a3e215191bff6cb54a07037460f1ff4008b9ef36757"
 }

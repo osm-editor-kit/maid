@@ -1,79 +1,100 @@
 import { describe, expect, test } from 'bun:test'
 import {
-  arrowColour,
-  arrowImageId,
-  arrowPadding,
-  lineArrowImageId,
-  onewayOf,
-  parseArrowImageId,
+  GLYPH_BOX_HEIGHT,
+  GLYPH_BOX_WIDTH,
+  glyphImageId,
+  glyphImageIds,
+  isLightGlyph,
+  isTravelled,
+  lineGlyphImageId,
+  parseGlyphImageId,
+  ridingOf,
   SIDE_KINDS,
   sideIconSize,
   sidedOf,
+  squarePadding,
 } from './direction'
 
-describe('onewayOf (iD isOneWay, isOneWayBackwards, isBiDirectional)', () => {
-  test('oneway=yes goes along the way', () => {
-    expect(onewayOf({ highway: 'residential', oneway: 'yes' })).toBe(1)
+describe('ridingOf: the riding direction from the tags (iD isOneWay, isOneWayBackwards, isBiDirectional)', () => {
+  test('oneway=yes goes along the way, -1 against it', () => {
+    expect(ridingOf({ highway: 'residential', oneway: 'yes' })).toBe('with')
+    expect(ridingOf({ highway: 'residential', oneway: '-1' })).toBe('against')
   })
 
-  test('oneway=-1 goes against the way', () => {
-    expect(onewayOf({ highway: 'residential', oneway: '-1' })).toBe(-1)
+  test('reversible and alternating go both ways, one at a time', () => {
+    expect(ridingOf({ oneway: 'reversible' })).toBe('reversible')
+    expect(ridingOf({ oneway: 'alternating' })).toBe('reversible')
+    expect(ridingOf({ conveying: 'reversible' })).toBe('reversible')
   })
 
-  test('reversible and alternating go both ways', () => {
-    expect(onewayOf({ oneway: 'reversible' })).toBe(2)
-    expect(onewayOf({ oneway: 'alternating' })).toBe(2)
-    expect(onewayOf({ conveying: 'reversible' })).toBe(2)
-  })
-
-  test('a roundabout is one-way without a oneway tag, as in iD', () => {
-    expect(onewayOf({ junction: 'roundabout' })).toBe(1)
-    expect(onewayOf({ junction: 'circular' })).toBe(1)
-  })
-
-  test('motorways and waterways imply one-way in iD', () => {
-    expect(onewayOf({ highway: 'motorway' })).toBe(1)
-    expect(onewayOf({ waterway: 'stream' })).toBe(1)
+  test('a roundabout, a motorway and a waterway are one-way without a oneway tag, as in iD', () => {
+    expect(ridingOf({ junction: 'roundabout' })).toBe('with')
+    expect(ridingOf({ junction: 'circular' })).toBe('with')
+    expect(ridingOf({ highway: 'motorway' })).toBe('with')
+    expect(ridingOf({ waterway: 'stream' })).toBe('with')
   })
 
   test('conveying=forward and backward', () => {
-    expect(onewayOf({ man_made: 'goods_conveyor', conveying: 'forward' })).toBe(1)
-    expect(onewayOf({ conveying: 'backward' })).toBe(-1)
+    expect(ridingOf({ man_made: 'goods_conveyor', conveying: 'forward' })).toBe('with')
+    expect(ridingOf({ conveying: 'backward' })).toBe('against')
   })
 
-  test('oneway=no overrides the implied one-way', () => {
-    expect(onewayOf({ junction: 'roundabout', oneway: 'no' })).toBeUndefined()
-    expect(onewayOf({ highway: 'motorway', oneway: 'no' })).toBeUndefined()
+  test('oneway=no on a way that is one-way by default says two-way out loud', () => {
+    expect(ridingOf({ junction: 'roundabout', oneway: 'no' })).toBe('both')
+    expect(ridingOf({ highway: 'motorway', oneway: 'no' })).toBe('both')
   })
 
-  test('no direction for an ordinary line', () => {
-    expect(onewayOf({ highway: 'residential' })).toBeUndefined()
-    expect(onewayOf({})).toBeUndefined()
+  test('an ordinary two-way line has no glyph of its own (it shows `both` on hover and selection)', () => {
+    expect(ridingOf({ highway: 'residential' })).toBeUndefined()
+    expect(ridingOf({ highway: 'residential', oneway: 'no' })).toBeUndefined()
+    expect(ridingOf({})).toBeUndefined()
+  })
+
+  test("oneway:bicycle=no on a one-way road adds the bicycles' way back", () => {
+    expect(ridingOf({ highway: 'residential', oneway: 'yes', 'oneway:bicycle': 'no' })).toBe(
+      'contraflow',
+    )
+    expect(ridingOf({ highway: 'residential', oneway: '-1', 'oneway:bicycle': 'no' })).toBe(
+      'contraflow-against',
+    )
+  })
+
+  test('oneway:bicycle makes a two-way path one way for bicycles, off highway=cycleway only', () => {
+    const path = { highway: 'path', bicycle: 'designated', foot: 'designated' }
+    expect(ridingOf({ ...path, 'oneway:bicycle': 'yes' })).toBe('bike-with')
+    expect(ridingOf({ ...path, oneway: 'no', 'oneway:bicycle': '-1' })).toBe('bike-against')
+    // on a cycleway, oneway is the cyclists' own: oneway:bicycle says nothing more
+    expect(ridingOf({ highway: 'cycleway', 'oneway:bicycle': 'yes' })).toBeUndefined()
+    expect(ridingOf({ highway: 'cycleway', oneway: 'yes', 'oneway:bicycle': 'no' })).toBe('with')
+  })
+
+  test('cycleway=opposite* is lane tagging and gives no centerline glyph', () => {
+    expect(ridingOf({ highway: 'residential', oneway: 'yes', cycleway: 'opposite_lane' })).toBe(
+      'with',
+    )
   })
 
   test('a value that is only a prototype property is not a direction', () => {
-    expect(onewayOf({ oneway: 'constructor' })).toBeUndefined()
-    expect(onewayOf({ highway: 'toString' })).toBeUndefined()
+    expect(ridingOf({ oneway: 'constructor' })).toBeUndefined()
+    expect(ridingOf({ highway: 'toString' })).toBeUndefined()
   })
 })
 
-describe('arrowColour (iD onewayArrowColour)', () => {
-  test('white on construction bridges and runways', () => {
-    expect(arrowColour({ highway: 'construction', bridge: 'yes' })).toBe('#fff')
-    expect(arrowColour({ aeroway: 'runway' })).toBe('#fff')
+describe('isTravelled and isLightGlyph', () => {
+  test('roads, paths, rail and ferries are travelled; a fence is not', () => {
+    expect(isTravelled({ highway: 'footway' })).toBe(true)
+    expect(isTravelled({ railway: 'tram' })).toBe(true)
+    expect(isTravelled({ route: 'ferry' })).toBe(true)
+    expect(isTravelled({ barrier: 'fence' })).toBe(false)
   })
 
-  test('grey on pedestrian and rail lines', () => {
-    expect(arrowColour({ highway: 'pedestrian', oneway: 'yes' })).toBe('#eee')
-    expect(arrowColour({ railway: 'rail', oneway: 'yes' })).toBe('#eee')
-  })
-
-  test('rail with a highway tag keeps the default colour', () => {
-    expect(arrowColour({ railway: 'rail', highway: 'road' })).toBeUndefined()
-  })
-
-  test('default colour otherwise', () => {
-    expect(arrowColour({ highway: 'residential', oneway: 'yes' })).toBeUndefined()
+  test('light glyphs where iD draws white or grey arrows', () => {
+    expect(isLightGlyph({ highway: 'construction', bridge: 'yes' })).toBe(true)
+    expect(isLightGlyph({ aeroway: 'runway' })).toBe(true)
+    expect(isLightGlyph({ highway: 'pedestrian', oneway: 'yes' })).toBe(true)
+    expect(isLightGlyph({ railway: 'rail', oneway: 'yes' })).toBe(true)
+    expect(isLightGlyph({ railway: 'rail', highway: 'road' })).toBe(false)
+    expect(isLightGlyph({ highway: 'residential', oneway: 'yes' })).toBe(false)
   })
 })
 
@@ -140,11 +161,9 @@ describe('lifecycle prefixes on sided keys (iD sidednessIdentifier)', () => {
 })
 
 describe('the collision boxes of the markers', () => {
-  test("an arrow's box is a square at either height, so it holds the arrow at every angle", () => {
-    for (const height of [6, 8]) {
-      const [top, right, bottom, left] = arrowPadding(height)
-      expect(13 + left + right).toBe(height + top + bottom)
-    }
+  test("a glyph's box is a square, so it holds the glyph at every angle", () => {
+    const [top, right, bottom, left] = squarePadding(GLYPH_BOX_WIDTH, GLYPH_BOX_HEIGHT)
+    expect(GLYPH_BOX_WIDTH + left + right).toBe(GLYPH_BOX_HEIGHT + top + bottom)
   })
 
   test('an icon is one marker long and reaches as far as the marker on both sides of the line', () => {
@@ -155,19 +174,29 @@ describe('the collision boxes of the markers', () => {
   })
 })
 
-describe('arrow images', () => {
-  test('oneway=-1 gets the hook that turns back, not the mirrored arrow of iD', () => {
-    expect(arrowImageId(1)).toBe('maid-arrow-forward-#333')
-    expect(arrowImageId(-1)).toBe('maid-arrow-reversed-#333')
-    expect(arrowImageId(2, '#fff')).toBe('maid-arrow-both-#fff')
-    expect(parseArrowImageId('maid-arrow-reversed-rgba(0, 0, 0, 0.5)')).toEqual({
-      shape: 'reversed',
-      colour: 'rgba(0, 0, 0, 0.5)',
+describe('glyph images', () => {
+  test('ids name the kind, the state and the tone, and parse back', () => {
+    expect(glyphImageId('against', 'rest')).toBe('maid-glyph-against-rest-ink')
+    expect(glyphImageId('contraflow-against', 'active', 'light')).toBe(
+      'maid-glyph-contraflow-against-active-light',
+    )
+    expect(parseGlyphImageId('maid-glyph-contraflow-against-active-light')).toEqual({
+      kind: 'contraflow-against',
+      state: 'active',
+      tone: 'light',
     })
-    expect(parseArrowImageId('maid-arrow-sideways-#333')).toBeUndefined()
+    expect(parseGlyphImageId('maid-glyph-sideways-rest-ink')).toBeUndefined()
+    expect(parseGlyphImageId('maid-glyph-with-asleep-ink')).toBeUndefined()
   })
 
-  test('the line arrows of a module', () => {
-    expect(lineArrowImageId('reversed-right')).toBe('maid-line-arrow-reversed-right')
+  test('every image is built ahead; the drawing triangle has no rest state', () => {
+    const ids = glyphImageIds()
+    expect(ids).toContain('maid-glyph-drawn-active-ink')
+    expect(ids).not.toContain('maid-glyph-drawn-rest-ink')
+    for (const id of ids) expect(parseGlyphImageId(id)).toBeDefined()
+  })
+
+  test('the line glyphs of a module', () => {
+    expect(lineGlyphImageId('missing')).toBe('maid-line-glyph-missing')
   })
 })

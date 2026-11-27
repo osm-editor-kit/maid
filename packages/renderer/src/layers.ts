@@ -11,18 +11,19 @@ import type {
 } from 'maplibre-gl'
 import { READ_ONLY_OPACITY } from './build'
 import {
-  ARROW_DEFAULT_COLOUR,
-  ARROW_IMAGE_PREFIX,
-  ARROW_HEIGHT,
-  ARROW_SPACING,
-  arrowPadding,
+  GLYPH_BOX_HEIGHT,
+  GLYPH_BOX_WIDTH,
+  GLYPH_IMAGE_PREFIX,
+  GLYPH_MIN_SCALE,
+  GLYPH_REST_SPACING,
+  GLYPH_SPACING,
   KEEPOUT_IMAGE,
   KEEPOUT_SIZE,
-  SELECTED_ARROW_HEIGHT,
-  SELECTED_ARROW_IMAGE,
   SIDE_IMAGE_PREFIX,
   SIDE_SPACING,
+  squarePadding,
 } from './direction'
+import { GLYPH_HEIGHT } from './glyph'
 import { CONE_IMAGE, CONE_IMAGE_WIDE, CONE_SLOTS, CONE_ZOOM, PIN_HEAD_ABOVE } from './viewfield'
 
 export const SOURCES = {
@@ -257,7 +258,46 @@ export type LayerOptions = {
    * input: a twin above its floor is hidden by its own maxzoom, which costs as little.
    */
   selectTwins?: boolean
+  /**
+   * A line-focused editor (the app's `lineFocus`, Maid Bicycle): two-way lines show their riding direction at rest
+   * (`line-two-way`). Off: only on hover and selection.
+   */
+  lineFocus?: boolean
 }
+
+/**
+ * The glyph image of a line (direction.ts glyphImageId) from its properties: `kind` an expression of the glyph kind,
+ * in the state, light (`lt`) or ink
+ */
+function glyphImage(
+  kind: ExpressionSpecification | string,
+  state: 'rest' | 'active',
+): ExpressionSpecification {
+  return ['concat', GLYPH_IMAGE_PREFIX, kind, `-${state}-`, ['case', ['has', 'lt'], 'light', 'ink']]
+}
+
+/**
+ * The glyph's size with its line (direction.ts GLYPH_MIN_SCALE): inside a road's fill, 1 px clear of each casing, at
+ * most its full height; on a thinner line the smallest size, lying over the line. By the stroke width of the zoom.
+ */
+function glyphSize(low: number): ExpressionSpecification {
+  const scale = (prop: string): ExpressionSpecification => [
+    'max', GLYPH_MIN_SCALE, ['min', 1, ['/', ['-', ['get', prop], 2], GLYPH_HEIGHT]],
+  ] // prettier-ignore
+  return ['step', ['zoom'], scale('swl'), low, scale('sw')]
+}
+
+/** Hides a line's rest glyphs while it is hovered or selected: the highlight draws its active glyphs instead */
+const REST_GLYPH_OPACITY: ExpressionSpecification = [
+  'case',
+  [
+    'any',
+    ['boolean', ['feature-state', 'hover'], false],
+    ['boolean', ['feature-state', 'selected'], false],
+  ],
+  0,
+  ['coalesce', ['get', 'ao'], 1],
+]
 
 /**
  * iD switches to thinner lines at "low zoom": up to OSM zoom ~17.2 at Berlin's latitude
@@ -479,8 +519,8 @@ function floorOf(layer: LayerSpecification) {
  * the floor the data layer draws the selection, so the twin stops there (its own maxzoom still applies). With
  * `selectionOnly` the data layers are hidden, so the twin draws at every zoom its layer has.
  */
-/** The layers of the arrows and side markers: drawn from OSM 16 only, the selection's copies too */
-const DIRECTION_LAYERS = new Set(['line-oneway', 'line-sided', 'area-sided'])
+/** The layers of the glyphs and side markers: drawn from OSM 16 only, the selection's copies too */
+const DIRECTION_LAYERS = new Set(['line-oneway', 'line-two-way', 'line-sided', 'area-sided'])
 
 function selectionTwin(
   layer: LayerSpecification,
@@ -754,45 +794,51 @@ function buildMainLayers(options: LayerOptions) {
 
   // direction markers, hidden in the wireframe (iD hides its oneway paths there)
   if (options.icons) {
-    // the arrow's shape from `oneway` (1 forward, -1 the hook that turns back, 2 both), in the colour of `ac`
-    const arrow: ExpressionSpecification = [
-      'concat',
-      ARROW_IMAGE_PREFIX,
-      [
-        'case',
-        ['==', ['get', 'oneway'], 2],
-        'both',
-        ['==', ['get', 'oneway'], -1],
-        'reversed',
-        'forward',
-      ],
-      '-',
-      ['coalesce', ['get', 'ac'], ARROW_DEFAULT_COLOUR],
-    ]
     const side: ExpressionSpecification = ['concat', SIDE_IMAGE_PREFIX, ['get', 'side']]
-    // The arrows and side markers are symbols along the line (direction.ts): MapLibre leaves out the one that would
+    // The glyphs and side markers are symbols along the line (direction.ts): MapLibre leaves out the one that would
     // cover a vertex, since the keep-out squares below are placed first. They block nothing themselves.
     const markerLayout = {
       'symbol-placement': 'line',
-      'symbol-spacing': ARROW_SPACING,
+      'symbol-spacing': GLYPH_SPACING,
       'icon-rotation-alignment': 'map',
       'icon-allow-overlap': false,
       'icon-ignore-placement': true,
       'icon-padding': 0,
     } as const
     layers.push(
+      // The riding direction a line always shows (build.ts `ow`, ADR 0021): the rest glyph, without the drawing
+      // triangle. Hidden on the hovered and selected way, whose active glyph the highlight draws.
       {
         id: 'line-oneway',
         type: 'symbol',
         source: SOURCES.lines,
-        filter: ['has', 'oneway'],
+        filter: ['has', 'ow'],
         minzoom: 15,
         layout: {
           ...markerLayout,
-          'icon-image': arrow,
-          'icon-padding': arrowPadding(ARROW_HEIGHT),
+          'icon-image': glyphImage(['get', 'ow'], 'rest'),
+          'icon-size': glyphSize(low),
+          'icon-padding': squarePadding(GLYPH_BOX_WIDTH, GLYPH_BOX_HEIGHT),
           visibility: shownIn(!wire),
         },
+        paint: { 'icon-opacity': REST_GLYPH_OPACITY },
+      },
+      // A line-focused editor shows the two-way glyph at rest too (LayerOptions.lineFocus), half as often
+      {
+        id: 'line-two-way',
+        type: 'symbol',
+        source: SOURCES.lines,
+        filter: ['all', ['!', ['has', 'ow']], ['has', 'tr']],
+        minzoom: 15,
+        layout: {
+          ...markerLayout,
+          'symbol-spacing': GLYPH_REST_SPACING,
+          'icon-image': glyphImage('both', 'rest'),
+          'icon-size': glyphSize(low),
+          'icon-padding': squarePadding(GLYPH_BOX_WIDTH, GLYPH_BOX_HEIGHT),
+          visibility: shownIn(!wire && options.lineFocus === true),
+        },
+        paint: { 'icon-opacity': REST_GLYPH_OPACITY },
       },
       // Side markers; closed barriers and coastline rings have theirs on the area's outline (build.ts areaFeature).
       // All give way, also embankments that start 7 px off the line: a vertex with an icon reaches 9 px.
@@ -814,18 +860,19 @@ function buildMainLayers(options: LayerOptions) {
           visibility: shownIn(!wire),
         },
       })),
-      // The direction of the selected highway (engine.ts refreshShape): white arrows with a dark outline, on the
-      // selection's glow, under the vertices. iD does not show a way's direction; Maid does, as the product owner asked.
+      // The hovered and the selected way (selection-shape.ts directionFeature): the active glyph, riding direction
+      // with the drawing triangle, on the glow and under the vertices. iD shows neither (ADR 0021).
       {
         id: 'highlight-direction',
         type: 'symbol',
         source: SOURCES.highlight,
-        filter: ['==', ['get', 'state'], 'direction'],
+        filter: ['match', ['get', 'state'], ['direction', 'hover-direction'], true, false],
         minzoom: 15,
         layout: {
           ...markerLayout,
-          'icon-image': SELECTED_ARROW_IMAGE,
-          'icon-padding': arrowPadding(SELECTED_ARROW_HEIGHT),
+          'icon-image': glyphImage(['get', 'g'], 'active'),
+          'icon-size': glyphSize(low),
+          'icon-padding': squarePadding(GLYPH_BOX_WIDTH, GLYPH_BOX_HEIGHT),
         },
       },
     )

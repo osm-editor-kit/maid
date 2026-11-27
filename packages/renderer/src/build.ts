@@ -25,8 +25,9 @@ import {
 import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from 'geojson'
 import { addressLabel, isAddressTags } from './address'
 import type { MergeResult, OsmData } from './data'
-import { arrowColour, onewayOf, sidedOf, type OneWay } from './direction'
+import { isLightGlyph, isTravelled, ridingOf, sidedOf } from './direction'
 import { editKindOf, type EditKind } from './edits'
+import type { GlyphKind } from './glyph'
 import { mapLabelOf } from './label'
 import { addViewfields, type ConeProps, hasDirectionTags } from './viewfield'
 
@@ -55,10 +56,14 @@ export type LineProps = {
   hwl: number
   /** the label text (label.ts: the name, else the ref or network and ref), only when there is one */
   name?: string
-  /** direction arrows (direction.ts): 1 along the way, -1 against it, 2 both ways */
-  oneway?: OneWay
-  /** arrow colour, only when it is not the default (iD: white on dark lines, grey on rail) */
-  ac?: string
+  /** the riding-direction glyph the line always shows (direction.ts ridingOf), only when it has one */
+  ow?: GlyphKind
+  /** 1 on a line that traffic uses (direction.ts isTravelled): two-way, it shows `both` on hover and selection */
+  tr?: 1
+  /** 1 for the light glyph (white parts, dark edge) on dark lines, as iD's white and grey arrows */
+  lt?: 1
+  /** the glyph's opacity under a lens that dims the line (restyleLine), only when it is not 1 */
+  ao?: number
   /** side marker kind (a key of SIDE_KINDS), only on sided lines */
   side?: string
   /** what an edit changed (edits.ts), only on an edited line: the edits highlight colours it */
@@ -206,10 +211,8 @@ function restyleLine(feature: Feature<LineString, LineProps>, style: LensStyle |
   if (style.color === undefined) {
     const cc = lensColour(style, p.cc)
     if (cc !== undefined) p.cc = cc
-    // direction arrows fade too; their colour is `ac`, and layers.ts uses #333 when it is not set
-    if (p.oneway !== undefined && style.opacity !== undefined) {
-      p.ac = scaleAlpha(p.ac ?? '#333', style.opacity)
-    }
+    // the glyphs fade with the line (layers.ts line-oneway: `ao` is their opacity)
+    if (style.opacity !== undefined) p.ao = style.opacity
   }
   if (style.dash !== undefined) {
     const sd = dashKey(style.dash, p.sw)
@@ -240,6 +243,12 @@ function restyleArea(
   return feature
 }
 
+/** A line's stroke width at high and at low zoom, as lineFeature draws it (for the glyph size of a highlight copy) */
+export function lineStrokeWidths(tags: Tags) {
+  const style = resolveWayStyle(tagClasses(tags), 'line')
+  return { sw: style.stroke.width, swl: style.stroke.widthLow }
+}
+
 function lineFeature(
   id: string,
   coords: Position[],
@@ -268,12 +277,10 @@ function lineFeature(
   if (cd) props.cd = cd
   const label = mapLabelOf(tags)
   if (label) props.name = label
-  const oneway = onewayOf(tags)
-  if (oneway) {
-    props.oneway = oneway
-    const ac = arrowColour(tags)
-    if (ac) props.ac = ac
-  }
+  const ow = ridingOf(tags)
+  if (ow) props.ow = ow
+  if (isTravelled(tags)) props.tr = 1
+  if (isLightGlyph(tags)) props.lt = 1
   const side = sidedOf(tags)
   if (side) props.side = side
   markLevels(props, floorsOf(tags), tags)

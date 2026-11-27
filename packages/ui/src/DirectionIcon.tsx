@@ -5,10 +5,10 @@ import {
 } from '@osm-editor-kit/maid-renderer'
 
 /**
- * The direction markers of the map (white arrow with a dark outline) as an inline icon: `forward` an arrow along
- * the way's drawing direction, `both` a double arrow, `reversed` the hook ("drawn this way, ridden that way"),
- * `drawn` the thin arrow of the selected way. Drawn pointing east, so left to right is the drawing direction;
- * `rotate` (degrees, clockwise) turns it, for example to the way's bearing on the screen.
+ * The direction glyphs of the map as an inline icon (ADR 0021): `with` the riding direction along the way with its
+ * drawing triangle, `against` against it (`oneway=-1`), `both` two-way, `drawn` the drawing triangle alone; a
+ * `-rest` shape leaves the triangle out. Drawn pointing east, so left to right is the drawing direction; `rotate`
+ * (degrees, clockwise) turns it, for example to the way's bearing on the screen.
  *
  * The paths are the renderer's (`direction-svg.ts`), the same as the SVG files in
  * `packages/renderer/assets/direction` that other editors take over.

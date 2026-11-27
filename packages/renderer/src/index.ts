@@ -54,15 +54,16 @@ export {
 } from './layers'
 export { editKindOf, type EditKind } from './edits'
 export { iconImagePrefix, iconImagesRequestedAt } from './icon-requests'
-// The white arrow of the selected way, preloaded by the engine: a module's line-pattern can use it for its own arrows
+// The selected way's drawing triangle as a line pattern, preloaded by the engine (the relations map)
 export { SELECTED_ARROW_HEIGHT, SELECTED_ARROW_PATTERN } from './direction'
-// The white arrows with a dark outline for a module's own lines, as line patterns (the bicycle infrastructure)
+// The riding-direction glyphs for a module's own lines, as line patterns (the bicycle infrastructure, ADR 0021)
 export {
-  LINE_ARROW_HEIGHT,
-  LINE_ARROW_SPACING,
-  lineArrowImageId,
-  type LineArrowShape,
+  LINE_GLYPH_HEIGHT,
+  LINE_GLYPH_SPACING,
+  lineGlyphImageId,
+  type LineGlyphKind,
 } from './direction'
+export { GLYPH_KINDS, type GlyphKind, type GlyphShape } from './glyph'
 export { IncrementalSource } from './IncrementalSource'
 export { ModuleLayers } from './ModuleLayers'
 export { OsmLayers } from './OsmLayers'
@@ -75,10 +76,11 @@ export { showsDirectionRotateHint } from '@osm-editor-kit/maid-operations'
 
 // how far a click or a corner reaches to snap to a node or a way, in screen pixels
 export { SNAP_PX, type SnapTarget } from './snap'
-// the direction markers as SVG path data: the files in assets/direction and the ui's DirectionIcon
+// the direction glyphs as SVG path data: the files in assets/direction and the ui's DirectionIcon
 export {
   DIRECTION_SHAPES,
   DIRECTION_VIEWBOX,
+  directionMeaning,
   directionParts,
   directionSvg,
   type DirectionPart,

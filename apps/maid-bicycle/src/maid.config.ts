@@ -144,4 +144,6 @@ export const app: AppConfig = {
     envFile: 'apps/maid-bicycle/.env.local',
   },
   editor: editorConfig,
+  // the bicycle lines say how they may be ridden, two-way ones too, without a click (ADR 0021)
+  lineFocus: true,
 }

@@ -52,6 +52,11 @@ export type AppConfig = {
    */
   defaultDisplay?: MapDisplay
   /**
+   * A line-focused editor (Maid Bicycle): every line traffic uses shows its riding direction at rest, two-way ones
+   * included (layers.ts `line-two-way`). Other editors show it on hover and selection only (ADR 0021).
+   */
+  lineFocus?: boolean
+  /**
    * Who the app is. The top bar shows the logo; its name and detail appear on hover, as the buttons' labels do.
    * The browser tab shows the favicon and the name. The name is also the changeset's `created_by` (with `version`).
    * The SVGs are made by `bun run logo-build` into `apps/<app>/src/brand/`; an app imports them, so Vite gives
@@ -115,6 +120,7 @@ export function createShell(app: AppConfig) {
     // the person's last W or G (stored by chooseDisplay), so a reload keeps it
     shown: getSettings().shown.display,
     ...(app.defaultDisplay ? { defaultDisplay: app.defaultDisplay } : {}),
+    ...(app.lineFocus ? { lineFocus: true } : {}),
   })
 
   /** The editor's data and modules. What this editor is comes from the app's config. */

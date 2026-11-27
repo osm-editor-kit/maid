@@ -144,8 +144,8 @@ function screenAngle(angle: number | undefined, bearing: number) {
 
 /** The marker of a oneway value, by what the tag value means for the line: `yes` with it, `-1` against it, `no` both */
 const ONEWAY_SHAPE: Record<string, DirectionIconShape | undefined> = {
-  yes: 'forward',
-  '-1': 'reversed',
+  yes: 'with',
+  '-1': 'against',
   no: 'both',
 }
 

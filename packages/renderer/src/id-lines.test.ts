@@ -82,8 +82,9 @@ describe('iD.svgLines', () => {
         { type: 'way', id: 2, nodes: [1, 3], tags: { highway: 'residential', oneway: 'yes' } },
         { type: 'way', id: 3, nodes: [2, 3], tags: { highway: 'residential', oneway: '-1' } },
       ]).lines
-      const oneway = Object.fromEntries(lines.map((f) => [f.id, f.properties?.oneway]))
-      expect(oneway).toEqual({ w1: 1, w2: 1, w3: -1 })
+      // Maid's glyph kinds (ADR 0021): one image per anchor, its kind on the feature
+      const oneway = Object.fromEntries(lines.map((f) => [f.id, f.properties?.ow]))
+      expect(oneway).toEqual({ w1: 'with', w2: 'with', w3: 'against' })
     })
 
     it('has two marker layers for alternating oneway ways', () => {
@@ -97,8 +98,8 @@ describe('iD.svgLines', () => {
           tags: { highway: 'residential', oneway: 'alternating' },
         },
       ]).lines
-      // both ways: one marker per direction in iD, one feature with the both-ways kind in Maid
-      expect(lines[0]?.properties?.oneway).toBe(2)
+      // both ways, one at a time: one marker per direction in iD, one glyph in Maid
+      expect(lines[0]?.properties?.ow).toBe('reversible')
     })
 
     it('has no marker layer for oneway=no ways', () => {
@@ -109,7 +110,7 @@ describe('iD.svgLines', () => {
         { type: 'way', id: 1, nodes: [1, 2], tags: { highway: 'residential', oneway: 'no' } },
         { type: 'way', id: 2, nodes: [1, 3], tags: { highway: 'residential' } },
       ]).lines
-      expect(lines.filter((f) => f.properties?.oneway !== undefined)).toEqual([])
+      expect(lines.filter((f) => f.properties?.ow !== undefined)).toEqual([])
     })
   })
 

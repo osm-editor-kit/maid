@@ -1,25 +1,24 @@
 /**
- * The direction markers as standalone SVG: the same shapes the map draws as canvas images (`direction-images.ts`),
- * for the one-way options of the TILDA checklist and for projects that take the files over as they are
- * (`assets/direction/*.svg`, written by `tools/renderer/direction-svgs.ts`). Pure, so a test can check the files.
+ * The direction glyphs as standalone SVG: the same paths the map draws as canvas images (glyph.ts), for the UI
+ * (`DirectionIcon`: the one-way options of the TILDA checklist), the design page (docs/design/line-arrows.md) and
+ * projects that take the files over as they are (`assets/direction/*.svg`, written by
+ * `tools/renderer/direction-svgs.ts`). Pure, so a test can check the files.
  *
- * The geometry is the map's, in map px, moved to the middle of a square box. Every shape points east: the way's
- * drawing direction runs left to right. Colours are fixed (no CSS variables), as in the map's line arrows.
+ * Every glyph points east: the way's drawing direction runs left to right. Colours are fixed (no CSS variables).
  */
-import { HOOK_REACH } from './direction'
+import { GLYPH_EDGE, GLYPH_KINDS, glyphPaths, type GlyphShape, type GlyphState } from './glyph'
 
-export type DirectionShape = 'forward' | 'both' | 'reversed' | 'drawn'
+/** A shape and its state: `with` is the active glyph (with the drawing triangle), `with-rest` the riding direction alone */
+export type DirectionShape = GlyphShape | `${GlyphShape}-rest`
 
-export const DIRECTION_SHAPES: readonly DirectionShape[] = ['forward', 'both', 'reversed', 'drawn']
+/** Every file in assets/direction: each kind active and at rest, and the drawing triangle alone */
+export const DIRECTION_SHAPES: readonly DirectionShape[] = [
+  ...GLYPH_KINDS.flatMap((kind): DirectionShape[] => [kind, `${kind}-rest`]),
+  'drawn',
+]
 
-/** The side of the square viewBox: the 12 px wide map arrows with room for their outline */
-export const DIRECTION_VIEWBOX = 16
-
-/** The outline of the line arrows (`direction-images.ts` `lineArrowImage`) */
-export const DIRECTION_OUTLINE = '#1c1c1c'
-export const DIRECTION_FILL = '#fff'
-/** The selected way's arrow has a thin dark outline: 0.5 units of a path scaled 1.2, so 0.6 px (`selectedArrowImage`) */
-const DRAWN_OUTLINE = '#333'
+/** The side of the square viewBox: the widest glyph (about 22 px) with room for its edge */
+export const DIRECTION_VIEWBOX = 24
 
 /** One painted path: `fill` and `stroke` are fixed colours, 'none' for no paint */
 export type DirectionPart = {
@@ -29,70 +28,59 @@ export type DirectionPart = {
   strokeWidth: number
 }
 
-/** Length of a line arrow along the line, in px (`direction-images.ts` HOOK_WIDTH) */
-const WIDTH = 12
-/** Half the height of an arrowhead and its length */
-const HEAD_HALF = 2.4
-const HEAD_LENGTH = 4
-/** Where the arrow's box starts in the viewBox, so that outline and all sit in the middle */
-const LEFT = 2
-/** The line of a straight arrow; the hook sits lower because it grows upwards from its line */
-const MIDDLE = DIRECTION_VIEWBOX / 2
-const HOOK_LINE = 11
-
-/** Numbers with at most 2 decimals and no trailing zeros, so the files stay short and stable */
-const n = (value: number) => String(Math.round(value * 100) / 100)
-
-/** The straight arrow, with `both` one head at each end (`drawStraight`) */
-function straight(both: boolean): { line: string; heads: string } {
-  const right = LEFT + WIDTH
-  const line = `M${n(both ? LEFT + 3 : LEFT + 0.5)} ${MIDDLE}H${n(right - 3)}`
-  const head = (tip: number, base: number) =>
-    `M${n(tip)} ${MIDDLE}L${n(base)} ${n(MIDDLE - HEAD_HALF)}V${n(MIDDLE + HEAD_HALF)}z`
-  const heads = head(right, right - HEAD_LENGTH) + (both ? head(LEFT, LEFT + HEAD_LENGTH) : '')
-  return { line, heads }
+function parse(shape: DirectionShape): { kind: GlyphShape; state: GlyphState } {
+  return shape.endsWith('-rest')
+    ? { kind: shape.slice(0, -'-rest'.length) as GlyphShape, state: 'rest' }
+    : { kind: shape as GlyphShape, state: 'active' }
 }
 
-/**
- * The hook (`drawHook`): a stroke along the line in its drawing direction, a half turn upwards and back with the
- * arrowhead pointing against the line. It turns up so the hook sits to the left of the drawing direction.
- */
-function hook(): { line: string; heads: string } {
-  const r = (HOOK_REACH - 1.5) / 2
-  const turn = LEFT + WIDTH - r - 1
-  const back = HOOK_LINE - 2 * r
-  const headX = LEFT + 4.5
-  const line = `M${n(LEFT + 0.5)} ${HOOK_LINE}H${n(turn)}A${n(r)} ${n(r)} 0 0 0 ${n(turn)} ${n(back)}H${n(headX)}`
-  const heads = `M${LEFT} ${n(back)}L${n(headX + 0.5)} ${n(back - HEAD_HALF)}V${n(back + HEAD_HALF)}z`
-  return { line, heads }
-}
-
-/**
- * iD's selection arrow (`ARROW_D` of `direction-images.ts`, a 10 x 5 box) at the map's 1.2 scale, moved to the middle:
- * 12 x 6 px.
- */
-const DRAWN_D = 'M9.2 8.6H2V7.4h7.2L8 5l6 3-6 3z'
-
-/** The painted paths of a shape, bottom to top: the outline first, then the white arrow on it */
+/** The painted paths of a shape in the viewBox, bottom to top: every part's edge, then every part's fill */
 export function directionParts(shape: DirectionShape): DirectionPart[] {
-  if (shape === 'drawn') {
-    return [{ d: DRAWN_D, fill: DIRECTION_FILL, stroke: DRAWN_OUTLINE, strokeWidth: 0.6 }]
-  }
-  const { line, heads } = shape === 'reversed' ? hook() : straight(shape === 'both')
+  const { kind, state } = parse(shape)
+  const centre = DIRECTION_VIEWBOX / 2
+  const paths = glyphPaths(kind, state).map((path) => ({
+    ...path,
+    // glyph.ts draws round 0, 0: move the path to the middle of the box
+    d: moved(path.d, centre),
+  }))
   return [
-    { d: line, fill: 'none', stroke: DIRECTION_OUTLINE, strokeWidth: 3.2 },
-    { d: heads, fill: DIRECTION_OUTLINE, stroke: DIRECTION_OUTLINE, strokeWidth: 1.6 },
-    { d: line, fill: 'none', stroke: DIRECTION_FILL, strokeWidth: 1.6 },
-    { d: heads, fill: DIRECTION_FILL, stroke: DIRECTION_FILL, strokeWidth: 0.1 },
+    ...paths.map((path) => ({
+      d: path.d,
+      fill: 'none',
+      stroke: path.edge,
+      strokeWidth: GLYPH_EDGE,
+    })),
+    ...paths.map((path) => ({ d: path.d, fill: path.fill, stroke: 'none', strokeWidth: 0 })),
   ]
 }
 
-/** What each shape means, for the title of the file and for the README */
-export const DIRECTION_MEANING: Record<DirectionShape, string> = {
-  forward: 'One way, along the way’s drawing direction',
+/** A path of absolute M and L commands, and the relative arcs of a dot, moved by `by` in x and y */
+function moved(d: string, by: number) {
+  return d.replace(/([ML])(-?[\d.]+) (-?[\d.]+)/g, (_, command: string, x: string, y: string) => {
+    const round = (value: number) => String(Math.round(value * 100) / 100)
+    return `${command}${round(Number(x) + by)} ${round(Number(y) + by)}`
+  })
+}
+
+const KIND_MEANING: Record<GlyphShape, string> = {
+  with: 'One way, along the way’s drawing direction',
+  against: 'One way, against the way’s drawing direction (oneway=-1)',
   both: 'Both directions',
-  reversed: 'One way, against the way’s drawing direction (drawn this way, ridden that way)',
+  reversible: 'Both directions, one at a time (reversible, alternating)',
+  contraflow: 'One way along the drawing direction, bicycles both ways',
+  'contraflow-against': 'One way against the drawing direction, bicycles both ways',
+  'bike-with': 'One way for bicycles, along the drawing direction',
+  'bike-against': 'One way for bicycles, against the drawing direction',
+  missing: 'Riding direction not tagged',
   drawn: 'The way’s drawing direction',
+}
+
+/** What a shape means, for the title of its file and for the README */
+export function directionMeaning(shape: DirectionShape) {
+  const { kind, state } = parse(shape)
+  const meaning = KIND_MEANING[kind]
+  if (kind === 'drawn') return meaning
+  return state === 'rest' ? `${meaning}; at rest` : `${meaning}; with the drawing direction`
 }
 
 /** The SVG file of a shape: self-contained, with a viewBox and fixed colours, pointing east */
@@ -100,9 +88,9 @@ export function directionSvg(shape: DirectionShape): string {
   const paths = directionParts(shape)
     .map(
       (part) =>
-        `<path d="${part.d}" fill="${part.fill}" stroke="${part.stroke}" stroke-width="${part.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
+        `<path d="${part.d}" fill="${part.fill}" stroke="${part.stroke}" stroke-width="${part.strokeWidth}" stroke-linejoin="round"/>`,
     )
     .join('')
   const size = DIRECTION_VIEWBOX
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}"><title>${DIRECTION_MEANING[shape]}</title>${paths}</svg>\n`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}"><title>${directionMeaning(shape)}</title>${paths}</svg>\n`
 }

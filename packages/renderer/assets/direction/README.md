@@ -1,14 +1,32 @@
-# Direction markers
+# Direction glyphs
 
-Standalone SVGs of the markers Maid draws for the direction of a line, for the one-way options of the TILDA checklist and for projects that take them over as they are. White with a dark outline (`#1c1c1c`), fixed colours, no CSS variables, square `viewBox` of 16 units (one unit is one px of the map's marker), `<title>` inside.
+Standalone SVGs of the glyphs Maid draws for the riding direction and the drawing direction of a line (ADR 0021,
+[docs/design/line-arrows.md](../../../../docs/design/line-arrows.md)): for the one-way options of the TILDA checklist,
+for the docs, and for projects that take them over as they are. Solid parts with a thin edge in the opposite tone,
+fixed colours, no CSS variables, a square `viewBox` of 24 units (one unit is one px of the map's glyph at its large
+size), `<title>` inside.
 
-Every file points to the right (east). **Left to right is the way's drawing direction**: draw the way from its first node to its last node, then read the marker against it.
+Every file points to the right (east). **Left to right is the way's drawing direction**: draw the way from its first
+node to its last node, then read the glyph against it.
+
+- A **chevron** is the riding direction: which way traffic may use the line.
+- The **triangle** is the drawing direction. `<kind>.svg` has it (hover and selection on the map), `<kind>-rest.svg`
+  does not (the map at rest).
+- **Colour** says who: ink for all traffic, blue for bicycles only, amber where the riding direction should be tagged
+  and is not.
 
 | File | Meaning |
 | --- | --- |
-| `forward.svg` | One way along the drawing direction (`oneway=yes`): an arrow with the line. |
-| `both.svg` | Both directions (for example `oneway=alternating`, `oneway=reversible`, or a road side tagged two-way): a double arrow. |
-| `reversed.svg` | One way against the drawing direction (`oneway=-1`): the hook, a stroke along the line that turns back with its arrowhead pointing against the line ("drawn this way, ridden that way"). It turns up, to the left of the drawing direction. See ADR 0015. |
-| `drawn.svg` | The drawing direction itself: the thin white arrow Maid puts on the selected way. Turn it to the way's bearing to show which way a way is drawn. |
+| `with` | One way, along the drawing direction (`oneway=yes`, a roundabout) |
+| `against` | One way, against the drawing direction (`oneway=-1`) |
+| `both` | Both directions (a two-way road; `oneway=no` where a oneway is the default) |
+| `reversible` | Both directions, one at a time (`oneway=reversible`, `alternating`) |
+| `contraflow` | One way along the line, bicycles both ways (`oneway=yes` + `oneway:bicycle=no`) |
+| `contraflow-against` | One way against the line, bicycles both ways (`oneway=-1` + `oneway:bicycle=no`) |
+| `bike-with` | One way for bicycles, along the line (`oneway:bicycle=yes` off a cycleway) |
+| `bike-against` | One way for bicycles, against the line (`oneway:bicycle=-1` off a cycleway) |
+| `missing` | The riding direction should be tagged and is not (a track or path in the bicycle lens) |
+| `drawn` | The drawing direction alone (an open line no one travels, a fence) |
 
-Do not edit the files. They are generated from `src/direction-svg.ts` by `bun run direction-svgs`, and a test (`src/direction-svg.test.ts`) fails when a file differs from the generator.
+Do not edit the files. They are generated from `src/direction-svg.ts` by `bun run direction-svgs`, and a test
+(`src/direction-svg.test.ts`) fails when a file differs from the generator.

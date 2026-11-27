@@ -42,10 +42,9 @@ export type BikeProperties = {
   lifecycle?: string
   /**
    * The riding direction of the part against the drawing direction of the way (ridingDirection): 1 with it, -1
-   * against it, 2 both ways where that is tagged on a road side. Left out where bicycles ride both ways on the way
-   * itself or the direction is not known: the line gets no arrows.
+   * against it, 2 both ways, 0 not tagged where it should be (a track, a path). Left out where TILDA gives none.
    */
-  dir?: 1 | -1 | 2
+  dir?: 1 | -1 | 2 | 0
   /**
    * For a road side: the width of the road as the editor draws it (iD's casing, in px), from OSM zoom 17 and below it.
    * The side line sits right at that edge, so it reads as part of the road and not as a way of its own.
@@ -57,32 +56,36 @@ export type BikeProperties = {
 /** Highways TILDA looks at; any other way has no bicycle infrastructure and is not processed */
 const HIGHWAY = 'highway'
 
-/** TILDA's `oneway` values of a part that bicycles ride in one direction only */
-const ONE_DIRECTION = new Set(['yes', 'implicit_yes'])
-
-/** TILDA's `oneway` values of a part that bicycles ride both ways (`assumed_no`: nothing tagged, TILDA's default) */
-const BOTH_DIRECTIONS = new Set(['no', 'car_not_bike', 'assumed_no'])
-
 /**
- * The riding direction of a part (BikeProperties.dir), from TILDA's result alone: `oneway` says whether it is one
- * direction, `_lineReversed` whether that direction is against the way (tilda-geo `line_direction.lua`: a road side
- * follows its side rule, the way itself runs against its line on `oneway=-1` or `oneway:bicycle=-1`). Every part
- * with a direction gets arrows, both ways included, so no stretch of bicycle infrastructure is without them
- * (Tobias, 2026-11-26). TILDA's `implicit_yes` gives no arrows on the way itself: a sidepath mapped as a way of its
- * own has no direction of its own to guess from (its drawing direction says nothing), unlike a road side, whose
- * direction comes from the road.
+ * The riding direction of a part (BikeProperties.dir), from TILDA's result (ADR 0021): `oneway` says whether bicycles
+ * ride one way, `_lineReversed` whether that way is against the drawing direction (tilda-geo `line_direction.lua`: a
+ * road side follows its side rule, the way itself runs against its line on `oneway=-1` or `oneway:bicycle=-1`).
+ *
+ * What is tagged counts as it is: `yes` one way, `no` and `car_not_bike` both ways. TILDA's guesses count only where
+ * they are safe (Tobias, 2026-11-27): a lane painted on the carriageway runs with the traffic beside it (`implicit_yes`,
+ * on the left of a two-way road against the line, the default of `cycleway:left:oneway`), and a road (a bicycle road)
+ * is two-way unless tagged. A track or a path should say how it is ridden: without a tag it gets 0, drawn as "not
+ * tagged". A footway where bicycles are allowed is two-way unless tagged.
  */
 export function ridingDirection(result: {
   _side: Side
   oneway?: string
   _lineReversed?: boolean
+  category?: string
 }): BikeProperties['dir'] {
   const { oneway } = result
   if (oneway === undefined) return undefined
-  const self = result._side === 'self'
-  const oneDirection = self ? oneway === 'yes' : ONE_DIRECTION.has(oneway)
-  if (oneDirection) return result._lineReversed ? -1 : 1
-  return BOTH_DIRECTIONS.has(oneway) ? 2 : undefined
+  const along = result._lineReversed ? -1 : 1
+  if (oneway === 'yes') return along
+  if (oneway === 'no' || oneway === 'car_not_bike') return 2
+  const group = result.category === undefined ? undefined : groupOf(result.category)?.id
+  const painted = result._side !== 'self' && (group === 'lane' || group === 'sharedMotor')
+  if (painted) return oneway === 'implicit_yes' ? along : 2
+  const road =
+    result._side === 'self' &&
+    (group === 'sharedMotor' || result.category?.startsWith('bicycleRoad'))
+  if (road || group === 'footwayBicycle') return 2
+  return 0
 }
 
 const SIDEPATH: Record<string, BikeProperties['sidepath']> = {

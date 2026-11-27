@@ -99,6 +99,8 @@ export type Config = {
   labels: boolean
   icons: boolean
   pins: LayerOptions['pins']
+  /** The app's `lineFocus`: two-way lines show their riding direction at rest */
+  lineFocus: boolean
   workers: number
   minDataZoom: number
   tolerance: number
@@ -146,6 +148,8 @@ export function readConfig(
     shown?: string | undefined
     /** The app's `defaultDisplay` */
     defaultDisplay?: MapDisplay
+    /** The app's `lineFocus` */
+    lineFocus?: boolean
   } = {
     stored: getSettings().server,
     deployed: DEPLOYED,
@@ -186,6 +190,7 @@ export function readConfig(
     labels: setup.labels,
     icons: setup.icons,
     pins: setup.pins,
+    lineFocus: choice.lineFocus === true,
     workers: setup.workers,
     minDataZoom: setup.minDataZoom,
     tolerance: setup.tolerance,
