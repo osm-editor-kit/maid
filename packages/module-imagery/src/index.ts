@@ -1,5 +1,6 @@
 import { PhotoIcon } from '@heroicons/react/20/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
+import type {} from '@osm-editor-kit/maid-module-data-layers'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { createElement } from 'react'
@@ -103,6 +104,20 @@ export function imagery(options: ImageryOptions = {}) {
         component: Panel,
         width: 'w-96',
       })
+      // the overlays of the index, in the data layers panel (OverlaysSection.tsx): a chunk of its own, as the panel
+      const Overlays = lazyComponent(
+        () =>
+          import('./OverlaysSection.tsx').then((section) => ({
+            default: () =>
+              createElement(
+                ImageryStoreProvider,
+                { store, urls },
+                createElement(section.OverlaysSection),
+              ),
+          })),
+        null,
+      )
+      api.register('data-layers.section', { id: 'imagery-overlays', component: Overlays })
       // what the map shows now, read by the measure and the changeset (the app reads it outside React).
       // The names and the drawn source are the draws' results, read from the query cache.
       api.register('imagery.used', {

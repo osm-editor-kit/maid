@@ -11,7 +11,6 @@
   "imagery_add_custom": "Eigenen hinzufügen",
   "imagery_none": "Keiner",
   "imagery_none_detail": "Keine Bilder unter der Karte",
-  "imagery_custom": "Eigener",
   "imagery_not_saved": "Nicht gespeichert",
   "imagery_chosen_out_of_view": "Der gewählte Hintergrund deckt diesen Ausschnitt bei diesem Zoom nicht ab. Er bleibt auf der Karte.",
   "imagery_overlays": "Überlagerungen",
@@ -52,9 +51,6 @@
   "imagery_group_local_photo": "Lokale Luftbilder",
   "imagery_group_global_photo": "Weltweite Luftbilder",
   "imagery_group_maps": "Karten",
-  "imagery_group_historic": "Historisch",
-  "imagery_group_elevation": "Höhe",
-  "imagery_group_other": "Andere",
   "imagery_link_attribution": "Quellenangabe",
   "imagery_link_license": "Lizenz",
   "imagery_date_range": "{start} – {end}",
@@ -85,5 +81,7 @@
   "imagery_offset_unit": "Meter: Ost, Nord",
   "imagery_offset_reset": "Bildversatz zurücksetzen",
   "imagery_offset_invalid": "Gib zwei Zahlen in Metern an, Ost und Nord, durch ein Komma getrennt. Ein leeres Feld setzt den Versatz zurück.",
-  "imagery_offset_cannot_shift": "Diese Bilder lassen sich nicht verschieben"
+  "imagery_offset_cannot_shift": "Diese Bilder lassen sich nicht verschieben",
+  "imagery_overlays_on": "{on} von {count} an",
+  "imagery_overlays_intro": "Ebenen aus dem Bildindex, über dem Hintergrund gezeichnet: Grenzen, Flurstücke, Routen, Prüfungen."
 }

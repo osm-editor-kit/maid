@@ -43,7 +43,7 @@ export function dataLayers(options: DataLayersOptions = {}) {
       const Panel = lazyComponent(
         () =>
           import('./Panel.tsx').then((panel) => ({
-            default: panel.createPanel(layers, api.editor.fetch, link),
+            default: panel.createPanel(layers, api.editor.fetch, link, api.editor),
           })),
         PANEL_FALLBACK,
       )

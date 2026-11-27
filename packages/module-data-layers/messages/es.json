@@ -72,5 +72,7 @@
   "data_layers_failure_pmtiles_unreachable": "No se pudo leer este archivo PMTiles: no se pudo acceder a la dirección desde esta página. Comprueba la dirección y que el servidor permita peticiones desde este sitio.",
   "data_layers_failure_pmtiles_reason": "No se pudo leer este archivo PMTiles: {reason}",
   "data_layers_failure_gpx_unreachable": "No se pudo leer este archivo GPX: no se pudo acceder a la dirección desde esta página. Comprueba la dirección y que el servidor permita peticiones desde este sitio.",
-  "data_layers_failure_gpx_reason": "No se pudo leer este archivo GPX: {reason}"
+  "data_layers_failure_gpx_reason": "No se pudo leer este archivo GPX: {reason}",
+  "data_layers_layers": "Capas",
+  "data_layers_cancel": "Cancelar"
 }

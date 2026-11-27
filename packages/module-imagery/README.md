@@ -20,8 +20,19 @@ ELI lists every capture date of an area as its own layer, so Berlin has eleven
   `imagery.used` name (the date's own name) are unchanged.
 - Search matches the series name, the category and the date labels.
 
-Overlays are still listed one layer per row. Tests: `series.test.ts` (hand-made layers with `group`,
-run through the package's `groupLayers`).
+Tests: `series.test.ts` (hand-made layers with `group`, run through the package's `groupLayers`).
+
+### The panel's layout (Tobias, 2026-11-27)
+
+- Three groups: local aerial imagery, worldwide aerial imagery, maps last (`backgroundGroup` in `panel-rows.ts`). A
+  historic layer, elevation, QA and the rest go with the photos by their coverage; their icon says what they are.
+- The OpenAerialMap images are listed at the end of the local photos, with an icon of their own whose tooltip says
+  where they come from (below).
+- The help text under the title and the key hint of a custom template are a round "i" with a tooltip (`InfoTip` of
+  maid-ui); a custom row has no "Custom" label.
+- The overlays of the index are not in this panel: they are in the data layers panel (`OverlaysSection.tsx`, at the
+  data layers module's point `data-layers.section`), folded, and grouped by the start of their names (`overlayGroups`:
+  the part before `:`, ` - ` or `, `, else two shared words, else one; a group needs two).
 
 ## URL and start
 
@@ -72,7 +83,7 @@ that takes two numbers (an empty field resets), and a reset. There is no keyboar
 
 The single images of [OpenAerialMap](https://openaerialmap.org/) (drones, planes, 360° orthos) are overlays: drawn
 above the chosen background, which gives the context around them, since they cover small areas (Tobias, 2026-10-25).
-The panel lists them in their own section "OpenAerialMap" before the brightness. They come live from HOT's STAC API
+The panel lists them at the end of the local aerial imagery, each a toggle with the OpenAerialMap icon. They come live from HOT's STAC API
 through the layer index's `/oam` entry (`oam.ts` is the only file that calls it), so an image uploaded today is listed
 today. ELI's single "OpenAerialMap Mosaic, by Kontur.io" layer stays in the ELI list.
 

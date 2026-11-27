@@ -72,5 +72,7 @@
   "data_layers_failure_pmtiles_unreachable": "Could not read this PMTiles file: the address could not be reached from this page. Check the address, and that the server allows requests from this site.",
   "data_layers_failure_pmtiles_reason": "Could not read this PMTiles file: {reason}",
   "data_layers_failure_gpx_unreachable": "Could not read this GPX file: the address could not be reached from this page. Check the address, and that the server allows requests from this site.",
-  "data_layers_failure_gpx_reason": "Could not read this GPX file: {reason}"
+  "data_layers_failure_gpx_reason": "Could not read this GPX file: {reason}",
+  "data_layers_layers": "Layers",
+  "data_layers_cancel": "Cancel"
 }

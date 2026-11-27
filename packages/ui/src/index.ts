@@ -162,6 +162,7 @@ export {
   relativeTime,
   type TimeValue,
 } from './time.ts'
+export { InfoTip } from './InfoTip.tsx'
 export { Tooltip, TooltipGroup } from './Tooltip.tsx'
 export { formatModifiers, formatShortcut, isApplePlatform } from './shortcut-label.ts'
 export type { TooltipHint } from './tooltip-group.ts'

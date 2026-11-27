@@ -11,7 +11,6 @@
   "imagery_add_custom": "Ajouter le vôtre",
   "imagery_none": "Aucun",
   "imagery_none_detail": "Aucune imagerie sous la carte",
-  "imagery_custom": "Personnalisé",
   "imagery_not_saved": "Non enregistré",
   "imagery_chosen_out_of_view": "Le fond choisi ne couvre pas cette vue à ce niveau de zoom. Il reste sur la carte.",
   "imagery_overlays": "Surimpressions",
@@ -52,9 +51,6 @@
   "imagery_group_local_photo": "Imagerie aérienne locale",
   "imagery_group_global_photo": "Imagerie aérienne mondiale",
   "imagery_group_maps": "Cartes",
-  "imagery_group_historic": "Historique",
-  "imagery_group_elevation": "Altitude",
-  "imagery_group_other": "Autre",
   "imagery_link_attribution": "Attribution",
   "imagery_link_license": "Licence",
   "imagery_date_range": "{start} – {end}",
@@ -85,5 +81,7 @@
   "imagery_offset_unit": "mètres : est, nord",
   "imagery_offset_reset": "Réinitialiser le décalage de l’imagerie",
   "imagery_offset_invalid": "Saisissez deux nombres en mètres, est et nord, séparés par une virgule. Un champ vide réinitialise le décalage.",
-  "imagery_offset_cannot_shift": "Cette imagerie ne peut pas être décalée"
+  "imagery_offset_cannot_shift": "Cette imagerie ne peut pas être décalée",
+  "imagery_overlays_on": "{on} sur {count} actives",
+  "imagery_overlays_intro": "Couches de l’index d’imagerie, dessinées sur le fond : limites, parcelles, itinéraires, contrôles."
 }

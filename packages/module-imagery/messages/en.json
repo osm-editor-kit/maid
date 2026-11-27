@@ -11,7 +11,6 @@
   "imagery_add_custom": "Add custom",
   "imagery_none": "None",
   "imagery_none_detail": "No imagery under the map",
-  "imagery_custom": "Custom",
   "imagery_not_saved": "Not saved",
   "imagery_chosen_out_of_view": "The chosen background does not cover this view at this zoom. It stays on the map.",
   "imagery_overlays": "Overlays",
@@ -52,9 +51,6 @@
   "imagery_group_local_photo": "Local aerial imagery",
   "imagery_group_global_photo": "Global aerial imagery",
   "imagery_group_maps": "Maps",
-  "imagery_group_historic": "Historic",
-  "imagery_group_elevation": "Elevation",
-  "imagery_group_other": "Other",
   "imagery_link_attribution": "Attribution",
   "imagery_link_license": "License",
   "imagery_date_range": "{start} – {end}",
@@ -85,5 +81,7 @@
   "imagery_offset_unit": "meters: east, north",
   "imagery_offset_reset": "Reset the imagery offset",
   "imagery_offset_invalid": "Enter two numbers in meters, east and north, separated by a comma. An empty field resets the offset.",
-  "imagery_offset_cannot_shift": "This imagery cannot be shifted"
+  "imagery_offset_cannot_shift": "This imagery cannot be shifted",
+  "imagery_overlays_on": "{on} of {count} on",
+  "imagery_overlays_intro": "Layers of the imagery index, drawn over the background: borders, parcels, routes, checks."
 }

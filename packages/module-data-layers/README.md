@@ -7,7 +7,8 @@ Other data drawn under the OSM data: GeoJSON, GPX, PMTiles and vector tiles. A "
 ## What a person sees / can do
 
 - "Data layers" in the top bar. Each layer has a switch (shown or hidden) and a row with its kind, its colour and a remove button.
-- "Add a layer": a name, a kind (GeoJSON, GPX, PMTiles or vector tiles), an address (`https://`, or a path on the same server) or a GeoJSON or GPX file from the computer, a colour from five swatches or any hex colour, and for vector tiles and PMTiles the source layer names.
+- "Add a layer" (a link next to the heading "Layers"; the form opens in the flyout only then, as the background panel's custom form, and closes after adding or on Cancel): a name, a kind (GeoJSON, GPX, PMTiles or vector tiles), an address (`https://`, or a path on the same server) or a GeoJSON or GPX file from the computer, a colour from five swatches or any hex colour, and for vector tiles and PMTiles the source layer names.
+- Other modules add blocks below the layers at the point `data-layers.section` (`src/extension-points.ts`): the imagery module lists the overlays of the imagery index there.
 - A file is read in the browser and is not kept after a reload. An address is kept in the browser until it is removed.
 - KML is refused with a sentence that says to use GPX or GeoJSON.
 - A layer is drawn under the OSM data. A hidden layer makes no request.

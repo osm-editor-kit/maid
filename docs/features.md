@@ -93,7 +93,7 @@ What a single-purpose editor adds.
 
 | Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Golf | Climbing | Buildings | MapRoulette |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Backgrounds** ([docs](../packages/module-imagery/README.md)): The editor layer index, your own tile URLs, and OpenAerialMap's images of the view as overlays. _OpenAerialMap search only in Maid._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Backgrounds** ([docs](../packages/module-imagery/README.md)): The editor layer index, your own tile URLs, and OpenAerialMap's images of the view; the index's overlays in the data layers panel. _OpenAerialMap search only in Maid._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Data layers** ([docs](../packages/module-data-layers/README.md)): GeoJSON, GPX, PMTiles and vector tiles under the OSM data, from a file or a link. _Each with its own formats: iD GeoJSON, GPX and KML; Rapid also PMTiles and vector tiles; Maid GeoJSON, GPX, PMTiles and vector tiles._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Private task lists** ([docs](../packages/module-tasks/README.md)): Open a GeoJSON task file from another project: Markdown instructions, one-click tag fixes, progress kept in this browser. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **osmChange files** ([docs](../packages/module-osmchange/README.md)): Load changes made in another app (Go Map!!, JOSM), merged with the current map, reviewed, uploaded with the normal save. | – | – | – | ✓ | – | – | – | – | – | – | – |

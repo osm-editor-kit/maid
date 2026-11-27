@@ -133,6 +133,7 @@ merging into `ExtensionPoints` of `@osm-editor-kit/maid-core`, in its `src/exten
 | `account.item` | ui | An entry in the account menu, for a rarely needed job | osmchange |
 | `changeset.tags` | ui | Tags of a module on the changeset of an upload, and a comment and a source the save form starts with; `component` adds a block to the save form | osmchange, MapRoulette |
 | `note.selection` | module-notes | What the notes panel shows for a selected note | notes |
+| `data-layers.section` | module-data-layers | A block in the data layers panel, below the layers | imagery (the index's overlays) |
 
 `bun run check-config` loads each app's config without a browser and checks the ids and the ports, that each
 module sets up without a network request, registers only at declared extension points and cleans up after itself. The drawing hooks (modifiers, constraints, module modes, operations that ask for input)

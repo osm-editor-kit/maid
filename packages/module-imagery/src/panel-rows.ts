@@ -6,20 +6,21 @@
 import { sortListing, type Listing } from './helpers.ts'
 import { m } from './messages.ts'
 
-/** The groups of the background list, in the order they are shown */
+/**
+ * The groups of the background list, in the order they are shown (Tobias, 2026-11-27): the aerial photos, local and
+ * worldwide, and the maps last. Historic layers, elevation and the rest go with the photos, by their coverage; their
+ * icon says what they are.
+ */
 export const BACKGROUND_GROUPS = [
   { id: 'local-photo' },
   { id: 'global-photo' },
   { id: 'maps' },
-  { id: 'historic' },
-  { id: 'elevation' },
-  { id: 'other' },
 ] as const
 
 export type BackgroundGroupId = (typeof BACKGROUND_GROUPS)[number]['id']
 
 /** The name of a group; read when the list is made, as the language is set at mount */
-function groupLabel(id: BackgroundGroupId): string {
+export function groupLabel(id: BackgroundGroupId): string {
   switch (id) {
     case 'local-photo':
       return m.imagery_group_local_photo()
@@ -27,47 +28,35 @@ function groupLabel(id: BackgroundGroupId): string {
       return m.imagery_group_global_photo()
     case 'maps':
       return m.imagery_group_maps()
-    case 'historic':
-      return m.imagery_group_historic()
-    case 'elevation':
-      return m.imagery_group_elevation()
-    case 'other':
-      return m.imagery_group_other()
   }
 }
 
 /**
- * The group a layer is listed under: by its category. An aerial photo is local when it has a coverage
- * area and global when it is worldwide. Categories that are not listed (`qa`, `other`, or none) are in Other.
+ * The group a layer is listed under. A map (`map`, `osmbasedmap`) is in Maps. Every other layer (a photo, a historic
+ * map or photo, elevation, QA, other, none) is local when it has a coverage area and worldwide when it has none.
  */
-export function backgroundGroup(category: string | undefined, worldwide: boolean | undefined) {
-  switch (category) {
-    case 'photo':
-      return worldwide ? 'global-photo' : 'local-photo'
-    case 'map':
-    case 'osmbasedmap':
-      return 'maps'
-    case 'historicmap':
-    case 'historicphoto':
-      return 'historic'
-    case 'elevation':
-      return 'elevation'
-    case 'qa':
-    case 'other':
-    case undefined:
-    default:
-      return 'other'
-  }
+export function backgroundGroup(
+  category: string | undefined,
+  worldwide: boolean | undefined,
+): BackgroundGroupId {
+  if (category === 'map' || category === 'osmbasedmap') return 'maps'
+  return worldwide ? 'global-photo' : 'local-photo'
 }
 
 /**
- * The rows in their groups, in the order of `BACKGROUND_GROUPS`. Empty groups are left out, and the order
- * of the rows inside a group is kept.
+ * The rows in their groups, in the order of `BACKGROUND_GROUPS`. Empty groups are left out, except those named in
+ * `keep` (the local photos, when OpenAerialMap images are listed in them), and the order of the rows inside a group is
+ * kept.
  */
-export function groupRows<T extends { group: BackgroundGroupId }>(rows: readonly T[]) {
+export function groupRows<T extends { group: BackgroundGroupId }>(
+  rows: readonly T[],
+  keep: readonly BackgroundGroupId[] = [],
+) {
   return BACKGROUND_GROUPS.flatMap((group) => {
     const members = rows.filter((row) => row.group === group.id)
-    return members.length > 0 ? [{ id: group.id, label: groupLabel(group.id), rows: members }] : []
+    return members.length > 0 || keep.includes(group.id)
+      ? [{ id: group.id, label: groupLabel(group.id), rows: members }]
+      : []
   })
 }
 
@@ -154,4 +143,81 @@ export function overlayRows(inView: readonly Listing[], on: readonly Listing[]) 
     rows.push(item)
   }
   return sortListing(rows)
+}
+
+/** A group of overlays whose names start the same, or one overlay on its own */
+export type OverlayEntry<T> =
+  | { kind: 'layer'; item: T }
+  | { kind: 'group'; label: string; items: { item: T; short: string }[] }
+
+/** The part of a name before `: `, ` - ` or `, ` (`OSM Inspector: Highways` → `OSM Inspector`), if there is one */
+function separatorPrefix(name: string) {
+  const match = /^(.+?)(?::\s|\s-\s|,\s)/.exec(name)
+  return match?.[1]?.trim()
+}
+
+/** The first `count` words of a name, when it has more words than that or exactly as many */
+function firstWords(name: string, count: number) {
+  const words = name.trim().split(/\s+/)
+  return words.length >= count ? words.slice(0, count).join(' ') : undefined
+}
+
+/** The name without its group's prefix and the separator after it; the whole name when nothing is left */
+function shortName(name: string, prefix: string) {
+  const rest = name
+    .slice(prefix.length)
+    .replace(/^\s*[:,-]?\s*/, '')
+    .trim()
+  return rest === '' ? name : rest
+}
+
+/**
+ * The overlays grouped by the start of their name, as many of them come from one provider (Tobias, 2026-11-27): first
+ * the part before a separator (`OSM Inspector: …`, `IBGE BC250 - …`), then the first two words (`TIGER Roads 2022`),
+ * then the first word (`Kartverket …`, `NVE …`). A group needs two overlays; one alone stays a row. A group stands
+ * where its first overlay stood, its overlays keep their order, and each shows its name without the prefix.
+ */
+export function overlayGroups<T extends { name: string }>(items: readonly T[]): OverlayEntry<T>[] {
+  const prefixOf = new Map<T, string>()
+  const strategies = [
+    separatorPrefix,
+    (name: string) => firstWords(name, 2),
+    (name: string) => {
+      const word = firstWords(name, 1)
+      // a short word (`The`, `De`) says nothing about the provider
+      return word !== undefined && word.length >= 3 ? word : undefined
+    },
+  ]
+  for (const strategy of strategies) {
+    const counts = new Map<string, number>()
+    const left = items.filter((item) => !prefixOf.has(item))
+    for (const item of left) {
+      const prefix = strategy(item.name)
+      if (prefix !== undefined)
+        counts.set(prefix.toLowerCase(), (counts.get(prefix.toLowerCase()) ?? 0) + 1)
+    }
+    for (const item of left) {
+      const prefix = strategy(item.name)
+      if (prefix !== undefined && (counts.get(prefix.toLowerCase()) ?? 0) >= 2)
+        prefixOf.set(item, prefix)
+    }
+  }
+  const entries: OverlayEntry<T>[] = []
+  const groups = new Map<string, Extract<OverlayEntry<T>, { kind: 'group' }>>()
+  for (const item of items) {
+    const prefix = prefixOf.get(item)
+    if (prefix === undefined) {
+      entries.push({ kind: 'layer', item })
+      continue
+    }
+    const key = prefix.toLowerCase()
+    let group = groups.get(key)
+    if (!group) {
+      group = { kind: 'group', label: prefix, items: [] }
+      groups.set(key, group)
+      entries.push(group)
+    }
+    group.items.push({ item, short: shortName(item.name, prefix) })
+  }
+  return entries
 }

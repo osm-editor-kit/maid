@@ -400,7 +400,7 @@ export const GROUPS: FeatureGroup[] = [
     rows: [
       {
         title: 'Backgrounds',
-        text: "The editor layer index, your own tile URLs, and OpenAerialMap's images of the view as overlays.",
+        text: "The editor layer index, your own tile URLs, and OpenAerialMap's images of the view; the index's overlays in the data layers panel.",
         maid: { factory: 'imagery' },
         pkg: 'module-imagery',
         iD: 'yes',

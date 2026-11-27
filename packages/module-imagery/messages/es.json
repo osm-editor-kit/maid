@@ -11,7 +11,6 @@
   "imagery_add_custom": "Añadir propio",
   "imagery_none": "Ninguno",
   "imagery_none_detail": "Sin imágenes bajo el mapa",
-  "imagery_custom": "Propio",
   "imagery_not_saved": "No guardado",
   "imagery_chosen_out_of_view": "El fondo elegido no cubre esta vista con este zoom. Se queda en el mapa.",
   "imagery_overlays": "Superposiciones",
@@ -52,9 +51,6 @@
   "imagery_group_local_photo": "Imágenes aéreas locales",
   "imagery_group_global_photo": "Imágenes aéreas globales",
   "imagery_group_maps": "Mapas",
-  "imagery_group_historic": "Histórico",
-  "imagery_group_elevation": "Elevación",
-  "imagery_group_other": "Otros",
   "imagery_link_attribution": "Atribución",
   "imagery_link_license": "Licencia",
   "imagery_date_range": "{start} – {end}",
@@ -85,5 +81,7 @@
   "imagery_offset_unit": "metros: este, norte",
   "imagery_offset_reset": "Restablecer el desplazamiento de las imágenes",
   "imagery_offset_invalid": "Introduce dos números en metros, este y norte, separados por una coma. Un campo vacío restablece el desplazamiento.",
-  "imagery_offset_cannot_shift": "Estas imágenes no se pueden desplazar"
+  "imagery_offset_cannot_shift": "Estas imágenes no se pueden desplazar",
+  "imagery_overlays_on": "{on} de {count} activas",
+  "imagery_overlays_intro": "Capas del índice de imágenes, dibujadas sobre el fondo: límites, parcelas, rutas, controles."
 }

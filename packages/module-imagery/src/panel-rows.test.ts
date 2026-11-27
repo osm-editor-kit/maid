@@ -4,6 +4,7 @@ import {
   backgroundGroup,
   dateText,
   groupRows,
+  overlayGroups,
   layerAge,
   layerLinks,
   overlayRows,
@@ -21,37 +22,78 @@ describe('backgroundGroup', () => {
     expect(backgroundGroup('photo', true)).toBe('global-photo')
   })
 
-  it('files maps, historic layers and elevation together', () => {
+  it('files maps in Maps', () => {
     expect(backgroundGroup('map', true)).toBe('maps')
-    expect(backgroundGroup('osmbasedmap', true)).toBe('maps')
-    expect(backgroundGroup('historicmap', false)).toBe('historic')
-    expect(backgroundGroup('historicphoto', true)).toBe('historic')
-    expect(backgroundGroup('elevation', false)).toBe('elevation')
+    expect(backgroundGroup('osmbasedmap', false)).toBe('maps')
   })
 
-  it('files quality assurance, other and unknown categories in Other', () => {
-    expect(backgroundGroup('qa', false)).toBe('other')
-    expect(backgroundGroup('other', false)).toBe('other')
-    expect(backgroundGroup('something-new', false)).toBe('other')
-    expect(backgroundGroup(undefined, false)).toBe('other')
+  it('files historic layers, elevation and the rest with the photos, by their coverage', () => {
+    expect(backgroundGroup('historicmap', false)).toBe('local-photo')
+    expect(backgroundGroup('historicphoto', true)).toBe('global-photo')
+    expect(backgroundGroup('elevation', false)).toBe('local-photo')
+    expect(backgroundGroup('qa', true)).toBe('global-photo')
+    expect(backgroundGroup('something-new', false)).toBe('local-photo')
+    expect(backgroundGroup(undefined, false)).toBe('local-photo')
   })
 })
 
 describe('groupRows', () => {
-  it('lists the groups in order, leaves out empty ones and keeps the order inside a group', () => {
+  it('lists the groups in order, maps last, leaves out empty ones and keeps the order inside a group', () => {
     const rows = [
-      { id: 'a', group: 'other' as const },
-      { id: 'b', group: 'maps' as const },
-      { id: 'c', group: 'other' as const },
-      { id: 'd', group: 'local-photo' as const },
+      { id: 'a', group: 'maps' as const },
+      { id: 'b', group: 'global-photo' as const },
+      { id: 'c', group: 'maps' as const },
     ]
     const groups = groupRows(rows)
-    expect(groups.map((group) => group.label)).toEqual(['Local aerial imagery', 'Maps', 'Other'])
-    expect(groups[2]?.rows.map((row) => row.id)).toEqual(['a', 'c'])
+    expect(groups.map((group) => group.label)).toEqual(['Global aerial imagery', 'Maps'])
+    expect(groups[1]?.rows.map((row) => row.id)).toEqual(['a', 'c'])
+  })
+
+  it('keeps an empty group when asked to', () => {
+    expect(groupRows([], ['local-photo']).map((group) => group.id)).toEqual(['local-photo'])
   })
 
   it('returns no groups for no rows', () => {
     expect(groupRows([])).toEqual([])
+  })
+})
+
+describe('overlayGroups', () => {
+  const named = (...names: string[]) => names.map((name) => ({ name }))
+  const shape = (entries: ReturnType<typeof overlayGroups<{ name: string }>>) =>
+    entries.map((entry) =>
+      entry.kind === 'layer' ? entry.item.name : [entry.label, entry.items.map((i) => i.short)],
+    )
+
+  it('groups by the part before a separator, then two words, then one word', () => {
+    const entries = overlayGroups(
+      named(
+        'BANO',
+        'IBGE BC250 - Vila',
+        'IBGE BC250 - Rios Drenagem',
+        'Kartverket Buildings overlay',
+        'Kartverket Road Network',
+        'OSM Inspector: Highways',
+        'OSM Inspector: Places',
+        'TIGER Roads 2022',
+        'TIGER Roads 2023',
+      ),
+    )
+    expect(shape(entries)).toEqual([
+      'BANO',
+      ['IBGE BC250', ['Vila', 'Rios Drenagem']],
+      ['Kartverket', ['Buildings overlay', 'Road Network']],
+      ['OSM Inspector', ['Highways', 'Places']],
+      ['TIGER Roads', ['2022', '2023']],
+    ])
+  })
+
+  it('keeps an overlay alone as a row, and the whole name when it is the prefix', () => {
+    const entries = overlayGroups(named('OpenRailwayMap', 'OpenRailwayMap Maxspeeds', 'Route 500'))
+    expect(shape(entries)).toEqual([
+      ['OpenRailwayMap', ['OpenRailwayMap', 'Maxspeeds']],
+      'Route 500',
+    ])
   })
 })
 

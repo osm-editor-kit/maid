@@ -72,5 +72,7 @@
   "data_layers_failure_pmtiles_unreachable": "Impossible de lire ce fichier PMTiles : l’adresse n’est pas joignable depuis cette page. Vérifiez l’adresse et que le serveur autorise les requêtes de ce site.",
   "data_layers_failure_pmtiles_reason": "Impossible de lire ce fichier PMTiles : {reason}",
   "data_layers_failure_gpx_unreachable": "Impossible de lire ce fichier GPX : l’adresse n’est pas joignable depuis cette page. Vérifiez l’adresse et que le serveur autorise les requêtes de ce site.",
-  "data_layers_failure_gpx_reason": "Impossible de lire ce fichier GPX : {reason}"
+  "data_layers_failure_gpx_reason": "Impossible de lire ce fichier GPX : {reason}",
+  "data_layers_layers": "Couches",
+  "data_layers_cancel": "Annuler"
 }

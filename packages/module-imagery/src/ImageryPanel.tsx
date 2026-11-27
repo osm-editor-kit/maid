@@ -4,23 +4,18 @@ import {
   CheckBadgeIcon,
   ClockIcon,
   MapIcon,
+  PaperAirplaneIcon,
   Squares2X2Icon,
 } from '@heroicons/react/16/solid'
 import { PencilIcon, TrashIcon } from '@heroicons/react/20/solid'
 import { isAutomated } from '@osm-editor-kit/maid-core'
-import { PLAIN_INPUT, Tooltip } from '@osm-editor-kit/maid-ui'
+import { InfoTip, PLAIN_INPUT, Tooltip } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { keepPreviousData, skipToken, useQueries, useQuery } from '@tanstack/react-query'
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { checkTemplate, keyLikeNames, shortLabel, type CustomEntry } from './custom.ts'
-import { listLayers, listView, type Listed } from './eli.ts'
-import {
-  BRIGHTNESS_MIN,
-  categoryLabel,
-  listingView,
-  matchesQuery,
-  type Listing,
-} from './helpers.ts'
+import { listView, type Listed } from './eli.ts'
+import { BRIGHTNESS_MIN, categoryLabel, listingView } from './helpers.ts'
 import {
   useCustomBackgrounds,
   useImageryActions,
@@ -32,14 +27,7 @@ import { m } from './messages.ts'
 import { oamRows, type OamRow } from './oam-rows.ts'
 import { listOam, OAM_MIN_ZOOM, oamDrawQuery } from './oam.ts'
 import { OffsetSection } from './OffsetSection.tsx'
-import {
-  groupRows,
-  layerAge,
-  layerLinks,
-  overlayRows,
-  repeatsName,
-  type LayerLink,
-} from './panel-rows.ts'
+import { groupRows, repeatsName, type LayerLink } from './panel-rows.ts'
 import { filterSeriesRows, seriesRows, type SeriesChip, type SeriesRow } from './series.ts'
 import { useLiveBrightness, useLiveImagery } from './shown.ts'
 import { customValue, isCustomValue, isOamValue, NONE, templateOf } from './url.ts'
@@ -81,16 +69,16 @@ function classes(...parts: (string | false | null | undefined)[]) {
 }
 
 /**
- * The top bar's background panel: the imagery that covers the map's view, the overlays, and the
- * brightness of the background. Mounted only while the flyout is open, so the list is loaded when
- * a person opens it.
+ * The top bar's background panel: the imagery that covers the map's view, the OpenAerialMap images among the local
+ * ones, and the brightness of the background. The overlays of the index are in the data layers panel
+ * (OverlaysSection.tsx). Mounted only while the flyout is open, so the list is loaded when a person opens it.
  */
 export function ImageryPanel() {
   return (
     <div>
-      <div className="px-4 pt-4 pb-1">
+      <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
         <h2 className="text-base font-semibold">{m.imagery_background()}</h2>
-        <p className="text-zinc-500 dark:text-zinc-400">{m.imagery_intro()}</p>
+        <InfoTip text={m.imagery_intro()} />
       </div>
       {isAutomated() ? (
         <p className="p-4 text-sm text-zinc-500 dark:text-zinc-400">{m.imagery_automated()}</p>
@@ -165,18 +153,6 @@ function PanelBody() {
         ? [...shown.overlays.filter((other) => other !== id), id]
         : shown.overlays.filter((other) => other !== id),
     )
-  // the overlays that are on are listed whatever the view, as iD lists the sources in use (`listLayers`)
-  const onNow = useQuery({
-    queryKey: ['imagery', 'overlays-on', shown.overlays.join(',')],
-    queryFn:
-      shown.overlays.length === 0
-        ? skipToken
-        : (): Promise<Listing[]> => listLayers(shown.overlays),
-    staleTime: Infinity,
-  })
-  // only the overlays chosen now (the query may still hold one that was just unchosen)
-  const chosenOverlays = (onNow.data ?? []).filter((item) => shown.overlays.includes(item.id))
-  const overlays = overlayRows(items, chosenOverlays).filter((item) => matchesQuery(item, query))
   const percent = Math.round(brightness * 100)
   const chosenOutOfView =
     shownId !== NONE &&
@@ -265,10 +241,11 @@ function PanelBody() {
         />
         {isCustomValue(shownId) && !shownIsSaved ? (
           <Choice
-            name={shortLabel(shownTemplate ?? '') || m.imagery_custom()}
+            name={shortLabel(shownTemplate ?? '') || m.imagery_custom_background()}
             detail={m.imagery_not_saved()}
             selected
             onSelect={() => chooseBackground(shownId)}
+            after={shownTemplate !== null ? <KeyHint template={shownTemplate} /> : undefined}
           />
         ) : null}
         {custom.map((entry) => (
@@ -290,7 +267,8 @@ function PanelBody() {
             }}
           />
         ))}
-        {groupRows(rows).map((group) => (
+        {/* OpenAerialMap images are local by nature: listed with the local photos, drawn above the background */}
+        {groupRows(rows, ['local-photo']).map((group) => (
           <div key={group.id} role="group" aria-label={group.label} className="flex flex-col gap-1">
             <h4 className="px-2.5 pt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
               {group.label}
@@ -298,78 +276,32 @@ function PanelBody() {
             {group.rows.map((row) => (
               <SeriesChoice key={row.key} row={row} onSelect={chooseBackground} />
             ))}
+            {group.id === 'local-photo' ? (
+              <>
+                {oamList.map((row) => (
+                  <OamChoice
+                    key={row.id}
+                    row={row}
+                    onToggle={() => toggleOverlay(row.id, !row.selected)}
+                  />
+                ))}
+                <OamStatus
+                  zoomedOut={oamView === null}
+                  loading={oamView !== null && oamListing.isPending}
+                  failed={oamView !== null && oamListing.isError}
+                  empty={oamView !== null && oamListing.isSuccess && oamListing.data.length === 0}
+                />
+              </>
+            ) : null}
           </div>
         ))}
       </div>
-
-      {shownTemplate !== null ? <TemplateHint template={shownTemplate} /> : null}
 
       {chosenOutOfView ? (
         <p className="px-4 pb-3 text-xs text-zinc-500 dark:text-zinc-400">
           {m.imagery_chosen_out_of_view()}
         </p>
       ) : null}
-
-      {overlays.length > 0 ? (
-        <div className="border-t border-zinc-950/5 px-4 py-3 dark:border-white/5">
-          <h3 className="pb-1 text-sm font-medium">{m.imagery_overlays()}</h3>
-          <ul>
-            {overlays.map((item) => {
-              const on = shown.overlays.includes(item.id)
-              return (
-                <li key={item.id} className="py-1">
-                  <label className="flex cursor-pointer items-center gap-2.5 text-sm">
-                    <input
-                      {...PLAIN_INPUT}
-                      type="checkbox"
-                      className="size-4 shrink-0 accent-blue-600"
-                      checked={on}
-                      onChange={(event) => {
-                        const next = event.target.checked
-                        chooseOverlays(
-                          next
-                            ? [...shown.overlays.filter((id) => id !== item.id), item.id]
-                            : shown.overlays.filter((id) => id !== item.id),
-                        )
-                      }}
-                    />
-                    <span className="min-w-0">{item.name}</span>
-                  </label>
-                  {on ? (
-                    <LayerDetails
-                      name={item.name}
-                      description={item.attributionText}
-                      age={layerAge(item, undefined)}
-                      links={layerLinks(item)}
-                    />
-                  ) : null}
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      ) : null}
-
-      {/* OpenAerialMap images are small: they are overlays, drawn above the background, which gives the context */}
-      <div
-        role="group"
-        aria-label="OpenAerialMap"
-        className="border-t border-zinc-950/5 px-4 py-3 dark:border-white/5"
-      >
-        <h3 className="text-sm font-medium">OpenAerialMap</h3>
-        <p className={classes('pb-1', MUTED)}>{m.imagery_oam_description()}</p>
-        <ul>
-          {oamList.map((row) => (
-            <OamOverlay key={row.id} row={row} onToggle={(on) => toggleOverlay(row.id, on)} />
-          ))}
-        </ul>
-        <OamStatus
-          zoomedOut={oamView === null}
-          loading={oamView !== null && oamListing.isPending}
-          failed={oamView !== null && oamListing.isError}
-          empty={oamView !== null && oamListing.isSuccess && oamListing.data.length === 0}
-        />
-      </div>
 
       {shownId !== NONE ? (
         <label className="flex items-center gap-3 border-t border-zinc-950/5 px-4 py-3 text-sm dark:border-white/5">
@@ -397,17 +329,13 @@ function PanelBody() {
 }
 
 /**
- * The hint for a template with a part that looks like a key: a shared link includes the template, so it shares the
- * key too. Shown while the template is the background shown.
+ * The hint for a template with a part that looks like a key, as an amber "i" at its row: a shared link includes the
+ * template, so it shares the key too.
  */
-function TemplateHint(props: { template: string }) {
+function KeyHint(props: { template: string }) {
   const names = keyLikeNames(props.template)
   if (names.length === 0) return null
-  return (
-    <p className="px-4 pb-3 text-xs text-amber-800 dark:text-amber-300">
-      {m.imagery_template_key_hint({ names: names.join(', ') })}
-    </p>
-  )
+  return <InfoTip warn text={m.imagery_template_key_hint({ names: names.join(', ') })} />
 }
 
 /**
@@ -438,11 +366,8 @@ function CustomRow(props: {
           toolButtonTone(selected ? 'selected' : 'idle'),
         )}
       >
-        <span className="flex w-full min-w-0 items-center gap-2">
-          <span className="min-w-0 truncate font-medium">
-            {entry.name || label || m.imagery_custom_background()}
-          </span>
-          <span className={classes('ml-auto shrink-0', MUTED)}>{m.imagery_custom()}</span>
+        <span className="min-w-0 truncate font-medium">
+          {entry.name || label || m.imagery_custom_background()}
         </span>
         {entry.name && label ? (
           <span className={classes('w-full truncate', MUTED)}>{label}</span>
@@ -451,6 +376,7 @@ function CustomRow(props: {
           <span className="w-full text-red-700 dark:text-red-400">{check.reason}</span>
         )}
       </button>
+      <KeyHint template={entry.template} />
       {asking ? (
         <span className="flex shrink-0 items-center gap-1 pr-1 text-xs">
           <span>{m.imagery_delete_question()}</span>
@@ -619,29 +545,33 @@ function SeriesChoice(props: { row: SeriesRow; onSelect: (id: string) => void })
   )
 }
 
-/** One OpenAerialMap image as an overlay: a checkbox with its title and date; on, its provider, resolution and links */
-function OamOverlay(props: { row: OamRow; onToggle: (on: boolean) => void }) {
+/**
+ * One OpenAerialMap image among the local photos. It is an overlay: a click draws it above the background, another
+ * takes it away. Its icon says where it comes from; chosen, it shows its provider, resolution and links.
+ */
+function OamChoice(props: { row: OamRow; onToggle: () => void }) {
   const { row, onToggle } = props
   const facts = [row.provider, row.platform, row.resolution, row.area].filter(Boolean).join(' · ')
+  const source = `OpenAerialMap: ${m.imagery_oam_description()}`
   return (
-    <li className="py-1">
-      <label className="flex cursor-pointer items-center gap-2.5 text-sm">
-        <input
-          {...PLAIN_INPUT}
-          type="checkbox"
-          className="size-4 shrink-0 accent-blue-600"
-          checked={row.selected}
-          onChange={(event) => onToggle(event.target.checked)}
-        />
-        <span className="min-w-0 truncate">{row.name}</span>
-        {row.date ? (
-          <span className={classes('ml-auto shrink-0 tabular-nums', MUTED)}>{row.date}</span>
-        ) : null}
-      </label>
-      {row.selected ? (
-        <LayerDetails name={row.name} description={facts || undefined} links={row.links} />
-      ) : null}
-    </li>
+    <Choice
+      name={row.name}
+      icon={
+        <span
+          role="img"
+          aria-label={source}
+          title={source}
+          className="flex shrink-0 text-teal-700 dark:text-teal-400"
+        >
+          <PaperAirplaneIcon aria-hidden="true" className="size-4" />
+        </span>
+      }
+      detail={row.date}
+      selected={row.selected}
+      onSelect={onToggle}
+    >
+      <LayerDetails name={row.name} description={facts || undefined} links={row.links} />
+    </Choice>
   )
 }
 
@@ -666,7 +596,7 @@ function OamStatus(props: {
   return (
     <p
       className={classes(
-        'pt-1 text-xs',
+        'px-2.5 pt-1 text-xs',
         failed ? 'text-red-700 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400',
       )}
     >
@@ -769,14 +699,18 @@ function LayerDetails(props: {
 function Choice(props: {
   name: string
   detail?: string
+  /** An icon of its own, in place of the category's */
+  icon?: ReactNode
+  /** Shown beside the row, outside its button (a hint) */
+  after?: ReactNode
   category?: string
   best?: boolean
   selected: boolean
   onSelect: () => void
   children?: ReactNode
 }) {
-  const { name, detail, category, best, selected, onSelect, children } = props
-  return (
+  const { name, detail, icon, after, category, best, selected, onSelect, children } = props
+  const choice = (
     <div
       className={classes(
         'flex w-full min-w-0 flex-col rounded-md',
@@ -789,7 +723,7 @@ function Choice(props: {
         onClick={onSelect}
         className="flex w-full min-w-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-blue-500"
       >
-        {category !== undefined ? <CategoryIcon category={category} /> : null}
+        {icon ?? (category !== undefined ? <CategoryIcon category={category} /> : null)}
         <span className="min-w-0 truncate font-medium">{name}</span>
         {best ? (
           <span className="shrink-0 rounded-sm bg-blue-100 px-1 text-[10px] leading-4 font-medium text-blue-800 dark:bg-blue-400/15 dark:text-blue-300">
@@ -803,6 +737,13 @@ function Choice(props: {
       {selected && children !== undefined ? (
         <div className="flex flex-col gap-1 px-2.5 pb-2">{children}</div>
       ) : null}
+    </div>
+  )
+  if (after === undefined) return choice
+  return (
+    <div className="flex min-w-0 items-center gap-1">
+      <div className="min-w-0 flex-1">{choice}</div>
+      {after}
     </div>
   )
 }

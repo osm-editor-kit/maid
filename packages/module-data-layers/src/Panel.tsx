@@ -1,8 +1,11 @@
 /**
- * The "Data layers" flyout: the list of layers with a switch each, and the form that adds one.
+ * The "Data layers" flyout: the list of layers with a switch each, the form that adds one (open only on "Add layer",
+ * as the background panel's custom form: adding is rare), and the blocks other modules register at
+ * `data-layers.section` (the imagery index's overlays).
  */
-import type { RemoteFetch, UrlParamHandle } from '@osm-editor-kit/maid-core'
-import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
+import type { Editor, RemoteFetch, UrlParamHandle } from '@osm-editor-kit/maid-core'
+import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
+import { InfoTip, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { useQueries } from '@tanstack/react-query'
 import { useId, useMemo, useState, type FormEvent } from 'react'
@@ -214,10 +217,12 @@ function removeOf(
 function AddLayerForm({
   colors,
   onAdded,
+  onCancel,
   send,
 }: {
   colors: readonly string[]
   onAdded: (added: Added) => void
+  onCancel: () => void
   /** The editor's fetch: the checks of an address go through it */
   send: RemoteFetch
 }) {
@@ -255,7 +260,11 @@ function AddLayerForm({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3 px-4 pt-3 pb-4">
+    <form
+      onSubmit={submit}
+      aria-label={m.data_layers_add_title()}
+      className="mx-4 my-3 flex flex-col gap-3 rounded-lg border border-zinc-950/10 bg-zinc-50 p-3 dark:border-white/10 dark:bg-white/5"
+    >
       <h3 className="text-sm font-semibold text-zinc-950 dark:text-white">
         {m.data_layers_add_title()}
       </h3>
@@ -263,6 +272,8 @@ function AddLayerForm({
         <span className={LABEL}>{m.data_layers_name()}</span>
         <input
           {...PLAIN_INPUT}
+          // the form opens on a click of "Add layer": the name is where to start
+          autoFocus
           id={`${ids}-name`}
           className={INPUT}
           value={name}
@@ -330,8 +341,15 @@ function AddLayerForm({
           ))}
         </ul>
       ) : null}
-      <div className="flex items-center justify-between gap-3">
-        <span className={HINT}>{m.data_layers_check_hint()}</span>
+      <span className={HINT}>{m.data_layers_check_hint()}</span>
+      <div className="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-8 shrink-0 cursor-pointer rounded-md px-3 text-sm inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 dark:hover:bg-white/10"
+        >
+          {m.data_layers_cancel()}
+        </button>
         <button
           type="submit"
           disabled={busy}
@@ -352,8 +370,11 @@ export function createPanel(
   config: readonly DataLayerConfig[],
   send: RemoteFetch,
   link: UrlParamHandle<string>,
+  editor: Editor,
 ) {
   function DataLayersPanel() {
+    const sections = useExtensionPoint(editor, 'data-layers.section')
+    const [adding, setAdding] = useState(false)
     const added = useAddedLayers()
     const files = useFileLayers()
     const hidden = useHiddenIds()
@@ -367,12 +388,36 @@ export function createPanel(
     const colors = useMemo(() => layers.map((layer) => layer.color), [layers])
     return (
       <div>
-        <div className="px-4 pt-4 pb-1">
+        <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
           <h2 className="text-base font-semibold">{m.data_layers_label()}</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">{m.data_layers_intro()}</p>
+          <InfoTip text={m.data_layers_intro()} />
         </div>
+        <div className="flex items-center justify-between gap-2 px-4 pt-1 pb-1">
+          <h3 className="text-sm font-medium">{m.data_layers_layers()}</h3>
+          {adding ? null : (
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="text-xs font-medium text-blue-700 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              {m.data_layers_add_title()}
+            </button>
+          )}
+        </div>
+        {adding ? (
+          <AddLayerForm
+            colors={colors}
+            send={send}
+            onCancel={() => setAdding(false)}
+            onAdded={(result) => {
+              if (result.kind === 'url') addLayer(result.layer)
+              else addFile(result.layer)
+              setAdding(false)
+            }}
+          />
+        ) : null}
         {layers.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400">
             {m.data_layers_empty()}
           </p>
         ) : (
@@ -394,14 +439,11 @@ export function createPanel(
             {m.data_layers_linked_error({ reason: linked.error })}
           </p>
         ) : null}
-        <AddLayerForm
-          colors={colors}
-          send={send}
-          onAdded={(result) => {
-            if (result.kind === 'url') addLayer(result.layer)
-            else addFile(result.layer)
-          }}
-        />
+        <div className="pt-2">
+          {sections.map(({ id, component: Section }) => (
+            <Section key={id} />
+          ))}
+        </div>
       </div>
     )
   }
