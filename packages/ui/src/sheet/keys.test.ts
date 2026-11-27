@@ -114,15 +114,27 @@ describe('navigation: arrows and the range', () => {
     })
   })
 
-  it('Cmd/Ctrl+A selects all', () => {
+  it("Cmd/Ctrl+Backspace and Delete remove the rows of the selection; with Shift they are the input's", () => {
+    expect(actionForKey(ev('Backspace', { metaKey: true }), nav('a', 'key'), shape, mac)).toEqual({
+      kind: 'removeRows',
+    })
+    expect(actionForKey(ev('Delete', { ctrlKey: true }), nav('a', 'key'), shape, other)).toEqual({
+      kind: 'removeRows',
+    })
+    expect(
+      actionForKey(ev('Backspace', { metaKey: true, shiftKey: true }), nav('a', 'key'), shape, mac),
+    ).toEqual({ kind: 'native' })
+  })
+
+  it('Cmd/Ctrl+A edits the cell with all of its text selected, never the table', () => {
     expect(actionForKey(ev('a', { metaKey: true }), nav('a', 'key'), shape, mac)).toEqual({
       kind: 'action',
-      action: { type: 'selectAll' },
+      action: { type: 'startEdit', how: 'replace' },
       prevent: true,
     })
     expect(actionForKey(ev('a', { ctrlKey: true }), nav('a', 'key'), shape, other)).toEqual({
       kind: 'action',
-      action: { type: 'selectAll' },
+      action: { type: 'startEdit', how: 'replace' },
       prevent: true,
     })
   })

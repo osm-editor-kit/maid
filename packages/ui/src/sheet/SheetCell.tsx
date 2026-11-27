@@ -22,14 +22,12 @@ export type SheetCellProps = {
   edges: number
   readOnly: boolean
   tabIndex: number
-  /** Opened with the list button: all suggestions are listed until the text changes */
-  browsing?: boolean
   /** The row's problem (SheetRow.warning): the cell is amber */
   warning?: string
   /** This cell shows the row's exclamation mark, with the warning as its tooltip (the row's last cell) */
   warningIcon?: boolean
-  /** The row belongs with the active cell's row (SheetProps.relatedRows): tinted */
-  related?: boolean
+  /** Columns this cell spans (a merged cell, SheetRow.merged) */
+  span?: number
 }
 
 /**
@@ -55,10 +53,9 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
     edges,
     readOnly,
     tabIndex,
-    browsing = false,
     warning,
     warningIcon = false,
-    related = false,
+    span = 1,
   } = props
   const committed = data?.value.kind === 'value' ? data.value.text : ''
   const mixed = data?.value.kind === 'mixed' ? data.value.values : undefined
@@ -77,8 +74,9 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
     cellRow: row.id,
     cellCol: column.id,
     row,
-    // opened with the list button and nothing typed yet: all suggestions, not only those that fit the value
-    text: browsing && draft === null ? '' : value,
+    // nothing typed yet (an edit opened by Enter, a double click or the list button): all suggestions, not only those
+    // that fit the value the cell has; typing filters them
+    text: draft === null ? '' : value,
   })
   const optionId = (index: number) => `${listId}-${index}`
   // The host's message wins; else the column's check of what is shown (the draft while it is edited).
@@ -88,6 +86,11 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
   const tone = data?.tone ?? 'default'
   const listShown = suggestions.open && anchor !== null
   const open = active || editing
+  // the column draws the text itself while the cell is not edited (SheetColumn.display)
+  const drawn =
+    column.display !== undefined && !editing && value !== '' && mixed === undefined
+      ? column.display(value)
+      : undefined
 
   function pick(index: number, input: HTMLTextAreaElement) {
     const item = suggestions.items[index]
@@ -121,15 +124,23 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
       aria-readonly={readOnly || undefined}
       data-row={row.id}
       data-col={column.id}
-      className={cellClassName({ selected, warning: warning !== undefined, related })}
-      style={cellStyle({
+      className={cellClassName({
         selected,
-        active,
-        editing,
-        invalid: invalid !== undefined,
         warning: warning !== undefined,
-        edges,
+        // a cell that cannot be written and is empty (a side that is off): grey
+        disabled: readOnly && !trailing && value === '' && mixed === undefined,
       })}
+      style={{
+        ...cellStyle({
+          selected,
+          active,
+          editing,
+          invalid: invalid !== undefined,
+          warning: warning !== undefined,
+          edges,
+        }),
+        ...(span > 1 ? { gridColumn: `span ${span}` } : {}),
+      }}
     >
       <textarea
         {...PLAIN_INPUT}
@@ -146,15 +157,22 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
         aria-activedescendant={
           listShown && suggestions.highlighted >= 0 ? optionId(suggestions.highlighted) : undefined
         }
-        aria-label={m.ui_cell_label({ column: column.header, row: row.label })}
+        aria-label={m.ui_cell_label({
+          column: row.colLabels?.[column.id] ?? column.header,
+          row: row.label,
+        })}
         aria-invalid={invalid !== undefined ? true : undefined}
         aria-describedby={invalid !== undefined ? messageId : undefined}
         aria-description={warning ?? (mixed ? m.ui_cell_mixed({ count: mixed.length }) : undefined)}
-        title={mixedTitle ?? (editing || value === '' ? undefined : value)}
+        title={
+          mixedTitle ??
+          (editing ? undefined : (data?.invalid ?? (value === '' ? undefined : value)))
+        }
         placeholder={mixed ? m.ui_multiple_values() : trailing ? column.header : undefined}
         // a tag is one line, as in a text input: a pasted line break becomes a space
         onChange={(event) => setDraft(event.target.value.replace(/\r?\n/g, ' '))}
         onKeyDown={onKeyDown}
+        style={drawn !== undefined ? { color: 'transparent' } : undefined}
         // a cell closes to two lines after it loses the focus: it shows the start of its text, not the scroll
         // position the edit left
         onBlur={(event) => {
@@ -166,8 +184,21 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
           mixed: mixed !== undefined,
           editing,
           open,
-        })}${(suggest !== undefined && !readOnly) || (warning !== undefined && warningIcon) ? ' pr-6' : ''}`}
+        })}${(suggest !== undefined && !readOnly) || (warning !== undefined && warningIcon) ? ' pr-6' : ''}${
+          // the drawn text gives the cell its height (it may be shorter than the text): the input lies over it
+          drawn !== undefined ? ' absolute inset-0 h-full' : ''
+        }`}
       />
+      {drawn !== undefined ? (
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none block min-h-6 px-1.5 py-1 [overflow-wrap:anywhere] text-zinc-950 dark:text-white ${
+            column.mono === true ? 'font-mono text-xs/5' : 'text-sm/5'
+          }`}
+        >
+          {drawn}
+        </span>
+      ) : null}
       {warning !== undefined && warningIcon ? (
         <Tooltip label={warning}>
           <span

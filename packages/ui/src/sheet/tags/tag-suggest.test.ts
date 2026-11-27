@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test'
 import type { SheetRow, SheetSuggestion } from '../types.ts'
 import {
   keySuggestions,
+  mixedValueSuggestions,
+  presetSuggestions,
   sortPrefixFirst,
   toSheetSuggestions,
   valueSuggestions,
@@ -124,5 +126,73 @@ describe('withTagSuggestions: the source as the columns suggest', () => {
     expect(keyColumn!.suggestDelay).toBe(300)
     expect(valueColumn!.suggestDelay).toBe(300)
     expect(withTagSuggestions(TAG_COLUMNS, source, []).map((c) => c.id)).toEqual(['key', 'value'])
+  })
+})
+
+describe('presetSuggestions: the values of the presets, from the closest key that has any', () => {
+  const source: TagSuggestSource = {
+    keys: async () => [],
+    values: async () => [],
+    options: (key) =>
+      key === 'surface'
+        ? [
+            { value: 'asphalt', label: 'Asphalt' },
+            { value: '', label: 'Not set' },
+          ]
+        : [],
+  }
+  test('a side key falls back to the part after the side; labels are hints, empty values go', () => {
+    expect(presetSuggestions('cycleway:left:surface', source)).toEqual([
+      { value: 'asphalt', hint: 'Asphalt' },
+    ])
+  })
+  test('a source without presets gives none', () => {
+    expect(presetSuggestions('surface', { keys: async () => [], values: async () => [] })).toEqual(
+      [],
+    )
+  })
+})
+
+describe('withTagSuggestions: presets before taginfo, the right column as the value column', () => {
+  const source: TagSuggestSource = {
+    keys: async () => [],
+    values: async () => [
+      { value: 'track', title: 'track' },
+      { value: 'lane', title: 'lane' },
+    ],
+    options: (key) => (key === 'cycleway:right' ? [{ value: 'lane', label: 'Bike lane' }] : []),
+  }
+  test('a side row asks for its own side key; presets first, taginfo after, each value once', async () => {
+    const columns = withTagSuggestions(
+      [...TAG_COLUMNS, { ...TAG_COLUMNS[1]!, id: 'right' }],
+      source,
+      [],
+    )
+    const right = columns.find((column) => column.id === 'right')
+    const row: SheetRow = {
+      id: 'side:cycleway:{side}',
+      label: 'x',
+      cells: { key: { value: { kind: 'value', text: 'cycleway:{side}' } } },
+    }
+    const items = await right?.suggest?.(
+      { cell: { row: row.id, col: 'right' }, row, text: '' },
+      new AbortController().signal,
+    )
+    expect(items?.map((item) => item.value)).toEqual(['lane', 'track'])
+  })
+})
+
+describe('mixedValueSuggestions: the values of the cell asked about', () => {
+  test('the right side of a group row offers its own values, not the left ones', () => {
+    const row: SheetRow = {
+      id: 'side:cycleway:{side}',
+      label: 'x',
+      cells: {
+        value: { value: { kind: 'mixed', values: [{ text: 'lane' }, { text: 'no' }] } },
+        right: { value: { kind: 'mixed', values: [{ text: 'track' }, { text: undefined }] } },
+      },
+    }
+    expect(mixedValueSuggestions(row, 'right').map((item) => item.value)).toEqual(['track'])
+    expect(mixedValueSuggestions(row).map((item) => item.value)).toEqual(['lane', 'no'])
   })
 })

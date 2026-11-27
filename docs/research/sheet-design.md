@@ -108,7 +108,7 @@ Core state (never changes on a keystroke; the draft lives in the editing cell):
 export type SheetState = {
   active: CellRef | null
   anchor: CellRef | null           // the range is the rectangle anchor..active, in the rows' current order
-  rowsSelected: boolean            // the range was made with a row handle or Shift+Space: whole rows
+  rowsSelected: boolean            // the range was made with Shift+Space or the row menu: whole rows
   mode: 'navigate' | 'edit'
   editStart: 'replace' | 'keep'    // typing replaces, Enter/F2/double click keeps and puts the caret at the end
   tabOrigin: ColId | null          // where a run of Tabs began: Enter returns to it on the next row
@@ -116,7 +116,7 @@ export type SheetState = {
 }
 export type SheetAction =
   | { type: 'activate'; cell: CellRef; extend?: boolean } | { type: 'move'; dx: -1|0|1; dy: -1|0|1; extend?: boolean; edge?: boolean }
-  | { type: 'selectRows'; from: RowId; to?: RowId } | { type: 'selectAll' } | { type: 'collapse' }
+  | { type: 'selectRows'; from: RowId } | { type: 'collapse' }   // selectAll and a run of rows: gone with Cmd+A and the row handle (2026-11-27)
   | { type: 'startEdit'; how: 'replace' | 'keep' } | { type: 'endEdit'; then: 'stay' | 'down' | 'up' | 'next' | 'previous' }
   | { type: 'rowsChanged'; rowIds: RowId[] }   // keeps `active` on its row id, else clamps to the same index
 export function sheetReducer(state: SheetState, action: SheetAction, shape: { rowIds: RowId[]; colIds: ColId[] }): SheetState
@@ -162,7 +162,7 @@ Every cell is a real `<input>`: `readOnly` in navigation mode (caret hidden), wr
 
 | Key or gesture | Navigation mode | Edit mode |
 | --- | --- | --- |
-| Click | Activates the cell, also the active one: a click never edits with the mouse (as in Google Sheets, 2026-11-27: Cmd/Ctrl+A after a click selects the table, not the text). The list button of a cell opens it | Places the caret |
+| Click | Activates the cell, also the active one: a click never edits with the mouse (as in Google Sheets, 2026-11-27). The list button of a cell opens it | Places the caret |
 | Double click, Enter, F2 | Edit, text kept, caret at the end | Enter: commit, go down in the column the Tab run began in (key, Tab, value, Enter lands on the next key) |
 | Typing a character, or IME start | Edit, text replaced: the handler sets `input.readOnly = false` and selects all before the key's default action, so dead keys and IME work | types |
 | Escape | Collapses a range to the active cell; else nothing | Puts the value back, closes the list first if open; `stopPropagation` as `DraftInput` |
@@ -171,8 +171,9 @@ Every cell is a real `<input>`: `readOnly` in navigation mode (caret hidden), wr
 | Arrows | Move the active cell | Left and right move the caret; Up and Down move in the suggestion list when it is open, else commit and move |
 | Cmd/Ctrl+arrows, Home, End | To the edge of the row or column | native |
 | Shift+arrows, Shift+click, drag | Extend the range from the anchor | native text selection |
-| Row handle (left gutter); Shift+Space | Selects the row; drag or Shift+click selects rows | – |
-| Cmd/Ctrl+A | All rows (not the trailing one). Bound on the grid only | All text of the input |
+| Shift+Space | Selects the row (the row handle in the left gutter was removed on 2026-11-27: visual noise; a row is removed with Cmd/Ctrl+Backspace or the row menu) | – |
+| Cmd/Ctrl+Backspace, Cmd/Ctrl+Delete | Removes the rows of the selection, one batch | native |
+| Cmd/Ctrl+A | Edits the cell with all of its text selected (2026-11-27; before: all rows). Bound on the grid only | All text of the input |
 | Cmd/Ctrl+C | `clipboard.serialize` of the range | native |
 | Cmd/Ctrl+X | Copy, then as Delete (`cause: 'cut'`) | native |
 | Cmd/Ctrl+V | `clipboard.plan` (section 6): one cell, a range (a single value fills it; a block starts at its top left), the trailing row (appends). Wider than the sheet: the extra columns are not written and are named in the status line | native, unless the plan says otherwise (tags: a key cell and text with `=`, a tab or a line break) |
@@ -183,9 +184,9 @@ A change of the cell's value from outside during an edit keeps the draft; the co
 
 Pending row (2026-11-27, `SheetState.pending`): one `key=value` pasted onto the new row whose key is on another row is not merged into that row. It becomes a row of texts that is not data yet, with its key cell in edit mode, so a copied tag can start a new one. It is checked only when an edit in it ends (`pendingProblem`: a row that repeats another, a key on another row, an empty key); with a problem it turns amber and shows an exclamation mark whose tooltip says what is wrong and that the row will be ignored, and Enter keeps the focus on it. When the focus leaves the row or the sheet it becomes one `insert` (an undo step) or, with the problem still there, is dropped and the line under the sheet says so (`resolvePending`). Typing a key that exists in the new row still jumps to that row's value, and a paste of several lines still merges (section 6).
 
-Sides view (2026-11-27, `TagSheetProps.view`, `tag-sides.ts`): a switch in the heading of the Tags section ("Show left and right", stored in the UI settings as `shown['tags-view']`). On, for one feature: the keys of a road's sides are grouped under a small heading row (`SheetProps.groupOf`): `cycleway`, `sidewalk`, `parking`, with every key that has the group as its first part or as its second after a meta prefix (`source:cycleway:both:width`, `fixme:sidewalk`, as TILDA unnests `source:` and `note:`). Inside a group the keys sort without their meta prefix, so the source stands under its key. `:both` is shown as its `left` and `right` keys; a change is stored with two equal sides as `:both` again when the feature had `:both` or the change touched one of the two (sides stored apart and not touched stay apart). The active row's other side with the same value is tinted violet (`SheetProps.relatedRows`). Off: the tags as stored, sorted as iD, no groups. The switch re-sorts as one step, so the rows that stay move animated and the split rows come and go.
+Sides view (2026-11-27, `TagSheetProps.view`, `tag-sides.ts`, `tag-sides-view.tsx`): a two-state switch in the heading of the Tags section, "Raw" and "Sides", one always on; "Sides" is the default (stored in the UI settings as `shown['tags-view']`, written only when the person picks one). Sides is one sheet of three columns (key, value, right) for one feature, so there is one selection and one keyboard path through it: first the tags with no side, sorted as iD, with the empty row, their value cell merged over the two side columns (`SheetRow.merged`, `SheetProps.newRowMerged`, `trailingBefore`); then the groups `sidewalk`, `cycleway`, `parking` (from the kerb outwards), each under a tinted headline row that names the group and the sides (`SheetProps.headingBefore`). A group row is one attribute: its key with `{side}` where the side stands (drawn as an italic "side", `SheetColumn.display`; renaming it renames both sides), the left value under the value column and the right one beside it, with the value suggestions of each side's own key. A key belongs to a group when the group is its first part or its second after a meta prefix (`source:cycleway:both:width`, `fixme:sidewalk`, as TILDA unnests `source:` and `note:`); a group key with no side (`cycleway`, `fixme:sidewalk`) stays with the tags on top. Inside a group the keys sort without their meta prefix, so the source stands under its key. `:both` is shown as its two sides; a change is stored with two equal sides as `:both` again when the feature had `:both` or the change touched one of the two (sides stored apart and not touched stay apart). Several features (`TagSheetProps.features`, `onChangeEach`): each feature's `:both` is split on its own and the shown tags are combined (a side the features disagree on is "Multiple values"); an edit becomes steps (`sideSteps`, `stepsOfChange`) that each feature takes on its own shown tags, merging its own equal sides into `:both`, and the features that change are written as one undo step (`engine.changeTagsEach`). The key's group name is cut to `cw…`, `sw…`, `pk…` only when a key of that group would wrap at the sheet's width (`useShortGroups`). A side whose own key is `no`, `none` or `separate` (`cycleway:left=no`) has its other cells locked and grey; a value left there is invalid, and the line under the sheet and the tooltip say to remove it or to move it to the separately mapped way. The attributes that stay valid on such a side (`parking:left:restriction` with `parking:left=no`, and the side key's own meta keys) are listed in `side-off-attributes.json` (research: `side-off-attributes.md`). Raw: the tags as stored, sorted as iD, two columns. Cmd/Ctrl+A (since the same day) is always the cell's text: on a selected cell it opens the edit with all of it selected; the table is selected by dragging. A selected cell shows no caret.
 
-Touch (the phone layout): a tap activates and edits at once; the remove button of each row is always visible (`pointer-coarse:opacity-100`, as `REVEAL`); suggestions work; paste works through the system's paste menu in a key cell (the plan above), and the section gets a "Copy all" button from the host. Desktop only: range selection by drag, row handles, Shift and Cmd keys, cut.
+Touch (the phone layout): a tap activates and edits at once; the remove button of each row is always visible (`pointer-coarse:opacity-100`, as `REVEAL`); suggestions work; paste works through the system's paste menu in a key cell (the plan above), and the section gets a "Copy all" button from the host. Desktop only: range selection by drag, Shift and Cmd keys, cut.
 
 ## 5. Accessibility
 
@@ -243,6 +244,7 @@ No virtualisation: at most about 80 × 2 or 40 × 5 inputs (under 250). What to 
 - A `useFloating` per cell: one `SuggestList`, anchored to the active input.
 - Layout measuring on every render: `layoutDependency` limits it to a change of order.
 - A request per keystroke: `useSuggestions` waits `suggestDelay`, aborts the previous `signal`, and caches per column, row context and text for the life of the sheet. A provider that makes requests uses 300 ms and at least 3 characters and returns nothing under `isAutomated()` (`fetching-audit.md` 5.7, 5.8). The local providers answer in the same tick.
+- What a value list offers (2026-11-27): until something is typed, every suggestion, not only those that fit the cell's value; typing filters. First the values of the presets' fields that write the key (`Presets.valueOptions`, with their labels; for a side key the key, then without its side, then the part after it: `presetKeysFor`), then taginfo's most used values for the geometry. taginfo's answers are kept a week in the browser.
 
 ## 9. Testing
 

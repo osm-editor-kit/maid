@@ -46,14 +46,14 @@ export type CellLook = {
 export function cellClassName(look: {
   selected: boolean
   warning?: boolean
-  /** Belongs with the active row (the other side of a road): violet, not the blue of the selection */
-  related?: boolean
+  /** Read-only and empty (a side of a road that is off): a grey cell */
+  disabled?: boolean
 }): string {
   const base =
     'relative flex min-w-0 flex-col justify-center border-r border-b border-zinc-950/10 dark:border-white/10'
   if (look.selected) return `${base} bg-blue-500/10 dark:bg-blue-400/10`
   if (look.warning === true) return `${base} bg-amber-50 dark:bg-amber-950/40`
-  return look.related === true ? `${base} bg-violet-500/10 dark:bg-violet-400/15` : base
+  return look.disabled === true ? `${base} bg-zinc-950/[0.05] dark:bg-white/[0.05]` : base
 }
 
 /**
@@ -102,7 +102,8 @@ export function inputClassName(look: {
   // and inputs, and keys such as name:etymology fit a sidebar column. One size class only: two would fight.
   parts.push(look.mono ? 'font-mono text-xs/5' : 'text-sm/5')
   if (look.mixed) parts.push('italic placeholder:italic')
-  if (look.editing) parts.push('select-text')
+  // the caret shows only in an edit: a selected cell looks selected, not edited
+  parts.push(look.editing ? 'select-text' : 'caret-transparent')
   if (look.tone === 'muted') parts.push('text-zinc-500 dark:text-zinc-400')
   if (look.tone === 'differs') parts.push('text-amber-700 dark:text-amber-400')
   if (look.tone === 'changed') parts.push('bg-emerald-50 dark:bg-emerald-950/30')

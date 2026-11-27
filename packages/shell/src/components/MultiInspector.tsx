@@ -16,6 +16,8 @@ import {
   SidebarHeader,
   tagChangeOf,
   TagSheet,
+  tagDiff,
+  TagViewButton,
   type TagSheetChange,
   type TagSuggestSource,
 } from '@osm-editor-kit/maid-ui'
@@ -33,6 +35,7 @@ import {
 import { MultiIssues } from './MultiIssues'
 import { MultiType } from './MultiType'
 import { Operations } from './Operations'
+import { useTagView } from './tag-view'
 
 // The relations of several features: their list and picker are the relations module's (loaded in idle time, as there).
 const MultiRelations = lazyComponent(() =>
@@ -130,6 +133,23 @@ export function MultiInspector({
     notify.failed(refusalMessage(result))
   }
 
+  // the sides view: each feature's next tags (its own :both merged), as one undo step
+  const writeEach = (
+    changes: readonly { id: string; tags: Record<string, string> }[],
+    label: string,
+  ) => {
+    const result = engine.changeTagsEach(
+      changes.map(({ id, tags }) => ({
+        id,
+        ...tagDiff(derived.features.find((feature) => feature.id === id)?.tags ?? {}, tags),
+      })),
+      label,
+    )
+    if (result.ok) return
+    notify.failed(refusalMessage(result))
+  }
+  const [tagView, setTagView] = useTagView()
+
   const { shown, more } = listedIds(derived.ids)
   const count = derived.ids.length
 
@@ -210,7 +230,12 @@ export function MultiInspector({
             remember="tags"
             detail={Object.keys(derived.combined).length}
             defaultOpen
-            actions={<CopyTagsButton combined={derived.combined} />}
+            actions={
+              <>
+                <TagViewButton view={tagView} onChange={setTagView} />
+                <CopyTagsButton combined={derived.combined} />
+              </>
+            }
           >
             <TagSheet
               copyButton={false}
@@ -218,6 +243,9 @@ export function MultiInspector({
               combined={derived.combined}
               featureKey={selectionKey}
               onChange={write}
+              view={tagView}
+              features={derived.features}
+              onChangeEach={writeEach}
               suggest={suggest}
               onUndo={() => engine.undo()}
               onRedo={() => engine.redo()}

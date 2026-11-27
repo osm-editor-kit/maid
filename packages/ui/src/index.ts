@@ -179,6 +179,7 @@ export {
   type TagSheetProps,
   type TagView,
 } from './sheet/tags/TagSheet.tsx'
+export { tagDiff } from './sheet/tags/tag-sides.ts'
 export type { TagSheetChange } from './sheet/tags/tag-combined.ts'
 export type { TagSuggestSource } from './sheet/tags/tag-suggest.ts'
 export type {

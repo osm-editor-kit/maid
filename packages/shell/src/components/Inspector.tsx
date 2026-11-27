@@ -2,6 +2,7 @@ import { StarIcon as StarSolidIcon } from '@heroicons/react/16/solid'
 import { StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline'
 import {
   createTaginfo,
+  createTaginfoStore,
   isAutomated,
   moduleStorage,
   type Editor,
@@ -29,9 +30,6 @@ import {
   createWikiSource,
   CopyTagsButton,
   TagViewButton,
-  type TagView,
-  useSettingsActions,
-  useStoredShown,
 } from '@osm-editor-kit/maid-ui'
 import { useEffect, useMemo, useState } from 'react'
 import { changeType, moveFavourite, toggleFavourite, useFavouriteEntries } from '../favourites'
@@ -49,16 +47,24 @@ import { MultiInspector } from './MultiInspector'
 import { Operations } from './Operations'
 import { PresetIcon } from './PresetIcon'
 import { createReferenceLoader } from './reference'
+import { useTagView } from './tag-view'
 
 /**
  * The taginfo suggestions of the tags sheet, one source per geometry, as iD's taginfo.js: one client on the
  * editor's fetch and query cache. The Inspector keeps them in a memo, so that the sheet gets the same objects.
  */
 function tagSuggestSourcesOf(editor: Editor): Record<TaginfoGeometry, TagSuggestSource> {
-  const taginfo = createTaginfo({ fetch: editor.fetch, queries: editor.queries })
+  // taginfo's answers are kept a week in the browser (none under automation, moduleStorage)
+  const taginfo = createTaginfo({
+    fetch: editor.fetch,
+    queries: editor.queries,
+    store: createTaginfoStore(moduleStorage()),
+  })
   const sourceOf = (kind: TaginfoGeometry): TagSuggestSource => ({
     keys: (query, signal) => taginfo.keys(query, kind, signal),
     values: (key, query, signal) => taginfo.values(key, query, kind, signal),
+    // the presets' values come first, at once: read when asked, as the presets may load after the editor
+    options: (key) => editor.presets?.valueOptions(key) ?? [],
   })
   return {
     point: sourceOf('point'),
@@ -130,9 +136,6 @@ function FavouriteStar(props: { preset: Preset; geometry: Geometry; on: boolean 
 }
 
 /** The sidebar: what the selected feature is (iD preset), its tags and the sections of modules. */
-/** The settings key of the Tags sheet's view (`shown` in the UI settings): `sides` or `exact` */
-const TAG_VIEW_SETTING = 'tags-view'
-
 export function Inspector() {
   const { editor, engine } = useShell()
   const loadReference = referenceLoaderFor(editor)
@@ -143,9 +146,8 @@ export function Inspector() {
     [editor],
   )
   const suggestSources = useMemo(() => tagSuggestSourcesOf(editor), [editor])
-  // the view of the Tags sheet the person chose (stored with the settings): as stored, or by sides
-  const tagView: TagView = useStoredShown(TAG_VIEW_SETTING) === 'sides' ? 'sides' : 'exact'
-  const { setShown } = useSettingsActions()
+  // the view of the Tags sheet the person chose: raw, or by sides (the default)
+  const [tagView, setTagView] = useTagView()
   const { id, ids, select } = useSelection()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
   const entity: EntityInfo | undefined = useEngine((e) => e.entity(id))
@@ -394,10 +396,7 @@ export function Inspector() {
                 defaultOpen
                 actions={
                   <>
-                    <TagViewButton
-                      view={tagView}
-                      onChange={(view) => setShown(TAG_VIEW_SETTING, view)}
-                    />
+                    <TagViewButton view={tagView} onChange={setTagView} />
                     <CopyTagsButton tags={entity.tags} />
                   </>
                 }

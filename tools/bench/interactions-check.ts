@@ -2304,6 +2304,19 @@ failed += await runCheck(
     await page.evaluate((id) => window.__bench.select(id), road)
     await settle()
     await settleFrame()
+    // the raw view: every tag in the one table (the sides view is checked in check-tags)
+    await page.getByRole('radio', { name: 'Raw' }).click()
+    // the rows of the sides view play their exit animation first
+    await page.waitForFunction(
+      () =>
+        ![...document.querySelectorAll('[role="grid"] textarea')].some(
+          (input) => input instanceof HTMLTextAreaElement && input.value.includes('{side}'),
+        ),
+      undefined,
+      { timeout: 3000 },
+    )
+    await page.mouse.move(4, 4)
+    await settleFrame()
 
     // (1) the Tags section of the selected road: one row per tag, sorted, and the empty row last
     const before = await tagsOf(road)

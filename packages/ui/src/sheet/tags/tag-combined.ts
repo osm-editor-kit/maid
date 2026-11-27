@@ -412,7 +412,6 @@ export function initialCombinedModel(
     order: select.order,
     keepIncomplete: select.keepIncomplete,
     version: 0,
-    compare: codeUnits,
   }
 }
 

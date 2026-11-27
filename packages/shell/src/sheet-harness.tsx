@@ -5,7 +5,7 @@
  * `window.__sheet` (the tags, every onChangeTags call, the undo and redo calls) and `window.__maid` (engine, editor).
  * `window.__bench` is a stub with the two methods runCheck waits for; the harness has no map to settle.
  */
-import type { CombinedTags } from '@osm-editor-kit/maid-model'
+import { combinedTags, type CombinedTags } from '@osm-editor-kit/maid-model'
 import { TagSheet, TagViewButton, type TagSheetChange, type TagView } from '@osm-editor-kit/maid-ui'
 import { NuqsAdapter } from 'nuqs/adapters/react'
 import { useEffect, useState } from 'react'
@@ -39,9 +39,29 @@ const COMBINED: CombinedTags = {
 
 const several: {
   calls: { change: TagSheetChange; label: string }[]
+  /** The sides view of several (`?harness=tags&sides=1&several=1`): each feature's tags and every write */
+  features: { id: string; tags: Tags }[]
+  each: { changes: { id: string; tags: Tags }[]; label: string }[]
   undo: number
   redo: number
-} = { calls: [], undo: 0, redo: 0 }
+} = { calls: [], features: [], each: [], undo: 0, redo: 0 }
+
+/** Two roads for the sides view of several: the left sides agree, the right sides and the widths differ */
+const ROADS: { id: string; tags: Tags }[] = [
+  {
+    id: 'w1',
+    tags: { highway: 'residential', 'cycleway:both': 'lane', 'cycleway:both:width': '1.5' },
+  },
+  {
+    id: 'w2',
+    tags: {
+      highway: 'residential',
+      'cycleway:left': 'lane',
+      'cycleway:right': 'track',
+      'cycleway:both:width': '2',
+    },
+  },
+]
 
 Object.assign(window, {
   __sheet: probe,
@@ -72,7 +92,57 @@ function Shortcuts() {
   return null
 }
 
+/** The sides view of two roads: one sheet, the features' tags kept here as the engine would */
+function SidesOfSeveral() {
+  const [features, setFeatures] = useState(() => {
+    several.features = ROADS
+    return ROADS
+  })
+  const [view, setView] = useState<TagView>('sides')
+  return (
+    <div className="mx-auto mt-8 w-[300px] px-4 text-zinc-950 dark:text-white">
+      <div className="flex justify-end">
+        <TagViewButton view={view} onChange={setView} />
+      </div>
+      <TagSheet
+        view={view}
+        label="Tags of several"
+        combined={combinedTags(features.map((feature) => feature.tags))}
+        features={features}
+        featureKey="harness-several"
+        onChange={(change, label) => {
+          several.calls.push({ change, label })
+        }}
+        onChangeEach={(changes, label) => {
+          several.each.push({ changes: [...changes], label })
+          const next = features.map(
+            (feature) => changes.find((change) => change.id === feature.id) ?? feature,
+          )
+          several.features = next
+          setFeatures(next)
+        }}
+      />
+    </div>
+  )
+}
+
 function Harness() {
+  if (SIDES && SEVERAL) return <SidesOfSeveral />
+  return <OneOrSeveral />
+}
+
+function OneOrSeveral() {
+  const { editor } = useShell()
+  // the sides harness: the presets' values in the lists, no taginfo (automation asks nothing outside)
+  const [presetSource] = useState(() =>
+    SIDES
+      ? {
+          keys: () => Promise.resolve([]),
+          values: () => Promise.resolve([]),
+          options: (key: string) => editor.presets?.valueOptions(key) ?? [],
+        }
+      : undefined,
+  )
   const [tags, setTags] = useState<Tags>(() => {
     probe.tags = SIDES ? SIDES_FIXTURE : FIXTURE
     return probe.tags
@@ -87,6 +157,7 @@ function Harness() {
       )}
       <TagSheet
         view={view}
+        suggest={presetSource}
         label="Tags of the feature"
         tags={tags}
         featureKey="harness"
@@ -127,6 +198,8 @@ export function TagHarness() {
   const { engine, editor } = useShell()
   useEffect(() => {
     Object.assign(window, { __maid: { engine, editor } })
+    // the sides harness lists the presets' values: they load as in the app
+    if (SIDES) void editor.loadPresets()
   }, [engine, editor])
   return (
     <NuqsAdapter>

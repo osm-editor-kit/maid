@@ -51,6 +51,8 @@ export type SheetKeyResult =
   | { kind: 'arrow'; dy: -1 | 1 }
   | { kind: 'cancel' }
   | { kind: 'clear' }
+  /** Navigation Cmd/Ctrl+Backspace or Delete: the rows of the selection go, one batch */
+  | { kind: 'removeRows' }
   | { kind: 'clipboard'; op: 'copy' | 'cut' | 'paste' }
   | { kind: 'undo' }
   | { kind: 'redo' }
@@ -84,7 +86,8 @@ function startsText(key: string): boolean {
  *
  * Navigation: arrows move (Shift extends, Cmd/Ctrl goes to the edge), Tab and Shift+Tab move and wrap, leaving
  * the sheet at its two ends; Enter, F2 and typing edit; Escape collapses a range; Delete and Backspace clear;
- * Home and End go to the row's ends; Shift+Space selects the row; Cmd/Ctrl+A, C, X, V, Z and Y as in the design;
+ * Home and End go to the row's ends; Shift+Space selects the row; Cmd/Ctrl+A edits the cell with all of its text
+ * selected; C, X, V, Z and Y as in the design;
  * Cmd/Ctrl+Enter makes an empty row under the active one.
  *
  * Edit: Enter and Shift+Enter commit and go down or up; Tab and Shift+Tab commit and move; Up and Down
@@ -157,7 +160,13 @@ function navigateKey(
   const at = state.active
 
   if (mod) {
-    if (key === 'a') return { kind: 'action', action: { type: 'selectAll' }, prevent: true }
+    if (key === 'a') {
+      // Cmd/Ctrl+A is the cell's text (Tobias, 2026-11-27): it opens the edit with all of it selected. The whole
+      // table is selected by dragging; a read-only cell keeps the focus as it is.
+      if (at === null) return NATIVE
+      if (shape.readOnly(at)) return { kind: 'action', action: { type: 'collapse' }, prevent: true }
+      return { kind: 'action', action: { type: 'startEdit', how: 'replace' }, prevent: true }
+    }
     if (at === null) return NATIVE
     const step = arrowStep(key)
     if (step !== undefined) {
@@ -172,6 +181,10 @@ function navigateKey(
         // an empty row under this one, with the focus in its key cell (Cmd+Enter on a Mac, Ctrl+Enter elsewhere)
         if (shift) return NATIVE
         return { kind: 'action', action: { type: 'insertBelow' }, prevent: true }
+      case 'Backspace':
+      case 'Delete':
+        // the rows of the selection go (Delete alone clears the cells): Cmd+Backspace on a Mac
+        return shift ? NATIVE : { kind: 'removeRows' }
       case 'c':
         return { kind: 'clipboard', op: 'copy' }
       case 'x':

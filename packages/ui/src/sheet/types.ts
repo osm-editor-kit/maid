@@ -17,7 +17,7 @@
  * 6. `endEdit` has `arrowDown` / `arrowUp`: commit and move in the ACTIVE cell's column, ignoring a Tab run.
  *    `down` / `up` (Enter, Shift+Enter) use the column the Tab run began in, as the design says.
  * 7. Escape in edit mode is not an action: the host drops the draft and dispatches `endEdit` with 'stay'.
- * 8. `selectAll` sets `rowsSelected` to false: Delete clears the cells, it never removes rows that way.
+ * 8. (Cmd/Ctrl+A selected the table until 2026-11-27; it now edits the cell with its text selected, keys.ts.)
  * 9. `SheetProps` lives here with a type-only import of `ReactNode`; it is erased at runtime, so this file
  *    still has no React in it.
  * 10. `SheetKeyEvent` and `SheetKeyResult` live in keys.ts (they are the key layer's, not the contract's).
@@ -67,6 +67,14 @@ export type SheetRow = {
   /** The whole row cannot be edited, pasted over or removed. */
   readOnly?: boolean
   /**
+   * Merged cells: a column that belongs to the cell of another column of this row (`{ right: 'value' }`: the value
+   * cell spans the right column too). The covered column has no cell; the keys skip it, and a move into it lands on
+   * the owner.
+   */
+  merged?: Record<ColId, ColId>
+  /** The column's name in the cells' accessible names of this row (`left of …`), in place of the column header */
+  colLabels?: Record<ColId, string>
+  /**
    * What is wrong with the row and what the sheet will do about it (the pending row: `pendingProblem`). The row is
    * amber and shows an exclamation mark with this text. Set by the sheet, not by the host.
    */
@@ -112,6 +120,11 @@ export type SheetColumn = {
   /** Applied on commit (trim, NFC). Must not shorten: over-long text stays and is invalid. */
   clean?: (text: string) => string
   suggest?: Suggest
+  /**
+   * How a cell's text looks while it is not edited (italic parts, for example): drawn over the input, whose own text is
+   * then invisible. The edit shows the plain text. Undefined: the text as it is.
+   */
+  display?: (text: string) => ReactNode | undefined
   /** Milliseconds before `suggest` runs: 0 for local lists, 300 for anything that makes a request. */
   suggestDelay?: number
 }
@@ -203,12 +216,14 @@ export type SheetProps = {
   /** A host message for the status line (e.g. "Copied"). A new object shows again. */
   note?: { text: string }
   /**
-   * The group of a row, shown as a small heading row above the first row of each run of rows in that group, as a
-   * spreadsheet's row group. Undefined: the row is in no group. The rows must already be in their group's order.
+   * A heading row above this row, as a spreadsheet's tinted headline: a text per column (the columns a merged cell
+   * covers have none). Not a row of the grid: no cell to reach, hidden from screen readers (the cells' names carry it).
    */
-  groupOf?: (row: SheetRow) => string | undefined
-  /** Rows that belong with the active cell's row, tinted while it is active (the other side of a road) */
-  relatedRows?: (row: SheetRow) => RowId[]
+  headingBefore?: (row: SheetRow) => Partial<Record<ColId, ReactNode>> | undefined
+  /** The trailing row stands right above this row instead of at the end (rows after it are a block of their own) */
+  trailingBefore?: RowId
+  /** Merged cells of the rows the sheet makes (the trailing, inserted and pending row), as `SheetRow.merged` */
+  newRowMerged?: Record<ColId, ColId>
 }
 
 /**
@@ -219,6 +234,8 @@ export type SheetShape = {
   colIds: ColId[]
   /** True when the cell cannot be edited: its row, its column, the cell, or the whole sheet is read-only. */
   readOnly: (cell: CellRef) => boolean
+  /** The cell that holds this one when it is covered by a merged cell (`SheetRow.merged`); else the cell itself */
+  owner?: (cell: CellRef) => CellRef
 }
 
 /**
@@ -228,7 +245,7 @@ export type SheetShape = {
 export type SheetState = {
   active: CellRef | null
   anchor: CellRef | null
-  /** The range was made with a row handle or Shift+Space: whole rows, which Delete removes. */
+  /** The range was made with Shift+Space or the row menu: whole rows, which Delete removes. */
   rowsSelected: boolean
   mode: 'navigate' | 'edit'
   /** Typing replaces the text (`replace`); Enter, F2 and a double click keep it, caret at the end (`keep`). */
@@ -280,7 +297,8 @@ export type SheetAction =
       edge?: boolean
       wrap?: boolean
     }
-  | { type: 'selectRows'; from: RowId; to?: RowId }
+  /** The whole row `from` (Shift+Space, the row menu) */
+  | { type: 'selectRows'; from: RowId }
   /** Cmd/Ctrl+click: adds the row to the selection, or removes it when it is in it. `col` is the clicked column. */
   | { type: 'toggleRow'; row: RowId; col?: ColId }
   /** An empty row under `row` (default: the active one), with the focus in its first cell */
@@ -292,7 +310,6 @@ export type SheetAction =
   | { type: 'openPending'; at: RowId; cells: Record<ColId, string>; focus: ColId }
   /** The focus left the sheet: the range collapses and an inserted row that stayed empty goes */
   | { type: 'leave' }
-  | { type: 'selectAll' }
   | { type: 'collapse' }
   | { type: 'startEdit'; how: 'replace' | 'keep' }
   | { type: 'endEdit'; after: EndThen }

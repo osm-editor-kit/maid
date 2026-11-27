@@ -51,9 +51,6 @@ import type {
 /** Mac: Cmd is the command key. Read once, in the browser. */
 const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
 
-/** The row handle at the left, a narrow column. */
-const HANDLE_WIDTH = '0.5rem'
-
 /** How long a message without a refusal stays. */
 const MESSAGE_MS = 6000
 
@@ -61,11 +58,9 @@ type PlanInput = Parameters<SheetClipboard['plan']>[0]
 type Track = {
   kind: string
   cell?: CellRef
-  rowAnchor?: RowId
   shift: boolean
   moved: boolean
   last?: CellRef
-  lastRow?: RowId
   /** The press was on a cell's list button: the click opens the cell with all of its suggestions (a mouse click on
    * any other cell only selects it; a double click edits, as in Google Sheets) */
   browse?: boolean
@@ -145,8 +140,9 @@ export function Sheet(props: SheetProps) {
     describePaste,
     orderToken = '',
     note,
-    groupOf,
-    relatedRows,
+    headingBefore,
+    trailingBefore,
+    newRowMerged,
   } = props
   const editable = onChange !== undefined
   const reduced = useReducedMotion() === true
@@ -157,30 +153,32 @@ export function Sheet(props: SheetProps) {
     sheetReadOnly: !editable,
     inserted: showTrailing ? state.inserted : null,
     pending: showTrailing ? state.pending : null,
+    trailingBefore,
+    newRowMerged,
   })
   const [seenIds, setSeenIds] = useState<RowId[]>(shape.rowIds)
   const [mintRowId] = useState(newRowIds)
   const [status, setStatus] = useState<StatusInfo>()
   const [draftNote, setDraftNote] = useState<string>()
-  /** The cell opened with its list button: it lists all suggestions until something is typed */
-  const [browsing, setBrowsing] = useState<CellRef | null>(null)
   const [seenNote, setSeenNote] = useState(note)
   const [menu, setMenu] = useState<RowMenu | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const grid = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<CellRef | null>(null)
+  /** Rows removed by a key press: the focus moves to the active cell once they are gone */
+  const refocusAfter = useRef<RowId[] | null>(null)
   const track = useRef<Track | undefined>(undefined)
   const pasteCount = useRef(0)
   const pasteWait = useRef<number | null>(null)
 
   const blankRow = useMemo<SheetRow>(
-    () => ({ id: state.trailingId, label: m.ui_sheet_new_row(), cells: {} }),
-    [state.trailingId],
+    () => ({ id: state.trailingId, label: m.ui_sheet_new_row(), cells: {}, merged: newRowMerged }),
+    [state.trailingId, newRowMerged],
   )
   const insertedId = showTrailing ? state.inserted?.id : undefined
   const insertedRow = useMemo<SheetRow>(
-    () => ({ id: insertedId ?? '', label: m.ui_sheet_new_row(), cells: {} }),
-    [insertedId],
+    () => ({ id: insertedId ?? '', label: m.ui_sheet_new_row(), cells: {}, merged: newRowMerged }),
+    [insertedId, newRowMerged],
   )
   // The pending row: its texts as cells, and its problem as a warning while it is not edited (checked when an edit
   // in it ends, never while it is typed).
@@ -193,6 +191,7 @@ export function Sheet(props: SheetProps) {
     pendingRow = {
       id: pending.id,
       label: firstText === '' ? m.ui_sheet_new_row() : firstText,
+      merged: newRowMerged,
       cells: Object.fromEntries(
         Object.entries(pending.cells).map(([col, text]): [ColId, SheetCellData] => [
           col,
@@ -202,26 +201,25 @@ export function Sheet(props: SheetProps) {
       ...(problem === undefined ? {} : { warning: m.ui_sheet_row_ignored({ problem }) }),
     }
   }
-  // The inserted and the pending row sit under their row, the trailing row at the end (the order shapeOf gives).
+  // The inserted and the pending row sit under their row, the trailing row at the end or above `trailingBefore` (the
+  // order shapeOf gives).
+  const tail: SheetRow[] = []
+  if (pendingRow !== undefined && pending?.after === null) tail.push(pendingRow)
+  if (showTrailing) tail.push(blankRow)
   const all: SheetRow[] = []
+  let tailPlaced = false
   for (const row of rows) {
+    if (row.id === trailingBefore && !tailPlaced) {
+      all.push(...tail)
+      tailPlaced = true
+    }
     all.push(row)
     if (insertedId !== undefined && state.inserted?.after === row.id) all.push(insertedRow)
     if (pendingRow !== undefined && pending?.after === row.id) all.push(pendingRow)
   }
-  if (pendingRow !== undefined && pending?.after === null) all.push(pendingRow)
-  if (showTrailing) all.push(blankRow)
+  if (!tailPlaced) all.push(...tail)
   const picked = state.extraRows.length > 0 ? new Set(selectedRowIds(state, shape)) : undefined
   const at = state.active
-  // the rows that belong with the active one (relatedRows): their cells are tinted, and their handles and the active
-  // row's handle are violet, so the two read as a pair
-  const activeRow = at === null ? undefined : rows.find((row) => row.id === at.row)
-  const relatedIds = activeRow === undefined ? [] : (relatedRows?.(activeRow) ?? [])
-  const tinted = new Set<RowId>(relatedIds)
-  const related = new Set<RowId>(relatedIds)
-  if (relatedIds.length > 0 && activeRow !== undefined) related.add(activeRow.id)
-  /** The keys of the group headings made in this render (a group that comes twice gets a second key) */
-  const headings = new Set<string>()
   const rect = selectionRect(state, shape)
   // A single cell is only the active cell (its ring); the fill is for a range of two or more cells
   const ranged = rect !== undefined && (rect.r0 !== rect.r1 || rect.c0 !== rect.c1)
@@ -232,7 +230,6 @@ export function Sheet(props: SheetProps) {
       : undefined)
   const columnsStyle = {
     gridTemplateColumns: [
-      HANDLE_WIDTH,
       ...columns.map((column) => column.width),
       ...(rowActions ? ['auto'] : []),
     ].join(' '),
@@ -240,7 +237,11 @@ export function Sheet(props: SheetProps) {
   const activeText = at === null ? undefined : all.find((row) => row.id === at.row)?.cells[at.col]
   const committedCounter =
     at !== null && state.mode === 'navigate' ? counterText(cellText(activeText)) : undefined
-  const counter = state.mode === 'edit' ? draftNote : committedCounter
+  // a selected cell that is invalid says why in the line under the sheet
+  const counter =
+    state.mode === 'edit'
+      ? draftNote
+      : (committedCounter ?? (at === null ? undefined : activeText?.invalid))
 
   // A host that re-sorted or changed the rows: the active cell follows its row id, else keeps its place.
   if (!sameIds(seenIds, shape.rowIds)) {
@@ -255,6 +256,12 @@ export function Sheet(props: SheetProps) {
 
   // The focus moves after the render that shows the new active cell (a new row has no input before it).
   useEffect(() => {
+    // rows removed with the keyboard: once they are gone, the focus goes to the active cell that took their place
+    const removed = refocusAfter.current
+    if (removed !== null && state.active !== null && !removed.includes(state.active.row)) {
+      refocusAfter.current = null
+      pendingFocus.current ??= state.active
+    }
     const target = pendingFocus.current
     if (target === null) return
     pendingFocus.current = null
@@ -381,7 +388,17 @@ export function Sheet(props: SheetProps) {
     const anchor = state.active
     if (anchor === null) return false
     if (!editable) return true
-    const selection = selectedCells(state, shape).filter((cell) => cell.row !== state.trailingId)
+    // a column a merged cell covers is that cell, once
+    const seen = new Set<string>()
+    const selection = selectedCells(state, shape)
+      .filter((cell) => cell.row !== state.trailingId)
+      .map((cell) => shape.owner?.(cell) ?? cell)
+      .filter((cell) => {
+        const id = `${cell.row}\u0000${cell.col}`
+        if (seen.has(id)) return false
+        seen.add(id)
+        return true
+      })
     const plan = clipboard?.plan ?? positionalPlan
     const out = plan({ text, rows, columns, anchor, selection, editing, newRowId: mintRowId })
     if (out === 'native') return false
@@ -493,6 +510,16 @@ export function Sheet(props: SheetProps) {
         event.preventDefault()
         clearSelectionAs('delete')
         return
+      case 'removeRows': {
+        event.preventDefault()
+        const ids = selectedRowIds(state, shape)
+        const batch = removeRows(ids, rows)
+        if (batch === undefined || onChange === undefined) return
+        // the focused input goes with its row: the focus follows to the cell that takes its place
+        refocusAfter.current = ids
+        onChange(batch)
+        return
+      }
       case 'clipboard':
         if (result.op === 'copy') {
           event.preventDefault()
@@ -539,21 +566,12 @@ export function Sheet(props: SheetProps) {
     clearSelectionAs('cut')
   }
 
-  /** Follows the pointer while it is down: a range of cells, or of rows from a row handle. */
+  /** Follows the pointer while it is down: a range of cells. */
   function listen(): void {
     const move = (event: PointerEvent) => {
       const current = track.current
       const hit = document.elementFromPoint(event.clientX, event.clientY)
       if (current === undefined || !(hit instanceof Element) || !grid.current?.contains(hit)) return
-      if (current.rowAnchor !== undefined) {
-        const rowId = hit.closest<HTMLElement>('[data-row]')?.dataset.row
-        if (rowId === undefined || rowId === current.lastRow) return
-        const from = current.rowAnchor
-        current.lastRow = rowId
-        current.moved = true
-        setState((prev) => sheetReducer(prev, { type: 'selectRows', from, to: rowId }, shape))
-        return
-      }
       const cell = hit.closest<HTMLElement>('[data-col]')
       const ref = cell === null ? undefined : cellRefOf(cell)
       if (ref === undefined || sameCell(ref, current.last)) return
@@ -580,28 +598,6 @@ export function Sheet(props: SheetProps) {
     let base = state
     if (open !== null) base = leaveEdit(open, 'stay', state)
     const mouse = event.pointerType === 'mouse'
-    const handle = target.closest<HTMLElement>('[data-row-handle]')
-    if (handle !== null) {
-      const rowId = handle.closest<HTMLElement>('[data-row]')?.dataset.row
-      if (rowId === undefined) return
-      event.preventDefault()
-      if (togglesRow(event, { mac: MAC })) {
-        track.current = undefined
-        toggleRow(base, rowId, undefined)
-        return
-      }
-      const from = event.shiftKey && base.active !== null ? base.active.row : rowId
-      track.current = {
-        kind: event.pointerType,
-        shift: event.shiftKey,
-        moved: false,
-        rowAnchor: from,
-        lastRow: rowId,
-      }
-      setState(resolved(sheetReducer(base, { type: 'selectRows', from, to: rowId }, shape)))
-      listen()
-      return
-    }
     const cellElement = target.closest<HTMLElement>('[data-col]')
     const cell = cellElement === null ? undefined : cellRefOf(cellElement)
     if (cell === undefined) {
@@ -647,8 +643,8 @@ export function Sheet(props: SheetProps) {
   }
 
   /**
-   * A mouse click only selects, also on the active cell (as in Google Sheets: Cmd/Ctrl+A then selects the table, not
-   * the text); its list button opens it. A tap (touch, pen) edits at once.
+   * A mouse click only selects, also on the active cell (as in Google Sheets); a double click, Enter, F2, typing or
+   * Cmd/Ctrl+A edits. Its list button opens it. A tap (touch, pen) edits at once.
    */
   function onClick(): void {
     const current = track.current
@@ -665,14 +661,12 @@ export function Sheet(props: SheetProps) {
     const input = cellInput(grid.current, current.cell)
     if (input === null) return
     input.focus({ preventScroll: true })
-    setBrowsing(current.browse === true ? current.cell : null)
     beginEdit(input, 'keep')
   }
 
   /** A double click edits the cell, the text kept and the caret at its end. */
   function onDoubleClick(event: ReactMouseEvent<HTMLDivElement>): void {
-    if (!(event.target instanceof Element) || event.target.closest('[data-row-handle]') !== null)
-      return
+    if (!(event.target instanceof Element)) return
     const cellElement = event.target.closest<HTMLElement>('[data-col]')
     const cell = cellElement === null ? undefined : cellRefOf(cellElement)
     if (cell === undefined || !sameCell(state.active, cell) || state.mode !== 'navigate') return
@@ -785,7 +779,7 @@ export function Sheet(props: SheetProps) {
         aria-colcount={columns.length}
         aria-multiselectable="true"
         aria-readonly={editable ? undefined : true}
-        className="border-t border-zinc-950/10 select-none dark:border-white/10"
+        className="border-t border-l border-zinc-950/10 select-none dark:border-white/10"
         onKeyDown={onKeyDown}
         onPointerDown={onPointerDown}
         onClick={onClick}
@@ -804,10 +798,6 @@ export function Sheet(props: SheetProps) {
           className={showHeader ? 'grid' : 'sr-only'}
           style={columnsStyle}
         >
-          <div
-            aria-hidden="true"
-            className="border-r border-b border-zinc-950/10 dark:border-white/10"
-          />
           {columns.map((column) => (
             <div
               key={column.id}
@@ -825,10 +815,6 @@ export function Sheet(props: SheetProps) {
             const isTrailing =
               row.id === insertedId || (showTrailing && row.id === state.trailingId)
             const isPending = row.id === pending?.id
-            const group = isTrailing ? undefined : groupOf?.(row)
-            const previous = r > 0 ? all[r - 1] : undefined
-            const groupStarts =
-              group !== undefined && (previous === undefined || groupOf?.(previous) !== group)
             const whole = picked?.has(row.id) === true
             const inRange = rect !== undefined && r >= rect.r0 && r <= rect.r1
             const motionProps = reduced
@@ -838,28 +824,34 @@ export function Sheet(props: SheetProps) {
                   animate: { opacity: 1, height: 'auto' },
                   exit: { opacity: 0, height: 0 },
                 }
-            let headingKey = `group:${group}`
-            if (groupStarts) {
-              if (headings.has(headingKey)) headingKey = `${headingKey}:${row.id}`
-              headings.add(headingKey)
-            }
-            const heading = groupStarts ? (
-              // a heading row as a spreadsheet's row group has: not a row of the grid (no cell to reach), the keys
-              // of its rows say the group to a screen reader
-              <motion.div
-                // the first run of a group keeps its key when its first row changes, so the heading moves, not blinks
-                key={headingKey}
-                aria-hidden="true"
-                data-group-heading={group}
-                className="flex h-5 items-center overflow-hidden border-b border-zinc-950/10 bg-zinc-950/[0.03] pl-3 font-mono text-[0.625rem] font-medium tracking-wide text-zinc-500 uppercase dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-400"
-                layout={reduced ? false : 'position'}
-                layoutDependency={orderToken}
-                transition={UI_SPRING}
-                {...motionProps}
-              >
-                {group}
-              </motion.div>
-            ) : null
+            // a headline above the row, as a spreadsheet's tinted heading row (headingBefore)
+            const headline = headingBefore?.(row)
+            const heading =
+              headline === undefined ? null : (
+                <motion.div
+                  key={`heading:${row.id}`}
+                  aria-hidden="true"
+                  data-heading={row.id}
+                  className="grid items-stretch overflow-hidden bg-zinc-950/[0.04] dark:bg-white/[0.06]"
+                  style={columnsStyle}
+                  layout={reduced ? false : 'position'}
+                  layoutDependency={orderToken}
+                  transition={UI_SPRING}
+                  {...motionProps}
+                >
+                  {columns.map((column) =>
+                    row.merged?.[column.id] !== undefined ? null : (
+                      <div
+                        key={column.id}
+                        className="flex min-h-6 min-w-0 items-center border-r border-b border-zinc-950/10 px-1.5 text-xs font-medium text-zinc-500 dark:border-white/10 dark:text-zinc-400"
+                      >
+                        {headline[column.id]}
+                      </div>
+                    ),
+                  )}
+                  {rowActions !== undefined ? <div /> : null}
+                </motion.div>
+              )
             const rowElement = (
               <motion.div
                 key={row.id}
@@ -873,20 +865,12 @@ export function Sheet(props: SheetProps) {
                 transition={UI_SPRING}
                 {...motionProps}
               >
-                <div
-                  aria-hidden="true"
-                  data-row-handle="true"
-                  className={`border-r border-b border-zinc-950/10 dark:border-white/10 ${
-                    (inRange && state.rowsSelected) || whole
-                      ? 'bg-blue-500'
-                      : related.has(row.id)
-                        ? 'bg-violet-400 dark:bg-violet-500'
-                        : group !== undefined
-                          ? 'bg-zinc-950/10 hover:bg-zinc-950/20 dark:bg-white/15 dark:hover:bg-white/25'
-                          : 'hover:bg-zinc-950/5 dark:hover:bg-white/10'
-                  }`}
-                />
                 {columns.map((column, c) => {
+                  // a column covered by a merged cell has no cell: the owner spans it
+                  if (row.merged?.[column.id] !== undefined) return null
+                  const span =
+                    1 +
+                    Object.values(row.merged ?? {}).filter((owner) => owner === column.id).length
                   const ref = { row: row.id, col: column.id }
                   const active = sameCell(at, ref)
                   const selected =
@@ -911,10 +895,9 @@ export function Sheet(props: SheetProps) {
                       }
                       readOnly={shape.readOnly(ref)}
                       tabIndex={sameCell(tabStop, ref) ? 0 : -1}
-                      browsing={sameCell(browsing, ref)}
                       warning={row.warning}
-                      warningIcon={c === columns.length - 1}
-                      related={tinted.has(row.id)}
+                      warningIcon={c + span - 1 === columns.length - 1}
+                      span={span}
                     />
                   )
                 })}

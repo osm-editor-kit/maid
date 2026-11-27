@@ -141,29 +141,20 @@ describe('sheetReducer: activate and move', () => {
 })
 
 describe('sheetReducer: rows, all and collapse', () => {
-  it('selects a run of rows over all columns', () => {
-    const next = sheetReducer(
-      focus(cell('b', 'value')),
-      { type: 'selectRows', from: 'b', to: 'c' },
-      shape,
-    )
+  it('selects a row over all columns', () => {
+    const next = sheetReducer(focus(cell('c', 'value')), { type: 'selectRows', from: 'b' }, shape)
     expect(next.rowsSelected).toBe(true)
     expect(next.anchor).toEqual(cell('b', 'key'))
-    expect(next.active).toEqual(cell('c', 'value'))
-    expect(selectedCells(next, shape).map((c) => c.row)).toEqual(['b', 'b', 'c', 'c'])
-  })
-
-  it('selects all rows but not the trailing one', () => {
-    const next = sheetReducer(focus(cell('b', 'value')), { type: 'selectAll' }, shape)
-    expect(next.anchor).toEqual(cell('a', 'key'))
-    expect(next.active).toEqual(cell('c', 'value'))
-    expect(next.rowsSelected).toBe(false)
-    expect(selectedCells(next, shape).some((c) => c.row === 't0')).toBe(false)
+    expect(next.active).toEqual(cell('b', 'value'))
+    expect(selectedCells(next, shape).map((c) => c.row)).toEqual(['b', 'b'])
   })
 
   it('collapses a range to the active cell', () => {
-    let state = sheetReducer(focus(cell('a', 'key')), { type: 'selectAll' }, shape)
-    state = sheetReducer(state, { type: 'collapse' }, shape)
+    const state = sheetReducer(
+      { ...focus(cell('c', 'value')), anchor: cell('a', 'key') },
+      { type: 'collapse' },
+      shape,
+    )
     expect(state.anchor).toBeNull()
     expect(state.rowsSelected).toBe(false)
     expect(state.active).toEqual(cell('c', 'value'))
@@ -725,7 +716,7 @@ describe('sheetReducer: Cmd/Ctrl+click picks single rows', () => {
     expect(selectedRowIds(plain, shape)).toEqual(['b'])
   })
 
-  it('a plain move, a row handle, Select all, Escape and an edit drop the extra rows', () => {
+  it('a plain move, a whole row, Escape and an edit drop the extra rows', () => {
     const picked = sheetReducer(
       focus(cell('a', 'key')),
       { type: 'toggleRow', row: 'c', col: 'key' },
@@ -734,7 +725,6 @@ describe('sheetReducer: Cmd/Ctrl+click picks single rows', () => {
     for (const action of [
       { type: 'move', dx: 0, dy: -1 },
       { type: 'selectRows', from: 'b' },
-      { type: 'selectAll' },
       { type: 'collapse' },
       { type: 'startEdit', how: 'keep' },
     ] as const) {
@@ -901,7 +891,7 @@ describe('the pending row: a pasted row that is not data yet', () => {
 
   it('is never a selected row, and a row above it that goes moves it to the end', () => {
     const start = open({ key: 'highway', value: 'x' })
-    const all = sheetReducer(start, { type: 'selectAll' }, shapeWith(start))
+    const all = { ...start, mode: 'navigate' as const, anchor: cell('a', 'key') }
     expect(selectedRowIds(all, shapeWith(all))).toEqual(['a', 'b', 'c'])
     const under = { ...start, pending: { id: 't1', after: 'b', cells: { key: 'x' } } }
     const fewer = [rowA, rowC]
@@ -911,5 +901,84 @@ describe('the pending row: a pasted row that is not data yet', () => {
       shapeOf(fewer, columns, { trailingId: 't0', pending: { ...under.pending, after: null } }),
     )
     expect(next.pending?.after).toBeNull()
+  })
+})
+
+describe('merged cells: a value cell that spans the column after it', () => {
+  const three: SheetColumn[] = [
+    keyColumn,
+    { ...valueColumn },
+    { id: 'right', header: 'Right', width: '1fr' },
+  ]
+  const plain = { ...row('p', 'highway', 'residential'), merged: { right: 'value' } }
+  const sided: SheetRow = {
+    id: 's',
+    label: 'cycleway:side',
+    cells: { key: text('cycleway:{side}'), value: text('lane'), right: text('lane') },
+  }
+  const merged = shapeOf([plain, sided], three, { trailingId: 't0', trailingBefore: 's' })
+
+  it('the trailing row stands above the row it is placed before, and spans like the plain rows', () => {
+    expect(merged.rowIds).toEqual(['p', 't0', 's'])
+    const spans = shapeOf([plain, sided], three, {
+      trailingId: 't0',
+      trailingBefore: 's',
+      newRowMerged: { right: 'value' },
+    })
+    expect(spans.owner?.(cell('t0', 'right'))).toEqual(cell('t0', 'value'))
+  })
+
+  it('a move up from the right column lands on the merged value cell', () => {
+    const next = sheetReducer(focus(cell('s', 'right')), { type: 'move', dx: 0, dy: -1 }, merged)
+    expect(next.active).toEqual(cell('t0', 'right'))
+    const fromPlain = sheetReducer(
+      focus(cell('s', 'right')),
+      { type: 'move', dx: 0, dy: -1 },
+      shapeOf([plain, sided], three),
+    )
+    expect(fromPlain.active).toEqual(cell('p', 'value'))
+  })
+
+  it('Tab steps over the covered column to the next row', () => {
+    const next = sheetReducer(
+      focus(cell('p', 'value')),
+      { type: 'move', dx: 1, dy: 0, wrap: true },
+      shapeOf([plain, sided], three),
+    )
+    expect(next.active).toEqual(cell('s', 'key'))
+  })
+})
+
+describe('rowsChanged: the active cell stays on a cell there is', () => {
+  const three: SheetColumn[] = [
+    keyColumn,
+    valueColumn,
+    { id: 'right', header: 'Right', width: '1fr' },
+  ]
+  const plain = { ...row('p', 'highway', 'residential'), merged: { right: 'value' } }
+  const sided: SheetRow = {
+    id: 's',
+    label: 'cycleway:side',
+    cells: { key: text('cycleway:{side}'), value: text('lane'), right: text('lane') },
+  }
+
+  it('a row that goes moves the active cell to the merged cell that covers its column', () => {
+    const before = shapeOf([plain, sided], three)
+    const after = shapeOf([plain], three)
+    const next = sheetReducer(
+      { ...initialSheetState(), active: cell('s', 'right') },
+      { type: 'rowsChanged', previousRowIds: before.rowIds },
+      after,
+    )
+    expect(next.active).toEqual(cell('p', 'value'))
+  })
+
+  it('a column that is gone (fewer columns) gives the first column', () => {
+    const next = sheetReducer(
+      { ...initialSheetState(), active: cell('a', 'right') },
+      { type: 'rowsChanged', previousRowIds: ['a', 'b', 'c'] },
+      shape,
+    )
+    expect(next.active).toEqual(cell('a', 'key'))
   })
 })

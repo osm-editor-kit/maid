@@ -11,6 +11,10 @@ import { runCheck } from './check-page'
 
 declare global {
   interface Window {
+    __sheetSeveral: {
+      features: { id: string; tags: Record<string, string> }[]
+      each: unknown[]
+    }
     __sheet: {
       tags: Record<string, string>
       calls: { tags: Record<string, string>; label: string }[]
@@ -28,6 +32,9 @@ const frame = (page: Page) =>
         requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
       ),
   )
+
+/** The Tags sheet itself (the sides view adds a table per group, labelled "…: cycleway") */
+const TOP = '[role="grid"][aria-label="Tags of the feature"]'
 
 const code = await runCheck(
   'small',
@@ -58,8 +65,8 @@ const code = await runCheck(
     const rowsSettle = (count: number) =>
       page
         .waitForFunction(
-          (n) => document.querySelectorAll('[role="grid"] [data-row]').length === n,
-          count,
+          ([selector, n]) => document.querySelectorAll(selector).length === n,
+          [`${TOP} [role="row"][data-row]`, count] as const,
           { timeout: 3000 },
         )
         .catch(() => undefined)
@@ -72,7 +79,7 @@ const code = await runCheck(
     const focused = () =>
       page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? null)
     const keys = () =>
-      page.$$eval('[role="grid"] [data-row] [data-col="key"] textarea', (inputs) =>
+      page.$$eval(`${TOP} [data-row] [data-col="key"] textarea`, (inputs) =>
         inputs.map((input) => (input instanceof HTMLTextAreaElement ? input.value : '')),
       )
     const tags = () => page.evaluate(() => window.__sheet.tags)
@@ -111,21 +118,43 @@ const code = await runCheck(
       { lit: (await tags()).lit, calls: await calls() },
     )
 
-    // A click selects (also a second click on the active cell); Cmd/Ctrl+A there selects the whole table, while in an
-    // edit it selects the cell's text only; Escape leaves the edit and keeps the cell selected
+    // A click selects (also a second click on the active cell), with no caret; Cmd/Ctrl+A is always the cell's text:
+    // on a selected cell it opens the edit with all of it selected; Escape leaves the edit and keeps the cell selected
+    const caret = () =>
+      page.evaluate(() =>
+        document.activeElement instanceof HTMLTextAreaElement
+          ? getComputedStyle(document.activeElement).caretColor
+          : null,
+      )
     await fresh()
     await click('Value of lit')
     await click('Value of lit')
     report(
-      'a second click on the selected cell keeps it selected, not edited',
-      false,
-      await editing(),
+      'a second click on the selected cell keeps it selected, not edited, and shows no caret',
+      { editing: false, caret: 'rgba(0, 0, 0, 0)' },
+      { editing: await editing(), caret: await caret() },
     )
     await press('ControlOrMeta+A')
     report(
-      'Cmd/Ctrl+A on a selected cell selects every row of the table (5 tags, 10 cells), not the text',
-      { cells: 10, editing: false },
-      { cells: await selectedCells(), editing: await editing() },
+      'Cmd/Ctrl+A on a selected cell edits it with all of its text selected, not the table',
+      { editing: true, cells: 0, text: 'yes' },
+      {
+        editing: await editing(),
+        cells: await selectedCells(),
+        text: await page.evaluate(() => String(getSelection())),
+      },
+    )
+    await press('Escape')
+    await press('ArrowUp')
+    await press('ControlOrMeta+A')
+    report(
+      'after arrow keys too: Cmd/Ctrl+A is the text of the cell reached',
+      { focus: 'Value of highway', editing: true, text: 'residential' },
+      {
+        focus: await focused(),
+        editing: await editing(),
+        text: await page.evaluate(() => String(getSelection())),
+      },
     )
     await press('Escape')
     await edit('Value of lit')
@@ -447,13 +476,25 @@ const code = await runCheck(
       },
     )
 
-    // --- The sides view (?harness=tags&sides=1): groups, :both as left and right, saved as :both again ---
+    // --- The sides view (?harness=tags&sides=1): one sheet; the tags with no side on top (their value cell spans
+    // both side columns), then each group under a headline, a row per key with {side}, a left and a right value ---
     await page.goto(page.url().replace('harness=tags', 'harness=tags&sides=1'))
     await page.waitForFunction(() => window.__sheet !== undefined)
     await frame(page)
+    const grids = () =>
+      page.$$eval('[role="grid"]', (items) => items.map((item) => item.getAttribute('aria-label')))
     const headings = () =>
-      page.$$eval('[data-group-heading]', (items) =>
-        items.map((item) => item.getAttribute('data-group-heading')),
+      page.$$eval('[data-heading]', (items) =>
+        items.map((item) => item.getAttribute('data-heading')),
+      )
+    const sideRows = () =>
+      page.$$eval(`${TOP} [role="row"][data-row^="side:"]`, (rows) =>
+        rows.map((row) =>
+          ['key', 'value', 'right'].map(
+            (col) =>
+              row.querySelector<HTMLTextAreaElement>(`[data-col="${col}"] textarea`)?.value ?? '',
+          ),
+        ),
       )
     const stored = async () => sorted(await tags())
     const exactKeys = [
@@ -471,66 +512,104 @@ const code = await runCheck(
       '',
     ]
     report(
-      'exact view: the tags as stored, sorted as iD, no groups',
+      'Raw: the tags as stored, sorted as iD, no headlines',
       { keys: exactKeys, headings: [] },
       { keys: await keys(), headings: await headings() },
     )
     const storedBefore = await stored()
-    await page.getByRole('button', { name: 'Show left and right' }).click()
-    await rowsSettle(21)
+    await page.getByRole('radio', { name: 'Sides' }).click()
+    await rowsSettle(12)
+    // the switch's tooltip would cover the cells below it
+    await page.mouse.move(4, 4)
     report(
-      'sides view: cycleway, parking and sidewalk grouped with their source key, :both shown as left and right',
+      'Sides: one sheet, the tags with no side and the empty row on top, then sidewalk, cycleway and parking',
       {
+        grids: ['Tags of the feature'],
         keys: [
-          'cycleway:left',
-          'cycleway:left:lane',
-          'cycleway:left:oneway',
-          'cycleway:left:width',
-          'source:cycleway:left:width',
-          'cycleway:right',
-          'cycleway:right:lane',
-          'cycleway:right:oneway',
-          'cycleway:right:width',
-          'source:cycleway:right:width',
           'highway',
           'name',
-          'parking:left',
-          'parking:right',
-          'sidewalk:left',
-          'sidewalk:right',
           'surface',
           '',
+          'sidewalk:{side}',
+          'cycleway:{side}',
+          'cycleway:{side}:lane',
+          'cycleway:{side}:oneway',
+          'cycleway:{side}:width',
+          'source:cycleway:{side}:width',
+          'parking:{side}',
         ],
-        headings: ['cycleway', 'parking', 'sidewalk'],
-        pressed: 'true',
+        headings: ['side:sidewalk:{side}', 'side:cycleway:{side}', 'side:parking:{side}'],
+        checked: 'true',
         stored: true,
         calls: 0,
       },
       {
+        grids: await grids(),
         keys: await keys(),
         headings: await headings(),
-        pressed: await page
-          .getByRole('button', { name: 'Show left and right' })
-          .getAttribute('aria-pressed'),
+        checked: await page.getByRole('radio', { name: 'Sides' }).getAttribute('aria-checked'),
         stored: storedBefore === (await stored()),
         calls: await calls(),
       },
     )
-    const tinted = () =>
-      page.$$eval('[role="grid"] [data-row]', (rows) =>
-        rows
-          .filter((row) => row.querySelector('[role="gridcell"][class*="bg-violet"]') !== null)
-          .map((row) => row.querySelector<HTMLTextAreaElement>('[data-col="key"] textarea')?.value),
-      )
-    await click('Value of cycleway:left:width')
-    const sameSide = await tinted()
-    await click('Value of cycleway:left:oneway')
     report(
-      'a selected side with the same value on the other side tints that row; a different value tints none',
-      { same: ['cycleway:right:width'], different: [] },
-      { same: sameSide, different: await tinted() },
+      'a group row: the key with {side}, the left value under the value column, the right one beside it',
+      [
+        ['cycleway:{side}', 'lane', 'lane'],
+        ['cycleway:{side}:lane', 'advisory', 'advisory'],
+        ['cycleway:{side}:oneway', '-1', 'yes'],
+      ],
+      (await sideRows()).slice(1, 4),
     )
-    await edit('Value of cycleway:left:width')
+    report(
+      'a row with no side has one value cell over both columns; the key shows the side as an italic word',
+      { span: 'span 2', italic: 'side' },
+      {
+        span: await page.evaluate(
+          () =>
+            document
+              .querySelector<HTMLElement>('textarea[aria-label="Value of highway"]')
+              ?.closest<HTMLElement>('[data-col]')?.style.gridColumn ?? null,
+        ),
+        italic: await page.locator(`${TOP} [data-col="key"] i`).first().textContent(),
+      },
+    )
+    await click('Value of surface')
+    const walk: (string | null)[] = []
+    for (const key of ['ArrowDown', 'ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowUp']) {
+      await press(key)
+      walk.push(await focused())
+    }
+    report(
+      'one selection through the whole sheet: the arrows go from the merged cells into the sides and back',
+      [
+        'Value of new row',
+        'left of sidewalk:side',
+        'right of sidewalk:side',
+        'Value of new row',
+        'Value of surface',
+      ],
+      walk,
+    )
+    await edit('left of cycleway:side')
+    // the list comes after the suggestion delay
+    await page
+      .waitForSelector('[role="listbox"] [role="option"]', { timeout: 3000 })
+      .catch(() => undefined)
+    const offered = await page.$$eval('[role="listbox"] [role="option"]', (items) =>
+      items.map((item) => item.textContent ?? ''),
+    )
+    report(
+      'an edit opened with nothing typed lists the presets values of the side key, not only the value it has',
+      { many: true, track: true },
+      {
+        many: offered.length > 3,
+        track: offered.some((text) => text.startsWith('track')),
+      },
+    )
+    await press('Escape')
+    await press('Escape')
+    await edit('left of cycleway:side:width')
     await press('ControlOrMeta+A')
     await type('2')
     await press('Enter')
@@ -546,27 +625,188 @@ const code = await runCheck(
         calls: await calls(),
       },
     )
-    await edit('Value of cycleway:right:width')
+    await edit('right of cycleway:side:width')
     await press('ControlOrMeta+A')
     await type('2')
     await press('Enter')
     const merged = await tags()
     report(
-      'the other side set to the same value: saved as both again, the rows stay left and right',
-      { both: '2', left: undefined, right: undefined, shown: true },
+      'the other side set to the same value: saved as both again, still one row',
+      { both: '2', left: undefined, right: undefined, row: ['cycleway:{side}:width', '2', '2'] },
       {
         both: merged['cycleway:both:width'],
         left: merged['cycleway:left:width'],
         right: merged['cycleway:right:width'],
-        shown: (await keys()).includes('cycleway:right:width'),
+        row: (await sideRows())[4],
       },
     )
-    await page.getByRole('button', { name: 'Show left and right' }).click()
+    await page.getByRole('radio', { name: 'Raw' }).click()
     await rowsSettle(12)
+    // the switch's tooltip would cover the cells below it
+    await page.mouse.move(4, 4)
     report(
-      'back to the exact view: the tags as stored, no groups',
+      'back to Raw: the tags as stored, no headlines',
       { keys: exactKeys, headings: [] },
       { keys: await keys(), headings: await headings() },
+    )
+
+    // --- The sides view of several features (?harness=tags&sides=1&several=1): two roads, each with its own :both ---
+    await page.goto(page.url().replace('sides=1', 'sides=1&several=1'))
+    await page.waitForFunction(() => window.__sheetSeveral !== undefined)
+    await frame(page)
+    const MANY = '[role="grid"][aria-label="Tags of several"]'
+    const manyRows = () =>
+      page.$$eval(`${MANY} [role="row"][data-row^="side:"]`, (rows) =>
+        rows.map((row) =>
+          ['key', 'value', 'right'].map((col) => {
+            const input = row.querySelector<HTMLTextAreaElement>(`[data-col="${col}"] textarea`)
+            return input === null ? '' : input.value || input.placeholder
+          }),
+        ),
+      )
+    const roads = () =>
+      page.evaluate(() =>
+        Object.fromEntries(
+          window.__sheetSeveral.features.map((road) => [
+            road.id,
+            Object.fromEntries(Object.entries(road.tags).sort(([a], [b]) => (a < b ? -1 : 1))),
+          ]),
+        ),
+      )
+    const writes = () => page.evaluate(() => window.__sheetSeveral.each.length)
+    report(
+      'several features by sides: a side all features agree on has its value, one where they differ "Multiple values"',
+      [
+        ['cycleway:{side}', 'lane', 'Multiple values'],
+        ['cycleway:{side}:width', 'Multiple values', 'Multiple values'],
+      ],
+      await manyRows(),
+    )
+    await edit('right of cycleway:side')
+    await press('ControlOrMeta+A')
+    await type('track')
+    await press('Enter')
+    report(
+      'a side set for all: the feature that had :both is written with its two sides, the other is not changed',
+      {
+        writes: 1,
+        w1: {
+          'cycleway:both:width': '1.5',
+          'cycleway:left': 'lane',
+          'cycleway:right': 'track',
+          highway: 'residential',
+        },
+        w2: {
+          'cycleway:both:width': '2',
+          'cycleway:left': 'lane',
+          'cycleway:right': 'track',
+          highway: 'residential',
+        },
+      },
+      { writes: await writes(), ...(await roads()) },
+    )
+    await edit('left of cycleway:side:width')
+    await press('ControlOrMeta+A')
+    await type('2')
+    await press('Enter')
+    const after = await roads()
+    report(
+      'each feature merges its own sides: one splits its width, the other keeps :both, one step',
+      {
+        writes: 2,
+        w1: { left: '2', right: '1.5', both: undefined },
+        w2: { left: undefined, right: undefined, both: '2' },
+      },
+      {
+        writes: await writes(),
+        w1: {
+          left: after.w1?.['cycleway:left:width'],
+          right: after.w1?.['cycleway:right:width'],
+          both: after.w1?.['cycleway:both:width'],
+        },
+        w2: {
+          left: after.w2?.['cycleway:left:width'],
+          right: after.w2?.['cycleway:right:width'],
+          both: after.w2?.['cycleway:both:width'],
+        },
+      },
+    )
+
+    // --- A side set to "no": its other cells become errors; Cmd/Ctrl+Backspace removes the selected row ---
+    await page.goto(page.url().replace('&several=1', ''))
+    await page.waitForFunction(() => window.__sheet !== undefined)
+    await frame(page)
+    await page.getByRole('radio', { name: 'Sides' }).click()
+    await rowsSettle(12)
+    await page.mouse.move(4, 4)
+    await writeClipboard('cycleway:both=track')
+    await click('Key of new row')
+    await press('ControlOrMeta+V')
+    const pasted = await tags()
+    report(
+      'a :both key pasted on top replaces the sides, never stands beside them',
+      { both: 'track', left: undefined, right: undefined },
+      {
+        both: pasted['cycleway:both'],
+        left: pasted['cycleway:left'],
+        right: pasted['cycleway:right'],
+      },
+    )
+    await edit('left of cycleway:side')
+    await press('ControlOrMeta+A')
+    await type('no')
+    await press('Enter')
+    const invalidLeft = () =>
+      page.$$eval(`${TOP} [role="row"][data-row^="side:"]`, (rows) =>
+        rows
+          .filter(
+            (row) =>
+              row.querySelector('[data-col="value"] textarea')?.getAttribute('aria-invalid') ===
+              'true',
+          )
+          .map((row) => row.querySelector<HTMLTextAreaElement>('[data-col="key"] textarea')?.value),
+      )
+    report(
+      'a side set to "no": the values left on that side are errors, the side key and the other side are not',
+      [
+        'cycleway:{side}:lane',
+        'cycleway:{side}:oneway',
+        'cycleway:{side}:width',
+        'source:cycleway:{side}:width',
+      ],
+      await invalidLeft(),
+    )
+    await click('left of cycleway:side:lane')
+    report(
+      'the selected cell says why under the sheet',
+      true,
+      (await status())?.includes('cycleway:left is "no"') ?? false,
+    )
+    await press('ControlOrMeta+Backspace')
+    await rowsSettle(14)
+    const removed = await tags()
+    report(
+      'Cmd/Ctrl+Backspace on a group row removes the attribute on both sides, as one change',
+      { left: undefined, right: undefined, both: undefined, gone: false },
+      {
+        left: removed['cycleway:left:lane'],
+        right: removed['cycleway:right:lane'],
+        both: removed['cycleway:both:lane'],
+        gone: (await keys()).includes('cycleway:{side}:lane'),
+      },
+    )
+    await click('Value of name')
+    await press('ControlOrMeta+Backspace')
+    await rowsSettle(12)
+    report(
+      'Cmd/Ctrl+Backspace on a row with no side removes its tag, and the focus stays in the sheet',
+      { name: undefined, focusInSheet: true },
+      {
+        name: (await tags()).name,
+        focusInSheet: await page.evaluate(
+          () => document.activeElement?.closest('[role="grid"]') !== null,
+        ),
+      },
     )
   },
   'harness=tags',

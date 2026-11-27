@@ -51,12 +51,7 @@ export type RowsOptions = {
   order?: OrderMode
   /** Keep the incomplete rows (keys without a value). Default true. */
   keepIncomplete?: boolean
-  /** The order of 'sorted'. Default iD's (`codeUnits`); the sides view groups (tag-sides.ts). */
-  compare?: KeyOrder
 }
-
-/** An order of keys, as `Array.sort` takes it */
-export type KeyOrder = (a: string, b: string) => number
 
 export type Refusal = { key: string; reason: string }
 
@@ -174,9 +169,9 @@ export function mint(nextId: number, used: ReadonlySet<RowId>): { id: RowId; nex
 }
 
 /** The order the sheet shows: by key, iD's way. Sorting a sorted list gives the same object. */
-export function orderRows(state: TagRows, mode: OrderMode, compare: KeyOrder = codeUnits): TagRows {
+export function orderRows(state: TagRows, mode: OrderMode): TagRows {
   if (mode === 'hold') return state
-  const sorted = [...state.rows].sort((a, b) => compare(rowKey(a), rowKey(b)))
+  const sorted = [...state.rows].sort((a, b) => codeUnits(rowKey(a), rowKey(b)))
   return sorted.every((row, index) => row === state.rows[index])
     ? state
     : { ...state, rows: sorted }
@@ -230,7 +225,7 @@ export function rowsFromTags(tags: Tags, previous: TagRows, options: RowsOptions
     used.add(minted.id)
     kept.push(rowOf(minted.id, key, value, readOnlyKey(key)))
   }
-  return orderRows({ rows: kept, nextId }, options.order ?? 'hold', options.compare)
+  return orderRows({ rows: kept, nextId }, options.order ?? 'hold')
 }
 
 /** The columns of the Tags sheet: the key is unique within the sheet, both are cleaned and checked for 255. */
@@ -245,7 +240,7 @@ export const TAG_COLUMNS: SheetColumn[] = [
     get header() {
       return m.ui_tags_key()
     },
-    width: '1fr',
+    width: 'minmax(0,1fr)',
     mono: true,
     unique: true,
     clean: cleanText,
@@ -256,7 +251,7 @@ export const TAG_COLUMNS: SheetColumn[] = [
     get header() {
       return m.ui_tags_value()
     },
-    width: '1fr',
+    width: 'minmax(0,1fr)',
     mono: true,
     clean: cleanText,
     validate: lengthMessage,

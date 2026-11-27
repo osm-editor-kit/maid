@@ -48,6 +48,10 @@ export function shapeOf(
     sheetReadOnly?: boolean
     inserted?: SheetState['inserted']
     pending?: SheetState['pending']
+    /** The trailing row (and a pending row at the end) stands above this row (SheetProps.trailingBefore) */
+    trailingBefore?: RowId
+    /** Merged cells of the trailing, inserted and pending row (SheetProps.newRowMerged) */
+    newRowMerged?: Record<ColId, ColId>
   } = {},
 ): SheetShape {
   const rowById = new Map<RowId, SheetRow>(rows.map((row): [RowId, SheetRow] => [row.id, row]))
@@ -58,14 +62,30 @@ export function shapeOf(
   // row without a row above it is the last row before the trailing one.
   const pending = options.pending ?? null
   const rowIds: RowId[] = []
+  // the end of the rows the person adds to: the pending row at the end, then the trailing row
+  const tail: RowId[] = []
+  if (pending !== null && pending.after === null) tail.push(pending.id)
+  if (options.trailingId !== undefined) tail.push(options.trailingId)
+  let placed = false
   for (const row of rows) {
+    if (row.id === options.trailingBefore && !placed) {
+      rowIds.push(...tail)
+      placed = true
+    }
     rowIds.push(row.id)
     if (options.inserted?.after === row.id) rowIds.push(options.inserted.id)
     if (pending !== null && pending.after === row.id) rowIds.push(pending.id)
   }
-  if (pending !== null && pending.after === null) rowIds.push(pending.id)
-  if (options.trailingId !== undefined) rowIds.push(options.trailingId)
+  if (!placed) rowIds.push(...tail)
+  const madeRows = new Set<RowId>(tail)
+  if (options.inserted) madeRows.add(options.inserted.id)
+  if (pending !== null) madeRows.add(pending.id)
   return {
+    owner: (cell) => {
+      const merged = madeRows.has(cell.row) ? options.newRowMerged : rowById.get(cell.row)?.merged
+      const col = merged?.[cell.col]
+      return col === undefined ? cell : { row: cell.row, col }
+    },
     rowIds,
     colIds: columns.map((col) => col.id),
     readOnly: (cell) => {
@@ -77,6 +97,11 @@ export function shapeOf(
       return row?.cells[cell.col]?.readOnly === true
     },
   }
+}
+
+/** The cell that holds this one: itself, or the merged cell that covers it (SheetShape.owner) */
+function ownerOf(shape: SheetShape, cell: CellRef): CellRef {
+  return shape.owner?.(cell) ?? cell
 }
 
 /** True when both ids are in the grid (a stale cell from before a change is not). */
@@ -155,19 +180,29 @@ export function stepTarget(from: CellRef, shape: SheetShape, step: Step): CellRe
   if (r < 0 || c < 0) return undefined
   const lastR = shape.rowIds.length - 1
   const lastC = shape.colIds.length - 1
+  const owner = (cell: CellRef | undefined) =>
+    cell === undefined ? undefined : (shape.owner?.(cell) ?? cell)
   if (step.edge === true) {
     const nr = step.dy < 0 ? 0 : step.dy > 0 ? lastR : r
     const nc = step.dx < 0 ? 0 : step.dx > 0 ? lastC : c
-    return cellAt(shape, nr, nc)
+    return owner(cellAt(shape, nr, nc))
   }
-  let nr = r + step.dy
-  let nc = c + step.dx
-  if (step.wrap === true && step.dx !== 0 && (nc < 0 || nc > lastC)) {
-    nr = r + step.dx
-    nc = step.dx > 0 ? 0 : lastC
+  let nr = r
+  let nc = c
+  // a sideways step goes on over the columns a merged cell covers, and over the cell it started in
+  for (;;) {
+    nr += step.dy
+    nc += step.dx
+    if (step.wrap === true && step.dx !== 0 && (nc < 0 || nc > lastC)) {
+      nr += step.dx
+      nc = step.dx > 0 ? 0 : lastC
+    }
+    if (nr < 0 || nr > lastR || nc < 0 || nc > lastC) return undefined
+    const target = owner(cellAt(shape, nr, nc))
+    if (target === undefined) return undefined
+    const same = target.row === from.row && target.col === from.col
+    if (step.dx === 0 || !same) return target
   }
-  if (nr < 0 || nr > lastR || nc < 0 || nc > lastC) return undefined
-  return cellAt(shape, nr, nc)
 }
 
 /** The text of a cell as one value, or undefined when it is empty-valued, mixed or absent. */
@@ -309,15 +344,16 @@ function step(state: SheetState, action: SheetAction, shape: SheetShape): SheetS
       }
     }
     case 'selectRows': {
-      const to = action.to ?? action.from
-      if (!shape.rowIds.includes(action.from) || !shape.rowIds.includes(to)) return state
+      const row = action.from
+      if (!shape.rowIds.includes(row)) return state
       const first = shape.colIds[0]
       const last = shape.colIds[shape.colIds.length - 1]
       if (first === undefined || last === undefined) return state
       return {
         ...state,
-        anchor: { row: action.from, col: first },
-        active: { row: to, col: last },
+        anchor: { row, col: first },
+        // the last column may be covered by a merged cell: the active cell is its owner
+        active: ownerOf(shape, { row, col: last }),
         rowsSelected: true,
         extraRows: [],
         mode: 'navigate',
@@ -393,31 +429,6 @@ function step(state: SheetState, action: SheetAction, shape: SheetShape): SheetS
         tabOrigin: null,
         inserted: null,
       }
-    case 'selectAll': {
-      // Not the trailing row: it has no data to select.
-      const rows = shape.rowIds.filter((id) => id !== state.trailingId)
-      const firstRow = rows[0]
-      const lastRow = rows[rows.length - 1]
-      const firstCol = shape.colIds[0]
-      const lastCol = shape.colIds[shape.colIds.length - 1]
-      if (
-        firstRow === undefined ||
-        lastRow === undefined ||
-        firstCol === undefined ||
-        lastCol === undefined
-      ) {
-        return state
-      }
-      return {
-        ...state,
-        anchor: { row: firstRow, col: firstCol },
-        active: { row: lastRow, col: lastCol },
-        rowsSelected: false,
-        extraRows: [],
-        mode: 'navigate',
-        tabOrigin: null,
-      }
-    }
     case 'collapse':
       return { ...state, anchor: null, rowsSelected: false, extraRows: [], tabOrigin: null }
     case 'startEdit': {
@@ -461,10 +472,14 @@ function step(state: SheetState, action: SheetAction, shape: SheetShape): SheetS
           tabOrigin: null,
         }
       }
+      // the active cell stays on a cell there is: a column that is gone (the sheet changed its columns) gives the
+      // first one, and a column a merged cell covers gives that cell
+      const col = shape.colIds.includes(at.col) ? at.col : (shape.colIds[0] ?? at.col)
       if (shape.rowIds.includes(at.row)) {
         const anchorKept = state.anchor !== null && shape.rowIds.includes(state.anchor.row)
         return {
           ...kept,
+          active: ownerOf(shape, { row: at.row, col }),
           anchor: anchorKept ? state.anchor : null,
           rowsSelected: anchorKept && state.rowsSelected,
         }
@@ -474,7 +489,7 @@ function step(state: SheetState, action: SheetAction, shape: SheetShape): SheetS
       if (newRow === undefined) return kept
       return {
         ...kept,
-        active: { row: newRow, col: at.col },
+        active: ownerOf(shape, { row: newRow, col }),
         anchor: null,
         rowsSelected: false,
         mode: 'navigate',
