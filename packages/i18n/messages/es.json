@@ -639,6 +639,8 @@
   "ui_access_yes": "Permitido",
   "ui_access_no": "Prohibido",
   "ui_access_use_sidepath": "Usar vía lateral",
+  "ui_access_leashed": "Solo con correa",
+  "ui_access_unleashed": "Sin correa",
   "ui_access_add": "Añadir un medio de transporte",
   "ui_access_key_dog": "Perro",
   "ui_access_key_ski": "Esquí",

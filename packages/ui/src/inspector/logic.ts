@@ -1,6 +1,5 @@
 import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, FieldOption, Tags } from '@osm-editor-kit/maid-presets'
-import { isAccessKey } from './fields/access-logic.ts'
 import { directionalKeys } from './fields/directional-logic.ts'
 import type { MixedValue } from './fields/shared.ts'
 
@@ -56,12 +55,11 @@ const LANGUAGE = /^[a-z]{2,3}(?:[-_][A-Za-z0-9]+)*$/
 /**
  * Whether a tag key belongs to a field whose key is `own`. A key ending in ':' is a prefix
  * (multiCombo: payment:cash belongs to payment:). For localized names, name:<language> belongs
- * to name, but name:etymology does not. The access field owns every access key (isAccessKey), as in
- * openstreetmap/iD#12011: a set mofa or bus shows as a row, and remove and revert reach it.
+ * to name, but name:etymology does not. (The access field's keys are worked out per feature by PresetFields,
+ * accessFieldKeys, so they are its listed keys here.)
  */
 function ownsKey(field: Field, own: string, tagKey: string) {
   if (tagKey === own) return true
-  if (field.type === 'access' && isAccessKey(tagKey)) return true
   if (own.endsWith(':')) return tagKey.startsWith(own)
   return (
     field.type === 'localized' &&

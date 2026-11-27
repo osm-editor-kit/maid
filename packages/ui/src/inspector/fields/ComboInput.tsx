@@ -52,6 +52,8 @@ export function ComboInput(props: {
   placeholder?: string
   /** The input's title (tooltip), e.g. the values of a mixed key. */
   title?: string
+  /** The input's accessible name when no label points at it (the access field's key picker). */
+  ariaLabel?: string
   onChange?: FieldProps['onChange']
   /** The input is disabled: shown with its value, not editable (a directional side that is not used). */
   disabled?: boolean
@@ -67,6 +69,7 @@ export function ComboInput(props: {
     value,
     placeholder,
     title,
+    ariaLabel,
     onChange,
     disabled,
     describedBy,
@@ -195,6 +198,7 @@ export function ComboInput(props: {
           spellCheck={false}
           placeholder={placeholder ?? field.placeholder}
           title={title}
+          aria-label={ariaLabel}
           readOnly={onChange === undefined}
           disabled={disabled}
           value={state.text}

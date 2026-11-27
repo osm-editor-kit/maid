@@ -35,16 +35,16 @@ export type FieldProps = {
    */
   onChangeTags?: (edits: readonly FieldTagEdit[]) => void
   /**
-   * The element in the row's label bar, after the "i". A control that has buttons of its own
-   * (for the label bar, not below the input) renders them into it with createPortal. Null or
-   * absent: none; controls that ignore it are unaffected.
+   * The element for the control's own buttons in the row's label bar, on the right before the "i", revert and
+   * trash (the name field's "Add a language", the access field's "+"). A control renders them into it with
+   * createPortal. Null or absent: none; controls that ignore it are unaffected.
    */
   labelActions?: HTMLElement | null
   /**
-   * The element with the row's buttons on the right of the label bar, before the "i", revert and trash. A control
-   * renders a button of its own there with createPortal (the access field's "+"). Null or absent: none.
+   * Keys this field must not take: the preset's own tags and the keys of the other fields of the feature (the
+   * access field leaves bus=yes of a bus stop and the dog field's dog alone, and does not offer them). Absent: none.
    */
-  endActions?: HTMLElement | null
+  excludedKeys?: readonly string[]
   /** The address field's place: its country and the features near the feature. Only the address field reads it. */
   address?: AddressContext
   /**

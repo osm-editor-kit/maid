@@ -5,6 +5,7 @@ import DEFAULT_KEYS from './access-default-keys.json'
 import {
   ACCESS_KEYS,
   accessDefaultKeys,
+  accessFieldKeys,
   accessKeyLabel,
   accessRowKeys,
   addableAccessKeys,
@@ -70,10 +71,20 @@ describe('accessDefaultKeys (access-default-keys.json)', () => {
 })
 
 describe('accessRowKeys', () => {
-  const defaults = accessDefaultKeys([{ highway: 'residential' }])
+  test('the keys always, the set access keys too, in the wiki order', () => {
+    expect(
+      accessRowKeys(['access', 'foot', 'bicycle', 'motor_vehicle'], ['name', 'mofa', 'horse']),
+    ).toEqual(['access', 'foot', 'horse', 'bicycle', 'motor_vehicle', 'mofa'])
+  })
 
-  test("without other access tags: the default keys in the wiki order; the field's horse is not shown", () => {
-    expect(accessRowKeys(defaults, DEFAULTS, [])).toEqual([
+  test('a key the list does not know stays, after the known ones', () => {
+    expect(accessRowKeys(['boat', 'access'], ['dog'])).toEqual(['access', 'dog', 'boat'])
+  })
+})
+
+describe("accessFieldKeys (the field per feature, the PR's effectiveKeys)", () => {
+  test("iD's field on a residential road: the JSON's defaults, no horse", () => {
+    expect(accessFieldKeys(DEFAULTS, { tags: { highway: 'residential' } })).toEqual([
       'access',
       'foot',
       'bicycle',
@@ -81,51 +92,88 @@ describe('accessRowKeys', () => {
     ])
   })
 
-  test('a set access key gets a row in its place, horse too', () => {
-    expect(
-      accessRowKeys(defaults, DEFAULTS, ['highway', 'name', 'mofa', 'vehicle', 'bus', 'horse']),
-    ).toEqual(['access', 'foot', 'horse', 'vehicle', 'bicycle', 'motor_vehicle', 'mofa', 'bus'])
+  test('set access keys join, in their place; other keys do not', () => {
+    const tags = { highway: 'residential', mofa: 'no', vehicle: 'destination', name: 'A' }
+    expect(accessFieldKeys(DEFAULTS, { tags })).toEqual([
+      'access',
+      'foot',
+      'vehicle',
+      'bicycle',
+      'motor_vehicle',
+      'mofa',
+    ])
   })
 
-  test('a field key that is no access key stays, after the known ones', () => {
-    expect(accessRowKeys(['access'], ['boat', 'access'], ['dog'])).toEqual([
+  test('a key set before the edits stays, so revert reaches it', () => {
+    expect(
+      accessFieldKeys(DEFAULTS, { tags: { highway: 'service' }, baseTags: { bus: 'yes' } }),
+    ).toContain('bus')
+  })
+
+  test("the preset's own tags and other fields' keys are left out (bus=yes of a bus stop, dog)", () => {
+    const tags = { highway: 'bus_stop', public_transport: 'platform', bus: 'yes', dog: 'leashed' }
+    const keys = accessFieldKeys(DEFAULTS, {
+      tags,
+      excluded: new Set(['highway', 'public_transport', 'bus', 'dog']),
+    })
+    expect(keys).not.toContain('bus')
+    expect(keys).not.toContain('dog')
+  })
+
+  test("a fork's field with other keys keeps them as its defaults", () => {
+    expect(accessFieldKeys(['access', 'motor_vehicle', 'hgv'], { tags: {} })).toEqual([
       'access',
-      'dog',
-      'boat',
+      'motor_vehicle',
+      'hgv',
     ])
+  })
+
+  test('several features: the defaults of each, and the mixed keys', () => {
+    const keys = accessFieldKeys(DEFAULTS, {
+      tags: {},
+      features: [{ highway: 'residential' }, { highway: 'track', bus: 'no' }],
+      combinedKeys: ['highway', 'bus'],
+    })
+    expect(keys).toContain('horse')
+    expect(keys).toContain('bus')
   })
 })
 
 describe('addableAccessKeys', () => {
-  test('every access key that is not a row yet', () => {
-    const addable = addableAccessKeys(DEFAULTS)
-    expect(addable).toHaveLength(ACCESS_KEYS.length - DEFAULTS.length)
-    expect(addable[0]).toBe('dog')
+  test('every access key that is not a row yet and not excluded', () => {
+    const addable = addableAccessKeys(DEFAULTS, ['dog'])
+    expect(addable).toHaveLength(ACCESS_KEYS.length - DEFAULTS.length - 1)
+    expect(addable[0]).toBe('ski')
     expect(addable).not.toContain('foot')
   })
 })
 
-describe('the access field owns every access key (remove, revert, present)', () => {
-  test('fieldKeys adds the set access keys, not others', () => {
-    expect(fieldKeys(accessField, { highway: 'service', mofa: 'no', bus: 'designated' })).toEqual([
-      ...DEFAULTS,
+describe('remove and revert reach the keys of the field as PresetFields gives it', () => {
+  const tags = { highway: 'service', mofa: 'no', bus: 'no', foot: 'no' }
+  const base = { highway: 'service', bus: 'yes' }
+  const field: Field = { ...accessField, keys: accessFieldKeys(DEFAULTS, { tags, baseTags: base }) }
+
+  test('fieldKeys are the field keys', () => {
+    expect(fieldKeys(field, tags)).toEqual([
+      'access',
+      'foot',
+      'bicycle',
+      'motor_vehicle',
       'mofa',
       'bus',
     ])
   })
 
-  test('a set mofa makes the field present; removing it removes mofa', () => {
-    const tags = { highway: 'service', mofa: 'no' }
-    expect(isPresent(accessField, tags)).toBe(true)
-    expect(removeEdits(accessField, tags)).toEqual([{ key: 'mofa', value: undefined }])
+  test('remove takes every set access key', () => {
+    expect(isPresent(field, tags)).toBe(true)
+    expect(removeEdits(field, tags).map((edit) => edit.key)).toEqual(['foot', 'mofa', 'bus'])
   })
 
-  test('revert reaches a changed bus tag', () => {
-    const base = { highway: 'service', bus: 'yes' }
-    const tags = { highway: 'service', bus: 'no', foot: 'no' }
-    expect(isModified(accessField, tags, base)).toBe(true)
-    expect(revertEdits(accessField, tags, base)).toEqual([
+  test('revert brings bus back', () => {
+    expect(isModified(field, tags, base)).toBe(true)
+    expect(revertEdits(field, tags, base)).toEqual([
       { key: 'foot', value: undefined },
+      { key: 'mofa', value: undefined },
       { key: 'bus', value: 'yes' },
     ])
   })

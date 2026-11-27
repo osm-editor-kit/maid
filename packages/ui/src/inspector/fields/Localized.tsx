@@ -15,7 +15,7 @@ import { INPUT, LIMITED, ROW_BUTTON } from './shared.ts'
 
 /**
  * A localized name: the base input on the field's key (as TextField), then one row per translation
- * `<key>:<code>` (languageVariants). "Add a language" is an icon in the row's label bar
+ * `<key>:<code>` (languageVariants). "Add a language" is an icon on the right of the row's label bar
  * (labelActions, set by Row.tsx) and adds a new row. A row is a language code and a value; both
  * are committed when focus leaves the row (commitLanguageRow), so Tab moves between them without
  * a write. Read-only without onChange: no buttons, inputs read-only.

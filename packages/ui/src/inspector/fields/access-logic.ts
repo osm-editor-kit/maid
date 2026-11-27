@@ -101,26 +101,62 @@ export function accessDefaultKeys(features: readonly Tags[], table: DefaultKeys 
 }
 
 /**
- * The keys the access field shows as rows: the default keys of the features (accessDefaultKeys), a key of the
- * field that is no access key (a fork's own), and every access key that is in `present` (keys set on the
- * features, mixed keys, rows added with "+"). The field's other keys (iD's horse on every road) show only when
- * set. Sorted in the wiki's order (ACCESS_KEYS); a key the list does not know comes after them.
+ * Sorts keys in the wiki's order (ACCESS_KEYS): `keys` always, and every access key of `present`. A key the list
+ * does not know (a fork's own) comes after them.
  */
-export function accessRowKeys(
-  defaults: readonly string[],
-  fieldKeys: readonly string[],
-  present: Iterable<string>,
-) {
-  const keys = new Set([...defaults, ...fieldKeys.filter((key) => !isAccessKey(key))])
-  for (const key of present) if (isAccessKey(key)) keys.add(key)
+export function accessRowKeys(keys: readonly string[], present: Iterable<string> = []) {
+  const rows = new Set(keys)
+  for (const key of present) if (isAccessKey(key)) rows.add(key)
   const rank = (key: string) => ORDER.get(key) ?? ACCESS_KEYS.length
-  return [...keys].sort((a, b) => rank(a) - rank(b))
+  return [...rows].sort((a, b) => rank(a) - rank(b))
 }
 
-/** The access keys that "+" can still add: every key of ACCESS_KEYS that is not a row yet, in the wiki's order. */
-export function addableAccessKeys(shown: readonly string[]) {
-  const rows = new Set(shown)
-  return ACCESS_KEYS.filter((key) => !rows.has(key))
+/** iD's keys of the access field (id-tagging-schema `access`): the field the JSON's defaults stand in for. */
+const ID_FIELD_KEYS = ['access', 'foot', 'motor_vehicle', 'bicycle', 'horse']
+
+const sameKeys = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((key) => b.includes(key))
+
+/**
+ * The keys of an access field for a feature, as the PR's effectiveKeys: what its rows show and what its remove
+ * and revert reach. iD's field (its five keys) gets the defaults of the JSON (accessDefaultKeys: no horse on a
+ * residential road); a field with other keys (a fork's own) keeps them. Then every access key that is set,
+ * was set before the edits (`baseTags`, for revert) or differs between the selected features. Never a key of
+ * `excluded`: the preset's own tags and the keys of the feature's other fields.
+ */
+export function accessFieldKeys(
+  fieldKeys: readonly string[],
+  context: {
+    tags: Tags
+    features?: readonly Tags[]
+    baseTags?: Tags
+    /** Several features: the keys of the combined tags (mixed ones included) */
+    combinedKeys?: readonly string[]
+    excluded?: ReadonlySet<string>
+  },
+) {
+  const { tags, features, baseTags, combinedKeys = [], excluded = new Set<string>() } = context
+  const defaults = sameKeys(fieldKeys, ID_FIELD_KEYS)
+    ? accessDefaultKeys(features !== undefined && features.length > 0 ? features : [tags])
+    : fieldKeys
+  const present = [
+    ...Object.keys(tags).filter((key) => (tags[key] ?? '') !== ''),
+    ...Object.keys(baseTags ?? {}).filter((key) => (baseTags?.[key] ?? '') !== ''),
+    ...combinedKeys,
+  ]
+  return accessRowKeys(
+    defaults.filter((key) => !excluded.has(key)),
+    present.filter((key) => !excluded.has(key)),
+  )
+}
+
+/**
+ * The access keys that "+" can still add: every key of ACCESS_KEYS that is not a row yet and not `excluded` (a key
+ * of the preset or of another field), in the wiki's order.
+ */
+export function addableAccessKeys(shown: readonly string[], excluded: readonly string[] = []) {
+  const skip = new Set([...shown, ...excluded])
+  return ACCESS_KEYS.filter((key) => !skip.has(key))
 }
 
 /** The label of each row (iD's `types.<key>`); read when a row is drawn, as the language is set at mount. */

@@ -17,6 +17,7 @@ import {
   rowFields,
 } from './add-field-logic.ts'
 import { AddField } from './AddField.tsx'
+import { accessFieldKeys } from './fields/access-logic.ts'
 import { AccessField } from './fields/Access.tsx'
 import { AddressField } from './fields/Address.tsx'
 import { CheckField } from './fields/Check.tsx'
@@ -138,9 +139,13 @@ export function PresetFields(props: {
   address?: AddressContext
   /** Draws the icons of the values of the combo fields (FieldProps.renderIcon). Absent: no icons. */
   renderIcon?: IconRenderer
+  /**
+   * The preset's own tags (its `tags`). The access field leaves their keys alone (bus=yes of a bus stop is no
+   * access row). Absent: none, as for several features.
+   */
+  presetTags?: Tags
 }) {
   const {
-    fields,
     tags,
     combined,
     features,
@@ -148,13 +153,36 @@ export function PresetFields(props: {
     onChange,
     onChangeTags,
     components,
-    moreFields = [],
     loadReference,
     onFieldFocus,
     measure,
     address,
     renderIcon,
+    presetTags,
   } = props
+  // The access field's keys for this feature (accessFieldKeys): its defaults and the access keys that are set,
+  // without the preset's own tags and the keys of the other fields
+  const accessExcluded = [
+    ...Object.keys(presetTags ?? {}),
+    ...[...props.fields, ...(props.moreFields ?? [])]
+      .filter((field) => field.type !== 'access')
+      .flatMap((field) => fieldKeys(field, tags)),
+  ]
+  const withAccessKeys = (field: Field): Field =>
+    field.type === 'access'
+      ? {
+          ...field,
+          keys: accessFieldKeys(field.keys ?? [], {
+            tags,
+            features,
+            baseTags,
+            combinedKeys: Object.keys(combined ?? {}),
+            excluded: new Set(accessExcluded),
+          }),
+        }
+      : field
+  const fields = props.fields.map(withAccessKeys)
+  const moreFields = (props.moreFields ?? []).map(withAccessKeys)
   // the ids picked from "Add field", in the order picked: they are rows although they have no value
   const [picked, setPicked] = useState<string[]>([])
   // the keys of the related tags whose editor is open: state of this list, a new feature starts with none
@@ -312,6 +340,7 @@ export function PresetFields(props: {
               measure={measure}
               address={address}
               renderIcon={renderIcon}
+              excludedKeys={block.field.type === 'access' ? accessExcluded : undefined}
             />
           </div>
         ),

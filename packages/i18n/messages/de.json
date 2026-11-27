@@ -639,6 +639,8 @@
   "ui_access_yes": "Erlaubt",
   "ui_access_no": "Verboten",
   "ui_access_use_sidepath": "Nutzung Seitenweg",
+  "ui_access_leashed": "Nur angeleint",
+  "ui_access_unleashed": "Ohne Leine erlaubt",
   "ui_access_add": "Verkehrsart hinzufügen",
   "ui_access_key_dog": "Hund",
   "ui_access_key_ski": "Ski",

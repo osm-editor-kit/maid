@@ -347,6 +347,11 @@ describe('accessOptions', () => {
     expect([has('foot'), has('bicycle'), has('horse')]).toEqual([true, true, true])
     expect([has('access'), has('motor_vehicle')]).toEqual([false, false])
   })
+
+  test("dog also offers leashed and unleashed (the dog field's values)", () => {
+    expect(accessValueLabel('dog', 'leashed')).toBe('Leashed only')
+    expect(accessOptions('foot').some((option) => option.value === 'leashed')).toBe(false)
+  })
 })
 
 describe('accessValueLabel', () => {

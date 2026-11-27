@@ -362,6 +362,8 @@ export function Inspector() {
                     fields={fields}
                     moreFields={moreFields}
                     tags={entity.tags}
+                    // the access field leaves the preset's own tags alone (bus=yes of a bus stop)
+                    presetTags={entity.preset?.tags}
                     address={address}
                     // the icons of the combo values (the schema's `icons`)
                     renderIcon={renderFieldIcon}

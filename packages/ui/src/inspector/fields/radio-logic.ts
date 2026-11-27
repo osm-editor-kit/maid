@@ -186,7 +186,8 @@ const SIDEPATH_KEYS = new Set(['foot', 'bicycle', 'horse'])
 
 /**
  * The options of one access row (access.js:85-112): access has no yes and no designated, bicycle
- * gets dismount before the last four (as iD's splice). Foot, bicycle and horse also offer use_sidepath.
+ * gets dismount before the last four (as iD's splice). Foot, bicycle and horse also offer use_sidepath, dog
+ * leashed and unleashed.
  */
 export function accessOptions(key: string) {
   const all = accessValues()
@@ -199,6 +200,13 @@ export function accessOptions(key: string) {
   }
   if (SIDEPATH_KEYS.has(key))
     options.push({ value: 'use_sidepath', label: m.ui_access_use_sidepath() })
+  // dog: the values of the schema's dog field besides yes and no
+  if (key === 'dog') {
+    options.push(
+      { value: 'leashed', label: m.ui_access_leashed() },
+      { value: 'unleashed', label: m.ui_access_unleashed() },
+    )
+  }
   return options
 }
 

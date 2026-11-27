@@ -639,6 +639,8 @@
   "ui_access_yes": "Allowed",
   "ui_access_no": "Prohibited",
   "ui_access_use_sidepath": "Use sidepath",
+  "ui_access_leashed": "Leashed only",
+  "ui_access_unleashed": "Leashes not required",
   "ui_access_add": "Add a mode of transport",
   "ui_access_key_dog": "Dog",
   "ui_access_key_ski": "Ski",
