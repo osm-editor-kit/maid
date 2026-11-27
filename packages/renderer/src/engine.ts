@@ -1607,6 +1607,13 @@ export class MaidEngine {
         this.refreshShape()
         break
       }
+    // the hovered way's glyphs follow an edit of it or of its nodes (undo, a key operation under the pointer)
+    const hover = this.hoverId
+    if (
+      hover?.startsWith('w') &&
+      [...moved.keys()].some((id) => id === hover || this.data.nodeWays.get(id)?.includes(hover))
+    )
+      this.refreshHoverDirection()
     // feature state belongs to a source: a feature that changed its source needs it again
     if (remove.some(([, featureId]) => this.selectedSet.has(featureId)))
       queueMicrotask(() => this.applyHighlight([], 'selected'))
@@ -1876,10 +1883,10 @@ export class MaidEngine {
       // the field that had the focus was about the selection before: it goes with it
       this.fieldOverlay = null
       this.fieldFeatures = []
+      // a hovered way that is selected now has the selection's glyphs: one push for both
+      this.refreshHoverDirection(false)
       this.refreshShape()
-    }
-    // a hovered way that is selected now has the selection's glyphs
-    this.refreshHoverDirection()
+    } else this.refreshHoverDirection()
     // a feature that is not on the map changes nothing, so ask for a frame explicitly
     void map.once('render').then(shown)
     map.triggerRepaint()
@@ -1891,6 +1898,7 @@ export class MaidEngine {
       this.data,
       this.selectedIds,
       (id) => this.featureSource.get(id) === 'vertices',
+      this.glyphContext,
     )
     this.shapeNodes = shape.nodes
     this.shapeFeatures = shape.features
@@ -1906,14 +1914,21 @@ export class MaidEngine {
    */
   private hoverDirection: Feature | undefined
 
-  private refreshHoverDirection() {
+  /** What the glyphs of the hover and the selection need of the map: a line or an area, the widths under the lens */
+  private readonly glyphContext = {
+    isLine: (id: string) => this.featureSource.get(id) === 'lines',
+    widths: (tags: Tags) => this.builder.lineWidths(tags),
+  }
+
+  /** Builds the hovered way's glyph copy again; `push` false leaves the sending to a caller that sends anyway */
+  private refreshHoverDirection(push = true) {
     const id = this.hoverId
     const before = this.hoverDirection
     this.hoverDirection =
       id?.startsWith('w') && !this.selectedIds.includes(id)
-        ? directionFeature(this.data, id, 'hover-direction')
+        ? directionFeature(this.data, id, 'hover-direction', this.glyphContext)
         : undefined
-    if (before !== this.hoverDirection) this.pushHighlight()
+    if (push && before !== this.hoverDirection) this.pushHighlight()
   }
 
   private shapeFeatures: Feature[] = []

@@ -570,6 +570,12 @@ export class FeatureBuilder {
     return this.lens ? lensStyle(this.lens, tags, geometry) : undefined
   }
 
+  /** A line's stroke widths as drawn, a lens's width included (the size of the hover and selection glyphs) */
+  lineWidths(tags: Tags) {
+    const width = this.lensOf(tags, 'line')?.width
+    return width === undefined ? lineStrokeWidths(tags) : { sw: width, swl: width }
+  }
+
   constructor(
     private data: OsmData,
     /** Without presets nothing has an icon; the engine sets them when they arrive (see `Engine.fillInPresets`) */

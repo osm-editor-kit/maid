@@ -63,8 +63,8 @@ const HIGHWAY = 'highway'
  *
  * What is tagged counts as it is: `yes` one way, `no` and `car_not_bike` both ways. TILDA's guesses count only where
  * they are safe (Tobias, 2026-11-27): a lane painted on the carriageway runs with the traffic beside it (`implicit_yes`,
- * on the left of a two-way road against the line, the default of `cycleway:left:oneway`), and a road (a bicycle road)
- * is two-way unless tagged. A track or a way of its own (a cycleway, a path, a sidewalk where bicycles may ride)
+ * on the left of a two-way road against the line, the default of `cycleway:left:oneway`), and a road (a bicycle road),
+ * a crossing or a link on the carriageway is two-way unless tagged. A track or a way of its own (a cycleway, a path, a sidewalk where bicycles may ride)
  * should say how it is ridden: without a tag it gets 0, drawn as "not tagged". The TILDA checklist says the same: it
  * shows such a oneway as not tagged (`assumed`) or as a guess (`guess`).
  */
@@ -80,12 +80,10 @@ export function ridingDirection(result: {
   if (oneway === 'yes') return along
   if (oneway === 'no' || oneway === 'car_not_bike') return 2
   const group = result.category === undefined ? undefined : groupOf(result.category)?.id
-  const painted = result._side !== 'self' && (group === 'lane' || group === 'sharedMotor')
-  if (painted) return oneway === 'implicit_yes' ? along : 2
-  const road =
-    result._side === 'self' &&
-    (group === 'sharedMotor' || result.category?.startsWith('bicycleRoad'))
-  if (road) return 2
+  const onCarriageway = group === 'lane' || group === 'sharedMotor'
+  if (result._side !== 'self' && onCarriageway) return oneway === 'implicit_yes' ? along : 2
+  // the way itself on the carriageway (a crossing, a link, a shared lane) or a bicycle road: two-way unless tagged
+  if (onCarriageway || result.category?.startsWith('bicycleRoad')) return 2
   return 0
 }
 

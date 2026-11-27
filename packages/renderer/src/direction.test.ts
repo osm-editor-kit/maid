@@ -68,6 +68,11 @@ describe('ridingOf: the riding direction from the tags (iD isOneWay, isOneWayBac
     expect(ridingOf({ highway: 'cycleway', oneway: 'yes', 'oneway:bicycle': 'no' })).toBe('with')
   })
 
+  test('oneway:bicycle off a highway says nothing', () => {
+    expect(ridingOf({ waterway: 'river', 'oneway:bicycle': 'no' })).toBe('with')
+    expect(ridingOf({ man_made: 'pipeline', 'oneway:bicycle': 'yes' })).toBeUndefined()
+  })
+
   test('cycleway=opposite* is lane tagging and gives no centerline glyph', () => {
     expect(ridingOf({ highway: 'residential', oneway: 'yes', cycleway: 'opposite_lane' })).toBe(
       'with',
@@ -86,6 +91,10 @@ describe('isTravelled and isLightGlyph', () => {
     expect(isTravelled({ railway: 'tram' })).toBe(true)
     expect(isTravelled({ route: 'ferry' })).toBe(true)
     expect(isTravelled({ barrier: 'fence' })).toBe(false)
+    // not in use: under construction, planned, abandoned
+    expect(isTravelled({ highway: 'construction' })).toBe(false)
+    expect(isTravelled({ highway: 'proposed' })).toBe(false)
+    expect(isTravelled({ railway: 'abandoned' })).toBe(false)
   })
 
   test('light glyphs where iD draws white or grey arrows', () => {

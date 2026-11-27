@@ -62,7 +62,9 @@ function mainDirection(tags: Tags): GlyphKind | undefined {
  */
 export function ridingOf(tags: Tags): GlyphKind | undefined {
   const main = mainDirection(tags)
-  const bicycle = tags.highway === 'cycleway' ? undefined : tags['oneway:bicycle']
+  // a highway's tag only: on a river or a piste it says nothing
+  const bicycle =
+    tags.highway === undefined || tags.highway === 'cycleway' ? undefined : tags['oneway:bicycle']
   if (bicycle === 'no' && main === 'with') return 'contraflow'
   if (bicycle === 'no' && main === 'against') return 'contraflow-against'
   if (main === undefined || main === 'both') {
@@ -78,12 +80,23 @@ export function ridingOf(tags: Tags): GlyphKind | undefined {
  */
 export function isTravelled(tags: Tags) {
   return (
-    tags.highway !== undefined ||
-    (tags.railway !== undefined && tags.railway !== 'platform') ||
+    (tags.highway !== undefined && !NOT_IN_USE.has(tags.highway) && tags.highway !== 'platform') ||
+    (tags.railway !== undefined && !NOT_IN_USE.has(tags.railway) && tags.railway !== 'platform') ||
     tags.route === 'ferry' ||
     tags.aerialway !== undefined
   )
 }
+
+/** Lines no one travels yet or any more: no riding direction to show */
+const NOT_IN_USE = new Set([
+  'construction',
+  'proposed',
+  'planned',
+  'disused',
+  'abandoned',
+  'razed',
+  'dismantled',
+])
 
 /**
  * Lines whose glyph is light (white parts, dark edge), where iD draws its arrows white or grey: dark lines (a bridge

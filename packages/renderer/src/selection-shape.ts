@@ -1,3 +1,4 @@
+import type { Tags } from '@osm-editor-kit/maid-style'
 // The shape points and direction glyphs of the selected ways, for the highlight source (the engine's refreshShape()).
 // Pure over the data and the selection: the caller keeps the result and sends it.
 import type { Feature } from 'geojson'
@@ -19,6 +20,7 @@ export function selectionShape(
   data: OsmData,
   selectedIds: readonly string[],
   hasHalo: (id: string) => boolean = () => false,
+  glyphs: GlyphContext = {},
 ) {
   const selected = new Set(selectedIds)
   const ways = new Set<string>()
@@ -47,29 +49,38 @@ export function selectionShape(
   // the direction glyphs of each selected way (not of the ways of a selected vertex: their own glyphs stay)
   const directions: Feature[] = []
   for (const id of selectedIds) {
-    const feature = id.startsWith('w') ? directionFeature(data, id, 'direction') : undefined
+    const feature = id.startsWith('w') ? directionFeature(data, id, 'direction', glyphs) : undefined
     if (feature) directions.push(feature)
   }
   return { nodes: new Set(shape.keys()), features: [...shape.values(), ...directions] }
+}
+
+/** What the map knows of a way's line, for its glyph: whether it is drawn as a line, its stroke widths (with a lens) */
+export type GlyphContext = {
+  isLine?: (wayId: string) => boolean
+  widths?: (tags: Tags) => { sw: number; swl: number }
 }
 
 /**
  * The way's line with its active glyph (layers.ts highlight-direction): the riding direction with the drawing triangle
  * (glyph.ts), for a selected (`direction`) or the hovered way (`hover-direction`). iD shows neither; this is Maid's
  * (ADR 0017). A line traffic uses and that has no glyph of its own is two-way (`both`); any other open line shows its
- * drawing direction alone (`drawn`); a closed way that is neither (a building, a fenced area) shows nothing.
+ * drawing direction alone (`drawn`). A way the map draws as an area shows nothing.
  */
 export function directionFeature(
   data: OsmData,
   wayId: string,
   state: 'direction' | 'hover-direction',
+  { isLine, widths = lineStrokeWidths }: GlyphContext = {},
 ): Feature | undefined {
   const way = data.way(wayId)
   if (!way) return undefined
+  // only a way the map draws as a line has glyphs: a closed one may be an area (a plaza, a platform) or a line (a
+  // roundabout); without the map's answer, an open way is a line and a closed one is a line if it has a riding direction
   const closed = way.nodes[0] === way.nodes[way.nodes.length - 1]
-  const g: GlyphShape | undefined =
-    ridingOf(way.tags) ?? (isTravelled(way.tags) ? 'both' : closed ? undefined : 'drawn')
-  if (g === undefined) return undefined
+  const riding = ridingOf(way.tags)
+  if (!(isLine ? isLine(wayId) : !closed || riding !== undefined)) return undefined
+  const g: GlyphShape = riding ?? (isTravelled(way.tags) ? 'both' : 'drawn')
   const coordinates = wayVertices(data, wayId).map((vertex) => vertex.geometry.coordinates)
   if (coordinates.length < 2) return undefined
   return {
@@ -79,7 +90,7 @@ export function directionFeature(
       id: wayId,
       state,
       g,
-      ...lineStrokeWidths(way.tags),
+      ...widths(way.tags),
       ...(isLightGlyph(way.tags) ? { lt: 1 } : {}),
     },
     geometry: { type: 'LineString', coordinates },

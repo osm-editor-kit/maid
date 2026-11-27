@@ -37,7 +37,7 @@ At rest (left) and on hover and selection (right). The SVG files are in
 | --- | --- | --- | --- |
 | One way | ![](../../packages/renderer/assets/direction/with-rest.svg) | ![](../../packages/renderer/assets/direction/with.svg) | `oneway=yes`; `junction=roundabout`; `highway=motorway`; a lane (TILDA `implicit_yes`) |
 | One way, against the line | ![](../../packages/renderer/assets/direction/against-rest.svg) | ![](../../packages/renderer/assets/direction/against.svg) | `oneway=-1` |
-| Two-way | ![](../../packages/renderer/assets/direction/both-rest.svg) | ![](../../packages/renderer/assets/direction/both.svg) | no oneway (hover, selection, line focus); `junction=roundabout` + `oneway=no`; `highway=motorway` + `oneway=no`; `highway=cycleway` + `oneway=no` |
+| Two-way | ![](../../packages/renderer/assets/direction/both-rest.svg) | ![](../../packages/renderer/assets/direction/both.svg) | always: `junction=roundabout` + `oneway=no`; `highway=motorway` + `oneway=no` (a oneway by default, cancelled). On hover, selection and in line focus: any travelled line without a oneway, `highway=cycleway` + `oneway=no` among them |
 | Reversible | ![](../../packages/renderer/assets/direction/reversible-rest.svg) | ![](../../packages/renderer/assets/direction/reversible.svg) | `oneway=reversible`; `oneway=alternating`; `conveying=reversible` |
 | One way, bicycles both ways | ![](../../packages/renderer/assets/direction/contraflow-rest.svg) | ![](../../packages/renderer/assets/direction/contraflow.svg) | `oneway=yes` + `oneway:bicycle=no` |
 | Same, against the line | ![](../../packages/renderer/assets/direction/contraflow-against-rest.svg) | ![](../../packages/renderer/assets/direction/contraflow-against.svg) | `oneway=-1` + `oneway:bicycle=no` |
@@ -128,7 +128,7 @@ track should say how it is ridden; TILDA's guess is not drawn as a fact.
 | --- | --- | --- |
 | Lane (road side) | `yes`, `implicit_yes` | with or against, by `_lineReversed` |
 | Any part | `no`, `car_not_bike` | two-way |
-| Bicycle road (the way) | `assumed_no` | two-way |
+| Bicycle road, crossing, link (the way) | `assumed_no`, `implicit_yes` | two-way |
 | Track, way of its own | `yes` | with or against |
 | Track, way of its own | `implicit_yes`, `assumed_no` | not tagged (amber) |
 
