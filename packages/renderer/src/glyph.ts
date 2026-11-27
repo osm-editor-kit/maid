@@ -1,5 +1,5 @@
 /**
- * The glyphs of a line's riding direction and drawing direction (docs/design/line-arrows.md, ADR 0021). Pure geometry:
+ * The glyphs of a line's riding direction and drawing direction (docs/design/line-arrows.md, ADR 0017). Pure geometry:
  * the map's images (`direction-images.ts`), the SVG files (`direction-svg.ts`) and the UI icons draw the same paths.
  *
  * Two parts, one image per anchor:

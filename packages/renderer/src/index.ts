@@ -56,7 +56,7 @@ export { editKindOf, type EditKind } from './edits'
 export { iconImagePrefix, iconImagesRequestedAt } from './icon-requests'
 // The selected way's drawing triangle as a line pattern, preloaded by the engine (the relations map)
 export { SELECTED_ARROW_HEIGHT, SELECTED_ARROW_PATTERN } from './direction'
-// The riding-direction glyphs for a module's own lines, as line patterns (the bicycle infrastructure, ADR 0021)
+// The riding-direction glyphs for a module's own lines, as line patterns (the bicycle infrastructure, ADR 0017)
 export {
   LINE_GLYPH_HEIGHT,
   LINE_GLYPH_SPACING,

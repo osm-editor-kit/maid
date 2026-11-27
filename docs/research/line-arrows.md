@@ -1,6 +1,6 @@
 # Arrows on lines: drawing direction and riding direction
 
-Design proposal for Tobias, worked out with him on 2026-11-26 and 2026-11-27. No code has changed. Sketches of every
+Built in on 2026-11-27: [docs/design/line-arrows.md](../design/line-arrows.md), [ADR 0017](../adr/0017-line-direction-glyphs.md). Design proposal for Tobias, worked out with him on 2026-11-26 and 2026-11-27. Sketches of every
 case in every state, on map and imagery: **https://claude.ai/artifact/RKGn9wBkgduyGvmVaGswJV** (private until shared).
 
 Started because users found the hook for `oneway=-1` (ADR 0015) unnatural.

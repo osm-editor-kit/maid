@@ -56,7 +56,7 @@ export function selectionShape(
 /**
  * The way's line with its active glyph (layers.ts highlight-direction): the riding direction with the drawing triangle
  * (glyph.ts), for a selected (`direction`) or the hovered way (`hover-direction`). iD shows neither; this is Maid's
- * (ADR 0021). A line traffic uses and that has no glyph of its own is two-way (`both`); any other open line shows its
+ * (ADR 0017). A line traffic uses and that has no glyph of its own is two-way (`both`); any other open line shows its
  * drawing direction alone (`drawn`); a closed way that is neither (a building, a fenced area) shows nothing.
  */
 export function directionFeature(

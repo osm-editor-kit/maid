@@ -1,6 +1,6 @@
 /**
  * Which lines carry a direction glyph and which carry side markers. The riding direction follows iD's one-way tags
- * (modules/osm/way.ts `isOneWay`, modules/osm/tags.ts), drawn with Maid's own glyphs (glyph.ts, ADR 0021); side
+ * (modules/osm/way.ts `isOneWay`, modules/osm/tags.ts), drawn with Maid's own glyphs (glyph.ts, ADR 0017); side
  * markers are iD's (`isSided`, modules/svg/lines.js). Pure: the builder calls these, the layers name the images that
  * `direction-images.ts` draws.
  */

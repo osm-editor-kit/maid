@@ -82,7 +82,7 @@ describe('iD.svgLines', () => {
         { type: 'way', id: 2, nodes: [1, 3], tags: { highway: 'residential', oneway: 'yes' } },
         { type: 'way', id: 3, nodes: [2, 3], tags: { highway: 'residential', oneway: '-1' } },
       ]).lines
-      // Maid's glyph kinds (ADR 0021): one image per anchor, its kind on the feature
+      // Maid's glyph kinds (ADR 0017): one image per anchor, its kind on the feature
       const oneway = Object.fromEntries(lines.map((f) => [f.id, f.properties?.ow]))
       expect(oneway).toEqual({ w1: 'with', w2: 'with', w3: 'against' })
     })

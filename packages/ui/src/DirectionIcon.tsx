@@ -5,7 +5,7 @@ import {
 } from '@osm-editor-kit/maid-renderer'
 
 /**
- * The direction glyphs of the map as an inline icon (ADR 0021): `with` the riding direction along the way with its
+ * The direction glyphs of the map as an inline icon (ADR 0017): `with` the riding direction along the way with its
  * drawing triangle, `against` against it (`oneway=-1`), `both` two-way, `drawn` the drawing triangle alone; a
  * `-rest` shape leaves the triangle out. Drawn pointing east, so left to right is the drawing direction; `rotate`
  * (degrees, clockwise) turns it, for example to the way's bearing on the screen.

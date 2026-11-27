@@ -9,7 +9,7 @@ function points(d: string) {
   ])
 }
 
-describe('glyph geometry (ADR 0021)', () => {
+describe('glyph geometry (ADR 0017)', () => {
   test('every glyph is 8 px high and centred on the line', () => {
     for (const kind of GLYPH_KINDS) {
       for (const state of ['rest', 'active'] as const) {

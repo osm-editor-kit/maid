@@ -148,7 +148,7 @@ describe('riding direction', () => {
     expect(dirs({ ...cycleway, oneway: 'yes' })).toEqual(['self:1'])
     // TILDA gives oneway=yes for -1 too: the tag decides
     expect(dirs({ ...cycleway, oneway: '-1' })).toEqual(['self:-1'])
-    // nothing tagged: TILDA assumes both ways, but a cycleway should say how it is ridden (ADR 0021)
+    // nothing tagged: TILDA assumes both ways, but a cycleway should say how it is ridden (ADR 0017)
     expect(dirs(cycleway)).toEqual(['self:0'])
     expect(dirs({ ...cycleway, oneway: 'no' })).toEqual(['self:2'])
     const path = { highway: 'path', bicycle: 'designated', foot: 'designated', segregated: 'no' }

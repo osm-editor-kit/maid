@@ -844,6 +844,19 @@ for `-1`. Decision and reasons: [ADR 0015](../adr/0015-oneway-minus-one-hook-arr
       result now.
 - [ ] Next: the iD-Radnetz port of the style, with a performance test.
 
+### Riding and drawing direction as one glyph (2026-11-27)
+
+Tobias, 2026-11-26/27: the hook for `oneway=-1` read as unnatural; the design was settled in two comment rounds.
+Decision: [ADR 0017](../adr/0017-line-direction-glyphs.md), overview: [docs/design/line-arrows.md](../design/line-arrows.md).
+
+- [x] 2026-11-27: chevrons for the riding direction of every line, a triangle for the drawing direction on hover and
+      selection, one image per anchor; two-way, reversible (`> <`), contraflow and bicycle-only glyphs; size follows
+      the line; Maid Bicycle shows two-way lines at rest (`lineFocus`); the bicycle lens uses the same glyphs and marks
+      untagged tracks and ways of their own amber. The hook is gone. `bun run check`.
+      **Test for Tobias:** `bun run dev`, open <http://localhost:5173/?scene=small> and hover and select a few roads (a
+      oneway, a two-way, a roundabout); then Maid Bicycle on <http://localhost:5176/?scene=bicycle> with the lens
+      "Bicycle infrastructure": the third column holds the riding-direction cases, the last two are "not tagged".
+
 ### A line drawn from a way takes its tags (2026-10-28, on main 2026-11-25)
 
 - [x] 2026-11-25: select a way, click one of its vertices (or keep the way selected), press 2 and start on that vertex:

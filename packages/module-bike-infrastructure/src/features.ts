@@ -57,7 +57,7 @@ export type BikeProperties = {
 const HIGHWAY = 'highway'
 
 /**
- * The riding direction of a part (BikeProperties.dir), from TILDA's result (ADR 0021): `oneway` says whether bicycles
+ * The riding direction of a part (BikeProperties.dir), from TILDA's result (ADR 0017): `oneway` says whether bicycles
  * ride one way, `_lineReversed` whether that way is against the drawing direction (tilda-geo `line_direction.lua`: a
  * road side follows its side rule, the way itself runs against its line on `oneway=-1` or `oneway:bicycle=-1`).
  *

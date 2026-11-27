@@ -806,7 +806,7 @@ function buildMainLayers(options: LayerOptions) {
       'icon-padding': 0,
     } as const
     layers.push(
-      // The riding direction a line always shows (build.ts `ow`, ADR 0021): the rest glyph, without the drawing
+      // The riding direction a line always shows (build.ts `ow`, ADR 0017): the rest glyph, without the drawing
       // triangle. Hidden on the hovered and selected way, whose active glyph the highlight draws.
       {
         id: 'line-oneway',
@@ -861,7 +861,7 @@ function buildMainLayers(options: LayerOptions) {
         },
       })),
       // The hovered and the selected way (selection-shape.ts directionFeature): the active glyph, riding direction
-      // with the drawing triangle, on the glow and under the vertices. iD shows neither (ADR 0021).
+      // with the drawing triangle, on the glow and under the vertices. iD shows neither (ADR 0017).
       {
         id: 'highlight-direction',
         type: 'symbol',

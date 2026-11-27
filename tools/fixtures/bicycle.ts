@@ -440,7 +440,7 @@ export const DIRECTIONS: Case[] = [
     dirs: ['left:2'],
   },
   {
-    // a track should say how it is ridden: without a tag the lens shows "not tagged" (ADR 0021)
+    // a track should say how it is ridden: without a tag the lens shows "not tagged" (ADR 0017)
     name: 'D tracks both, oneway not tagged',
     tags: { highway: 'secondary', 'cycleway:both': 'track' },
     expect: ['left:cycleway_adjoining', 'right:cycleway_adjoining'],

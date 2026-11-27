@@ -35,7 +35,7 @@ Also: `engine.enterModuleMode(mode)` and `exitModuleMode(id)` (`module-mode.ts`)
 | Files | What they do |
 | --- | --- |
 | `engine.ts` | `MaidEngine`: the facade, the viewport, the loading, the edit methods, undo and redo |
-| `build.ts`, `layers.ts`, `label.ts`, `direction.ts`, `direction-images.ts`, `viewfield.ts` | Features and their style, layer data, labels, direction arrows, viewfield cones |
+| `build.ts`, `layers.ts`, `label.ts`, `direction.ts`, `direction-images.ts`, `viewfield.ts` | Features and their style, layer data, labels, direction glyphs (`glyph.ts`, ADR 0017), viewfield cones |
 | `data.ts`, `redraw.ts`, `edits.ts` | The OSM data, the rebuild of changed entities, what an edit changed |
 | `sender.ts`, `channels.ts`, `tile-loader.ts`, `tile-loading.ts` | The updates to MapLibre and the tile requests |
 | `presets-hold.ts`, `drawn-counts.ts`, `icon-requests.ts` | Late presets, counts of what is drawn, icon images |

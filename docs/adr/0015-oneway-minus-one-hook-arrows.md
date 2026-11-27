@@ -1,5 +1,9 @@
 # 0015: oneway=-1 gets a hook arrow, the bicycle lines get their riding direction
 
+> **The hook is replaced** by [ADR 0017](0017-line-direction-glyphs.md) (2026-11-27): one glyph per anchor, chevrons for
+> the riding direction and a triangle for the drawing direction. The rest of this ADR stands: the bicycle lines take
+> their riding direction from TILDA, left and right do not flip, Reverse turns `-1` into `yes`.
+
 Date: 2026-11-22. Asked for by Tobias in the project thread "Make oneway=-1 visible on bike lines".
 
 ## Context

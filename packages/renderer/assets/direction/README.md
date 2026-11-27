@@ -1,6 +1,6 @@
 # Direction glyphs
 
-Standalone SVGs of the glyphs Maid draws for the riding direction and the drawing direction of a line (ADR 0021,
+Standalone SVGs of the glyphs Maid draws for the riding direction and the drawing direction of a line (ADR 0017,
 [docs/design/line-arrows.md](../../../../docs/design/line-arrows.md)): for the one-way options of the TILDA checklist,
 for the docs, and for projects that take them over as they are. Solid parts with a thin edge in the opposite tone,
 fixed colours, no CSS variables, a square `viewBox` of 24 units (one unit is one px of the map's glyph at its large

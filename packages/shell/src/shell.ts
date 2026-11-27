@@ -53,7 +53,7 @@ export type AppConfig = {
   defaultDisplay?: MapDisplay
   /**
    * A line-focused editor (Maid Bicycle): every line traffic uses shows its riding direction at rest, two-way ones
-   * included (layers.ts `line-two-way`). Other editors show it on hover and selection only (ADR 0021).
+   * included (layers.ts `line-two-way`). Other editors show it on hover and selection only (ADR 0017).
    */
   lineFocus?: boolean
   /**
