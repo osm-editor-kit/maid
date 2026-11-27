@@ -98,8 +98,9 @@ the centerline, and gives no glyph here.
 
 ## The bicycle lens (Maid Bicycle)
 
-The blue lines are TILDA's parts: the way and its road sides. They carry the rest glyphs as line patterns, small. The
-road sides never get the triangle; the way gets it from the renderer on hover and selection.
+The blue lines are TILDA's parts: the way and its road sides. The road sides carry the rest glyphs as line patterns,
+small, and never get the triangle. The way itself shows the renderer's glyphs, like any line in a line-focused editor;
+the renderer marks an untagged cycleway or path amber itself (`needsRidingTag`).
 
 **Two-way road with bike lanes** (`cycleway:both=lane`): the left lane rides against the line, the default of
 `cycleway:left:oneway` (`-1`), assumed and not mapped.
@@ -137,12 +138,17 @@ an untagged lane or track oneway as not tagged with its default, and a way's own
 
 ## How the style does it
 
-- `build.ts` gives each line `ow` (the glyph kind, `ridingOf`), `tr` (traffic uses it), `lt` (light glyph) and, under a
-  dimming lens, `ao` (the glyph's opacity).
-- `line-oneway`: the rest glyph of `ow`, every 48 px from OSM 16, its size following the line (inside the road fill,
-  the fill minus 2 px; 5.2 px over a thinner line). Hidden through feature state on the hovered and selected way.
-- `line-two-way`: the two-way rest glyph on travelled lines without `ow`, every 96 px, in a line-focused editor only.
-- `highlight-direction`: the active glyph of the hovered and the selected ways (`selection-shape.ts` `directionFeature`).
-- The bicycle lens: `line-pattern` images `maid-line-glyph-<with|against|both|missing>` (`features.ts`
-  `ridingDirection`).
+- `build.ts` gives each line `ow` (the glyph kind, `ridingOf`), `tr` (traffic uses it), `mo` (a way of its own that
+  should tag its riding direction and does not, `needsRidingTag`), `lt` (light glyph) and, under a dimming lens, `ao`
+  (the glyph's opacity).
+- Two pairs of symbol layers on the lines: `line-oneway` and `line-oneway-active` for lines with `ow`, every 48 px;
+  `line-two-way` and `line-two-way-active` for all other lines, every 96 px (two-way where traffic uses it, `missing`
+  for `mo` in a line-focused editor, the triangle alone elsewhere). The rest layer of the second pair shows only in a
+  line-focused editor.
+- Each pair draws the same lines with the same spacing and image size, so the rest and the active glyph sit on the same
+  anchors. Feature state (`hover`, `selected`) fades one into the other: hover and selection move nothing.
+- Size follows the line: inside the road fill (the fill minus 2 px), 5.2 px over a thinner line.
+- The bicycle lens draws only the road sides' riding direction, as `line-pattern` images
+  `maid-line-glyph-<with|against|both|missing>` (`features.ts` `ridingDirection`); the way itself shows the renderer's
+  glyphs.
 - Images are drawn in code from `glyph.ts` (`direction-images.ts`); one image per kind, state and tone, built ahead.

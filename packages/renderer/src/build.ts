@@ -25,7 +25,7 @@ import {
 import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from 'geojson'
 import { addressLabel, isAddressTags } from './address'
 import type { MergeResult, OsmData } from './data'
-import { isLightGlyph, isTravelled, ridingOf, sidedOf } from './direction'
+import { isLightGlyph, isTravelled, needsRidingTag, ridingOf, sidedOf } from './direction'
 import { editKindOf, type EditKind } from './edits'
 import type { GlyphKind } from './glyph'
 import { mapLabelOf } from './label'
@@ -60,6 +60,8 @@ export type LineProps = {
   ow?: GlyphKind
   /** 1 on a line that traffic uses (direction.ts isTravelled): two-way, it shows `both` on hover and selection */
   tr?: 1
+  /** 1 on a way that should tag its riding direction and does not (needsRidingTag): amber in a line-focused editor */
+  mo?: 1
   /** 1 for the light glyph (white parts, dark edge) on dark lines, as iD's white and grey arrows */
   lt?: 1
   /** the glyph's opacity under a lens that dims the line (restyleLine), only when it is not 1 */
@@ -243,12 +245,6 @@ function restyleArea(
   return feature
 }
 
-/** A line's stroke width at high and at low zoom, as lineFeature draws it (for the glyph size of a highlight copy) */
-export function lineStrokeWidths(tags: Tags) {
-  const style = resolveWayStyle(tagClasses(tags), 'line')
-  return { sw: style.stroke.width, swl: style.stroke.widthLow }
-}
-
 function lineFeature(
   id: string,
   coords: Position[],
@@ -280,6 +276,7 @@ function lineFeature(
   const ow = ridingOf(tags)
   if (ow) props.ow = ow
   if (isTravelled(tags)) props.tr = 1
+  if (!ow && needsRidingTag(tags)) props.mo = 1
   if (isLightGlyph(tags)) props.lt = 1
   const side = sidedOf(tags)
   if (side) props.side = side
@@ -568,12 +565,6 @@ export class FeatureBuilder {
 
   private lensOf(tags: Tags, geometry: LensGeometry) {
     return this.lens ? lensStyle(this.lens, tags, geometry) : undefined
-  }
-
-  /** A line's stroke widths as drawn, a lens's width included (the size of the hover and selection glyphs) */
-  lineWidths(tags: Tags) {
-    const width = this.lensOf(tags, 'line')?.width
-    return width === undefined ? lineStrokeWidths(tags) : { sw: width, swl: width }
   }
 
   constructor(

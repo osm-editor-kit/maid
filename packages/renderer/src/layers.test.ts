@@ -21,7 +21,14 @@ import {
 import { CONE_IMAGE, CONE_IMAGE_WIDE, CONE_ZOOM, PIN_HEAD_ABOVE } from './viewfield'
 
 /** The data layers whose selection copies keep their own minzoom */
-const DIRECTION = new Set(['line-oneway', 'line-two-way', 'line-sided', 'area-sided'])
+const DIRECTION = new Set([
+  'line-oneway',
+  'line-oneway-active',
+  'line-two-way',
+  'line-two-way-active',
+  'line-sided',
+  'area-sided',
+])
 
 const options: LayerOptions = {
   dashes: new Map(),
@@ -127,7 +134,6 @@ describe('zoom floors of the data layers (MapLibre zoom: OSM minus one)', () => 
   test('the highlight layers of the selection and the tools are not floored', () => {
     const layers = buildLayers(options).map(view)
     expect(layers.find((l) => l.id === 'highlight-midpoint')?.minzoom).toBeUndefined()
-    expect(layers.find((l) => l.id === 'highlight-direction')?.minzoom).toBe(15)
   })
 })
 
@@ -621,11 +627,28 @@ describe('display: the wireframe and the changes in colour (iD)', () => {
     expect(visible(buildLayers(options), 'line-two-way')).toBe(true)
   })
 
-  test('a line hides its rest glyph while it is hovered or selected: the highlight draws the active one', () => {
-    const oneway = buildLayers(options).find((l) => view(l).id === 'line-oneway') as {
+  test('hover and selection fade the rest glyph into the active one, on the same anchors (ADR 0017)', () => {
+    const layers = buildLayers(options) as unknown as {
+      id: string
+      source?: string
+      filter?: unknown
+      layout?: Record<string, unknown>
       paint?: Record<string, unknown>
+    }[]
+    const get = (id: string) => layers.find((l) => l.id === id)!
+    for (const [rest, active] of [
+      ['line-oneway', 'line-oneway-active'],
+      ['line-two-way', 'line-two-way-active'],
+    ] as const) {
+      // the same lines, spacing and size: MapLibre puts both on the same anchors
+      expect(get(active).source).toBe(get(rest).source)
+      expect(get(active).layout?.['symbol-spacing']).toBe(get(rest).layout?.['symbol-spacing'])
+      expect(get(active).layout?.['icon-size']).toEqual(get(rest).layout?.['icon-size'])
+      expect(JSON.stringify(get(rest).paint?.['icon-opacity'])).toContain('"feature-state","hover"')
+      expect(JSON.stringify(get(active).paint?.['icon-opacity'])).toContain(
+        '"feature-state","selected"',
+      )
     }
-    expect(JSON.stringify(oneway.paint?.['icon-opacity'])).toContain('"feature-state","hover"')
   })
 
   test('the glyphs never cover a vertex: symbols that keep-out squares on the vertices push away', () => {
@@ -633,8 +656,9 @@ describe('display: the wireframe and the changes in colour (iD)', () => {
     const at = (id: string) => layers.findIndex((l) => l.id === id)
     for (const id of [
       'line-oneway',
+      'line-oneway-active',
       'line-two-way',
-      'highlight-direction',
+      'line-two-way-active',
       'line-sided',
       'area-sided',
     ]) {

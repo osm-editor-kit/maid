@@ -6,6 +6,7 @@ import {
   glyphImageIds,
   isLightGlyph,
   isTravelled,
+  needsRidingTag,
   lineGlyphImageId,
   parseGlyphImageId,
   ridingOf,
@@ -82,6 +83,26 @@ describe('ridingOf: the riding direction from the tags (iD isOneWay, isOneWayBac
   test('a value that is only a prototype property is not a direction', () => {
     expect(ridingOf({ oneway: 'constructor' })).toBeUndefined()
     expect(ridingOf({ highway: 'toString' })).toBeUndefined()
+  })
+})
+
+describe('needsRidingTag: a way of its own that should say how it is ridden', () => {
+  test('a cycleway or a path open to bicycles without a oneway tag', () => {
+    expect(needsRidingTag({ highway: 'cycleway' })).toBe(true)
+    expect(needsRidingTag({ highway: 'path', bicycle: 'designated', foot: 'designated' })).toBe(
+      true,
+    )
+    expect(needsRidingTag({ highway: 'footway', footway: 'sidewalk', bicycle: 'yes' })).toBe(true)
+  })
+
+  test('not when it is tagged, not on a crossing, not on a path without bicycles', () => {
+    expect(needsRidingTag({ highway: 'cycleway', oneway: 'no' })).toBe(false)
+    expect(
+      needsRidingTag({ highway: 'path', bicycle: 'designated', 'oneway:bicycle': 'yes' }),
+    ).toBe(false)
+    expect(needsRidingTag({ highway: 'cycleway', cycleway: 'crossing' })).toBe(false)
+    expect(needsRidingTag({ highway: 'footway' })).toBe(false)
+    expect(needsRidingTag({ highway: 'residential' })).toBe(false)
   })
 })
 

@@ -12,8 +12,9 @@ import { LINE_GLYPH_HEIGHT, lineGlyphImageId } from '@osm-editor-kit/maid-render
  * - Sidepath (`_adjoining`): two thin lines in its colour along the path, a kerb on each side, so a path that runs along a road
  *   can be told from one on its own (`_isolated`) and from one where TILDA cannot tell (`_adjoiningOrIsolated`).
  * - Separately mapped (`cycleway:<side>=separate`): a thin dotted blue line at the side of the road.
- * - Riding direction (`dir` of the feature, features.ts ridingDirection): the renderer's glyphs at rest (ADR 0017),
- *   from zoom 17: a chevron along the line where bicycles ride in its drawing direction, a chevron back where they ride
+ * - Riding direction of a road side (`dir` of the feature, features.ts ridingDirection): the renderer's glyphs at rest
+ *   (ADR 0017), from zoom 17. The way itself has none of its own: the renderer draws its glyphs on the way, rest and
+ *   active (Maid Bicycle is line-focused, `lineFocus`), so the two never stack. A side: a chevron along the line where bicycles ride in its drawing direction, a chevron back where they ride
  *   against it (`oneway=-1`, the left lane of a two-way road, a contraflow lane), a chevron each way where they ride
  *   both ways, an amber dot where a track or path should say and does not. No drawing triangle: a road side's drawing
  *   direction is the road's, and the renderer adds it to the way on hover and selection. Line patterns of the renderer
@@ -253,7 +254,9 @@ export const BIKE_LAYERS: readonly BikeLayer[] = [
           'line-dasharray': [2, 1.5],
         },
       },
-      arrows,
+      // the way itself shows its riding direction with the renderer's glyphs (the app is line-focused); a road side
+      // is offset from the way, so it carries its own
+      ...(self ? [] : [arrows]),
     ]
   }),
 ]

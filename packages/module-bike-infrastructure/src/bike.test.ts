@@ -252,8 +252,8 @@ describe('layers', () => {
 
   test('each part has its riding direction, on its own offset: the rest glyphs of the renderer', () => {
     const arrows = BIKE_LAYERS.filter((layer) => layer.id.endsWith('-arrows'))
+    // the way itself has the renderer's glyphs; only the road sides carry their own
     expect(arrows.map((layer) => layer.id)).toEqual([
-      'bike-self-arrows',
       'bike-left-cycleway-arrows',
       'bike-left-sidewalk-arrows',
       'bike-right-cycleway-arrows',

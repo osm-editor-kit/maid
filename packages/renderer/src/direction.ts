@@ -98,6 +98,30 @@ const NOT_IN_USE = new Set([
   'dismantled',
 ])
 
+/** Crossings: on the carriageway, two-way unless tagged */
+const CROSSING = new Set(['crossing', 'traffic_island'])
+
+/**
+ * A way of its own that bicycles ride and that should say how (a cycleway, a path or footway open to bicycles) but
+ * has no oneway tag. A line-focused editor marks it "not tagged" (amber) instead of two-way (ADR 0017); a crossing is
+ * two-way unless tagged.
+ */
+export function needsRidingTag(tags: Tags) {
+  if (tags.oneway !== undefined || tags['oneway:bicycle'] !== undefined) return false
+  if (
+    CROSSING.has(tags.footway ?? '') ||
+    CROSSING.has(tags.cycleway ?? '') ||
+    CROSSING.has(tags.path ?? '')
+  )
+    return false
+  if (tags.highway === 'cycleway') return true
+  const open =
+    tags.bicycle === 'designated' || tags.bicycle === 'yes' || tags.bicycle === 'permissive'
+  return (
+    open && (tags.highway === 'path' || tags.highway === 'footway' || tags.highway === 'bridleway')
+  )
+}
+
 /**
  * Lines whose glyph is light (white parts, dark edge), where iD draws its arrows white or grey: dark lines (a bridge
  * under construction, a runway), pedestrian streets and rail (iD's onewayArrowColour).

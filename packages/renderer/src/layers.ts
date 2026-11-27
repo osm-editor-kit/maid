@@ -287,16 +287,24 @@ function glyphSize(low: number): ExpressionSpecification {
   return ['step', ['zoom'], scale('swl'), low, scale('sw')]
 }
 
-/** Hides a line's rest glyphs while it is hovered or selected: the highlight draws its active glyphs instead */
+const ACTIVE: ExpressionSpecification = [
+  'any',
+  ['boolean', ['feature-state', 'hover'], false],
+  ['boolean', ['feature-state', 'selected'], false],
+]
+/** A line's rest glyphs, hidden while it is hovered or selected: its active glyphs show on the same anchors */
 const REST_GLYPH_OPACITY: ExpressionSpecification = [
   'case',
-  [
-    'any',
-    ['boolean', ['feature-state', 'hover'], false],
-    ['boolean', ['feature-state', 'selected'], false],
-  ],
+  ACTIVE,
   0,
   ['coalesce', ['get', 'ao'], 1],
+]
+/** A line's active glyphs (with the drawing triangle): only while it is hovered or selected */
+const ACTIVE_GLYPH_OPACITY: ExpressionSpecification = [
+  'case',
+  ACTIVE,
+  ['coalesce', ['get', 'ao'], 1],
+  0,
 ]
 
 /**
@@ -520,7 +528,14 @@ function floorOf(layer: LayerSpecification) {
  * `selectionOnly` the data layers are hidden, so the twin draws at every zoom its layer has.
  */
 /** The layers of the glyphs and side markers: drawn from OSM 16 only, the selection's copies too */
-const DIRECTION_LAYERS = new Set(['line-oneway', 'line-two-way', 'line-sided', 'area-sided'])
+const DIRECTION_LAYERS = new Set([
+  'line-oneway',
+  'line-oneway-active',
+  'line-two-way',
+  'line-two-way-active',
+  'line-sided',
+  'area-sided',
+])
 
 function selectionTwin(
   layer: LayerSpecification,
@@ -805,41 +820,79 @@ function buildMainLayers(options: LayerOptions) {
       'icon-ignore-placement': true,
       'icon-padding': 0,
     } as const
+    const lineFocus = options.lineFocus === true
+    // the kind of a line without a glyph of its own: not tagged (a line-focused editor only), two-way, or drawn
+    const twoWayKind: ExpressionSpecification = [
+      'case',
+      ['all', lineFocus, ['has', 'mo']], 'missing',
+      ['has', 'tr'], 'both',
+      'drawn',
+    ] // prettier-ignore
+    const twoWayRest: ExpressionSpecification = [
+      'all', ['!', ['has', 'ow']], ['any', ['has', 'tr'], ['has', 'mo']],
+    ] // prettier-ignore
+    const glyphLayer = (
+      id: string,
+      filter: ExpressionSpecification,
+      spacing: number,
+      kind: ExpressionSpecification | string,
+      state: 'rest' | 'active',
+      visibility: 'visible' | 'none',
+    ): LayerSpecification => ({
+      id,
+      type: 'symbol',
+      source: SOURCES.lines,
+      filter,
+      minzoom: 15,
+      layout: {
+        ...markerLayout,
+        'symbol-spacing': spacing,
+        'icon-image': glyphImage(kind, state),
+        'icon-size': glyphSize(low),
+        'icon-padding': squarePadding(GLYPH_BOX_WIDTH, GLYPH_BOX_HEIGHT),
+        visibility,
+      },
+      paint: { 'icon-opacity': state === 'rest' ? REST_GLYPH_OPACITY : ACTIVE_GLYPH_OPACITY },
+    })
     layers.push(
-      // The riding direction a line always shows (build.ts `ow`, ADR 0017): the rest glyph, without the drawing
-      // triangle. Hidden on the hovered and selected way, whose active glyph the highlight draws.
-      {
-        id: 'line-oneway',
-        type: 'symbol',
-        source: SOURCES.lines,
-        filter: ['has', 'ow'],
-        minzoom: 15,
-        layout: {
-          ...markerLayout,
-          'icon-image': glyphImage(['get', 'ow'], 'rest'),
-          'icon-size': glyphSize(low),
-          'icon-padding': squarePadding(GLYPH_BOX_WIDTH, GLYPH_BOX_HEIGHT),
-          visibility: shownIn(!wire),
-        },
-        paint: { 'icon-opacity': REST_GLYPH_OPACITY },
-      },
-      // A line-focused editor shows the two-way glyph at rest too (LayerOptions.lineFocus), half as often
-      {
-        id: 'line-two-way',
-        type: 'symbol',
-        source: SOURCES.lines,
-        filter: ['all', ['!', ['has', 'ow']], ['has', 'tr']],
-        minzoom: 15,
-        layout: {
-          ...markerLayout,
-          'symbol-spacing': GLYPH_REST_SPACING,
-          'icon-image': glyphImage('both', 'rest'),
-          'icon-size': glyphSize(low),
-          'icon-padding': squarePadding(GLYPH_BOX_WIDTH, GLYPH_BOX_HEIGHT),
-          visibility: shownIn(!wire && options.lineFocus === true),
-        },
-        paint: { 'icon-opacity': REST_GLYPH_OPACITY },
-      },
+      // The riding direction (ADR 0017). Each pair draws the rest glyph and the active one (with the drawing triangle)
+      // from the same lines, with the same spacing and the same image size, so both sit on the same anchors: hover
+      // and selection only fade one into the other through feature state, nothing moves (Tobias, 2026-11-27).
+      // A line that always shows its riding direction (build.ts `ow`): every 48 px.
+      glyphLayer(
+        'line-oneway',
+        ['has', 'ow'],
+        GLYPH_SPACING,
+        ['get', 'ow'],
+        'rest',
+        shownIn(!wire),
+      ),
+      glyphLayer(
+        'line-oneway-active',
+        ['has', 'ow'],
+        GLYPH_SPACING,
+        ['get', 'ow'],
+        'active',
+        shownIn(!wire),
+      ),
+      // Every other line, every 96 px: two-way where traffic uses it, the drawing triangle alone elsewhere (a fence).
+      // At rest only in a line-focused editor (LayerOptions.lineFocus), which also marks an untagged cycleway or path.
+      glyphLayer(
+        'line-two-way',
+        twoWayRest,
+        GLYPH_REST_SPACING,
+        twoWayKind,
+        'rest',
+        shownIn(!wire && lineFocus),
+      ),
+      glyphLayer(
+        'line-two-way-active',
+        ['!', ['has', 'ow']],
+        GLYPH_REST_SPACING,
+        twoWayKind,
+        'active',
+        shownIn(!wire),
+      ),
       // Side markers; closed barriers and coastline rings have theirs on the area's outline (build.ts areaFeature).
       // All give way, also embankments that start 7 px off the line: a vertex with an icon reaches 9 px.
       ...(
@@ -860,21 +913,6 @@ function buildMainLayers(options: LayerOptions) {
           visibility: shownIn(!wire),
         },
       })),
-      // The hovered and the selected way (selection-shape.ts directionFeature): the active glyph, riding direction
-      // with the drawing triangle, on the glow and under the vertices. iD shows neither (ADR 0017).
-      {
-        id: 'highlight-direction',
-        type: 'symbol',
-        source: SOURCES.highlight,
-        filter: ['match', ['get', 'state'], ['direction', 'hover-direction'], true, false],
-        minzoom: 15,
-        layout: {
-          ...markerLayout,
-          'icon-image': glyphImage(['get', 'g'], 'active'),
-          'icon-size': glyphSize(low),
-          'icon-padding': squarePadding(GLYPH_BOX_WIDTH, GLYPH_BOX_HEIGHT),
-        },
-      },
     )
 
     // Keep-out squares on the vertices (direction.ts KEEPOUT_IMAGE): never seen, but in the collision index, so the

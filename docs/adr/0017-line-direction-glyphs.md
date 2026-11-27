@@ -34,10 +34,15 @@ two-way line said nothing about how it may be used.
 
 ## Consequences
 
-- Code: `glyph.ts` (geometry), `direction.ts` (`ridingOf`, image ids), `direction-images.ts`, `layers.ts`
-  (`line-oneway`, `line-two-way`, `highlight-direction`), `build.ts` (`ow`, `tr`, `lt`, `ao`), `selection-shape.ts` and
-  `engine.ts` (the hovered and selected way's active glyph), the bicycle lens (`ridingDirection`, patterns),
-  `direction-svg.ts` and `assets/direction/*.svg` (UI icons, docs). The hook and its images are gone.
+- Code: `glyph.ts` (geometry), `direction.ts` (`ridingOf`, `needsRidingTag`, image ids), `direction-images.ts`,
+  `layers.ts` (the pairs `line-oneway`/`-active` and `line-two-way`/`-active`), `build.ts` (`ow`, `tr`, `mo`, `lt`,
+  `ao`), the bicycle lens (`ridingDirection`, patterns on the road sides), `direction-svg.ts` and
+  `assets/direction/*.svg` (UI icons, docs). The hook and its images are gone.
+- Rest and active glyph come from the same lines with the same spacing and image size, and feature state fades one into
+  the other, so a glyph stays where it is on hover and selection (Tobias, 2026-11-27: a copy on the highlight source put
+  them on other anchors, they jumped). Cost: a second symbol layer per pair; the active one is invisible until hovered.
+- The bicycle lens has no pattern on the way itself (it stacked with the renderer's glyph); the renderer marks an
+  untagged cycleway or path amber in a line-focused editor.
 - The sketches of the design page are generated from `glyph.ts` (`bun run docs-line-arrows`), tests keep them in step.
 - Fields must say what the map says. Checked on 2026-11-27: the oneway field shows "Assumed to be Yes" for an implied
   oneway; the TILDA checklist shows an untagged lane or track oneway as not tagged with its default, and a way's own as a
