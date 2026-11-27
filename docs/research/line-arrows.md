@@ -10,7 +10,7 @@ Started because users found the hook for `oneway=-1` (ADR 0015) unnatural.
 - **Two parts, one glyph per anchor.** A solid chevron is the riding direction, a solid triangle the drawing direction
   of the line. They are combined into one image per anchor, so nothing collides on the line.
 - **Chevrons for every line, not only oneways**: one chevron (with the line), one chevron back (`-1`), a chevron each
-  way (two-way), `><` overlapping (reversible, alternating). The triangle sits in the chevron's notch, or tip to tip
+  way (two-way), `> <` (reversible, alternating). The triangle sits in the chevron's notch, or tip to tip
   against it for `-1`.
 - **`-1` does not turn the sides**: `:left`, `:right`, `:forward`, `:backward` follow the drawing direction (wiki,
   [reverse-side-keys.md](reverse-side-keys.md)). So the triangle never turns; only the chevron does.
@@ -20,6 +20,9 @@ Started because users found the hook for `oneway=-1` (ADR 0015) unnatural.
 - **Colour says who**: black for all traffic, blue for bicycles only (`oneway:bicycle`, only off `highway=cycleway`;
   contraflow is a black chevron and a blue one back), amber for an untagged oneway on tracks and separate ways
   (bicycle lens; an amber dot). All glyphs solid, 8 px grid, thin white edge for imagery.
+- **At rest only the riding direction** (chevrons); the drawing triangle joins on hover and selection.
+- **One spacing rule**: 2 px between the parts of a glyph, edge to edge; a triangle before a chevron of the same
+  direction sits in its notch, 2 px from it. Reversible is `> <`, two-way `< >`.
 - **When shown**: oneways always (from OSM 16, every 48 px). Two-way: in the standard style on hover and selection,
   in line-focused styles (bicycle lens) always, every 96 px. Roads with a default oneway (roundabout, motorway) always
   show their state, so `oneway=no` there shows the two-way glyph.
@@ -30,6 +33,13 @@ Started because users found the hook for `oneway=-1` (ADR 0015) unnatural.
 Code to change (details on the page): `renderer/src/direction.ts`, `direction-images.ts`, `layers.ts`, `build.ts`,
 `selection-shape.ts`, `engine.ts`, the bicycle lens, `direction-svg.ts` and `assets/direction/*.svg`, their tests and
 checks, and a new ADR that replaces the hook part of ADR 0015.
+
+## When building it in
+
+Fields must say what the map says: wherever the style draws an implied value (implied oneway on a roundabout or
+motorway, the default `-1` of a left lane, TILDA's `implicit_yes` on a lane, the untagged amber case), the matching
+field in the sidebar shows the same implied value as field information. A check comparing both on the fixture cases
+would keep it so.
 
 ## Open
 
