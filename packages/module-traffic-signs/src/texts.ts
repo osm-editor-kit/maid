@@ -8,7 +8,6 @@ import { m } from './messages.ts'
 
 export function trafficSignTexts(): TrafficSignTexts {
   return {
-    empty: m.traffic_sign_empty(),
     addPlaceholder: m.traffic_sign_add_placeholder(),
     searchLabel: m.traffic_sign_search_label(),
     noResults: m.traffic_sign_no_results({ ...device() }),

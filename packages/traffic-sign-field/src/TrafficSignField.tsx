@@ -117,9 +117,10 @@ export function TrafficSignField({
       {mixed ? (
         <p className="text-sm text-zinc-500 italic dark:text-zinc-400">{texts.mixed}</p>
       ) : entries.length === 0 ? (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          {loading ? texts.loading : texts.empty}
-        </p>
+        // no line for an empty field: the search below says what to do (Tobias, 2026-11-27)
+        loading ? (
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{texts.loading}</p>
+        ) : null
       ) : (
         <ol ref={listRef} className="flex min-w-0 flex-col gap-1">
           {entries.map((entry, index) => (

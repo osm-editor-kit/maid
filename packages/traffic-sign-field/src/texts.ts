@@ -1,7 +1,5 @@
 /** Every UI string of the field. The host makes it (Maid: from Paraglide), so this package never imports a text library. */
 export type TrafficSignTexts = {
-  /** Shown under no sign: "No signs yet. Search below by name or sign ID to add one." */
-  empty: string
   /** Placeholder of the search input */
   addPlaceholder: string
   /** Label of the search input (screen readers) */
@@ -31,7 +29,6 @@ export type TrafficSignTexts = {
 
 /** English defaults, for tests and hosts that do not translate */
 export const DEFAULT_TEXTS: TrafficSignTexts = {
-  empty: 'No signs yet. Search below by name or sign ID to add one.',
   addPlaceholder: 'Add sign…',
   searchLabel: 'Search traffic signs',
   noResults: 'No sign matches. Press Enter to add the text as it is.',

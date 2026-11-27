@@ -1,6 +1,5 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "traffic_sign_empty": "Noch keine Verkehrszeichen. Suche unten nach Name oder Zeichen-Nummer, um eins hinzuzufügen.",
   "traffic_sign_add_placeholder": "Zeichen hinzufügen…",
   "traffic_sign_search_label": "Verkehrszeichen suchen",
   "traffic_sign_no_results": [

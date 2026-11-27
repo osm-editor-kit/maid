@@ -1,6 +1,5 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "traffic_sign_empty": "Aucun panneau pour l’instant. Cherche ci-dessous par nom ou numéro pour en ajouter un.",
   "traffic_sign_add_placeholder": "Ajouter un panneau…",
   "traffic_sign_search_label": "Rechercher des panneaux",
   "traffic_sign_no_results": [

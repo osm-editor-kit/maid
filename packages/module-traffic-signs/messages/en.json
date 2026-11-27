@@ -1,6 +1,5 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "traffic_sign_empty": "No signs yet. Search below by name or sign ID to add one.",
   "traffic_sign_add_placeholder": "Add sign…",
   "traffic_sign_search_label": "Search traffic signs",
   "traffic_sign_no_results": [
