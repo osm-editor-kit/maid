@@ -153,8 +153,11 @@ export type OverlayEntry<T> =
 /** The part of a name before `: `, ` - ` or `, ` (`OSM Inspector: Highways` → `OSM Inspector`), if there is one */
 function separatorPrefix(name: string) {
   const match = /^(.+?)(?::\s|\s-\s|,\s)/.exec(name)
-  return match?.[1]?.trim()
+  return match?.[1]?.trim().replace(/\s+/g, ' ')
 }
+
+/** Articles that start names of different providers (`The …`, `Der …`), never a group of their own */
+const ARTICLES = new Set(['the', 'der', 'die', 'das', 'les', 'los', 'las', 'del', 'een'])
 
 /** The first `count` words of a name, when it has more words than that or exactly as many */
 function firstWords(name: string, count: number) {
@@ -164,7 +167,10 @@ function firstWords(name: string, count: number) {
 
 /** The name without its group's prefix and the separator after it; the whole name when nothing is left */
 function shortName(name: string, prefix: string) {
+  // the prefix is made of the trimmed words, so cut it from the name with its spaces made single
   const rest = name
+    .trim()
+    .replace(/\s+/g, ' ')
     .slice(prefix.length)
     .replace(/^\s*[:,-]?\s*/, '')
     .trim()
@@ -184,8 +190,10 @@ export function overlayGroups<T extends { name: string }>(items: readonly T[]): 
     (name: string) => firstWords(name, 2),
     (name: string) => {
       const word = firstWords(name, 1)
-      // a short word (`The`, `De`) says nothing about the provider
-      return word !== undefined && word.length >= 3 ? word : undefined
+      // a short word (`De`) or an article (`The`) says nothing about the provider
+      return word !== undefined && word.length >= 3 && !ARTICLES.has(word.toLowerCase())
+        ? word
+        : undefined
     },
   ]
   for (const strategy of strategies) {

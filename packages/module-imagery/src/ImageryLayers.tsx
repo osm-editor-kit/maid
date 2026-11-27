@@ -191,10 +191,11 @@ export function ImageryLayers(props: { belowOsm: string }) {
           <Layer
             {...item.layer}
             beforeId={belowOsm}
+            // an overlay without paint of its own gets `{}`: `paint={undefined}` makes MapLibre refuse the layer
             paint={
               item.background
                 ? { ...item.layer.paint, 'raster-brightness-max': brightness }
-                : item.layer.paint
+                : (item.layer.paint ?? {})
             }
           />
         </Fragment>

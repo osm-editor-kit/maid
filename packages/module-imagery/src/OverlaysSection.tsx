@@ -4,8 +4,10 @@
  * by default, open while one is on. Overlays whose names start the same are folded into a group of their own
  * (`overlayGroups`). Listed: those that cover the view, and every one that is on, wherever it is.
  */
+import { isAutomated } from '@osm-editor-kit/maid-core'
 import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query'
+import { useState, type ReactNode } from 'react'
 import { listLayers, listView, type Listed } from './eli.ts'
 import { listingView, type Listing } from './helpers.ts'
 import { useView } from './imagery-store.ts'
@@ -20,6 +22,36 @@ const LINK =
   'text-xs font-medium text-blue-700 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400 dark:hover:text-blue-300'
 
 export function OverlaysSection() {
+  // under automation no imagery list is read and no overlay is drawn (ImageryLayers), so none is offered
+  if (isAutomated()) return null
+  return <OverlaysList />
+}
+
+/**
+ * A `<details>` that starts open when `openAtStart` and then stays as the person leaves it: React would remove the
+ * `open` attribute when the prop turns `undefined`, folding the section under the pointer when the last overlay in
+ * it is switched off.
+ */
+function Fold(props: {
+  openAtStart: boolean
+  className?: string
+  summary: ReactNode
+  children: ReactNode
+}) {
+  const [open, setOpen] = useState<boolean | null>(null)
+  return (
+    <details
+      open={open ?? props.openAtStart}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+      className={props.className}
+    >
+      {props.summary}
+      {props.children}
+    </details>
+  )
+}
+
+function OverlaysList() {
   const view = useView()
   const { shown, chooseOverlays } = useLiveImagery()
   // the same query as the background panel's list: the rounded view, kept while a new one is computed
@@ -53,56 +85,60 @@ export function OverlaysSection() {
     )
 
   return (
-    <details
-      open={onCount > 0 ? true : undefined}
-      data-overlays-section
-      className="border-t border-zinc-950/5 px-4 py-2 dark:border-white/5"
-    >
-      <summary className={SUMMARY}>
-        {m.imagery_overlays()}{' '}
-        <span className={MUTED}>
-          {onCount > 0
-            ? m.imagery_overlays_on({ on: onCount, count: overlays.length })
-            : overlays.length}
-        </span>
-      </summary>
-      <p className={`pb-1 ${MUTED}`}>{m.imagery_overlays_intro()}</p>
-      <ul className="flex flex-col">
-        {overlayGroups(overlays).map((entry) =>
-          entry.kind === 'layer' ? (
-            <OverlayRow
-              key={entry.item.id}
-              item={entry.item}
-              label={entry.item.name}
-              on={isOn(entry.item.id)}
-              onToggle={(on) => toggle(entry.item.id, on)}
-            />
-          ) : (
-            <li key={entry.label}>
-              <details
-                open={entry.items.some(({ item }) => isOn(item.id)) ? true : undefined}
-                className="pl-1"
-              >
-                <summary className={SUMMARY}>
-                  {entry.label} <span className={MUTED}>{entry.items.length}</span>
-                </summary>
-                <ul className="flex flex-col pl-4">
-                  {entry.items.map(({ item, short }) => (
-                    <OverlayRow
-                      key={item.id}
-                      item={item}
-                      label={short}
-                      on={isOn(item.id)}
-                      onToggle={(on) => toggle(item.id, on)}
-                    />
-                  ))}
-                </ul>
-              </details>
-            </li>
-          ),
-        )}
-      </ul>
-    </details>
+    <div data-overlays-section className="border-t border-zinc-950/5 px-4 py-2 dark:border-white/5">
+      <Fold
+        openAtStart={onCount > 0}
+        summary={
+          <summary className={SUMMARY}>
+            {m.imagery_overlays()}{' '}
+            <span className={MUTED}>
+              {onCount > 0
+                ? m.imagery_overlays_on({ on: onCount, count: overlays.length })
+                : overlays.length}
+            </span>
+          </summary>
+        }
+      >
+        <p className={`pb-1 ${MUTED}`}>{m.imagery_overlays_intro()}</p>
+        <ul className="flex flex-col">
+          {overlayGroups(overlays).map((entry) =>
+            entry.kind === 'layer' ? (
+              <OverlayRow
+                key={entry.item.id}
+                item={entry.item}
+                label={entry.item.name}
+                on={isOn(entry.item.id)}
+                onToggle={(on) => toggle(entry.item.id, on)}
+              />
+            ) : (
+              <li key={entry.label}>
+                <Fold
+                  openAtStart={entry.items.some(({ item }) => isOn(item.id))}
+                  className="pl-1"
+                  summary={
+                    <summary className={SUMMARY}>
+                      {entry.label} <span className={MUTED}>{entry.items.length}</span>
+                    </summary>
+                  }
+                >
+                  <ul className="flex flex-col pl-4">
+                    {entry.items.map(({ item, short }) => (
+                      <OverlayRow
+                        key={item.id}
+                        item={item}
+                        label={short}
+                        on={isOn(item.id)}
+                        onToggle={(on) => toggle(item.id, on)}
+                      />
+                    ))}
+                  </ul>
+                </Fold>
+              </li>
+            ),
+          )}
+        </ul>
+      </Fold>
+    </div>
   )
 }
 

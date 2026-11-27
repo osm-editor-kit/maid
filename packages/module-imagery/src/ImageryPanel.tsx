@@ -136,7 +136,9 @@ function PanelBody() {
 
   // the last list stays until the new one arrives, so the panel does not flicker while the map moves.
   // The layers are already filtered by the view and its zoom (see `listView`).
-  const items = listed?.items ?? []
+  // the backgrounds of the view: overlays are listed in the data layers panel (OverlaysSection), so they count neither
+  // for the search field nor for the "none cover this view" line
+  const items = (listed?.items ?? []).filter((item) => !item.overlay)
   // the background that is shown: the URL's, else the start order's (shown.ts)
   const shownId = shown.background
   const rows = filterSeriesRows(seriesRows(listed?.series ?? [], shownId), query)

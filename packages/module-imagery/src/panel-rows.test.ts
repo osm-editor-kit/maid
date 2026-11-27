@@ -95,6 +95,25 @@ describe('overlayGroups', () => {
       'Route 500',
     ])
   })
+
+  it('makes no group of an article, and cuts names with odd spaces at the right place', () => {
+    const entries = overlayGroups(
+      named(
+        'The Atlas',
+        'The Survey',
+        'TIGER  Roads 2022',
+        ' TIGER Roads 2023',
+        'NVE Flood',
+        'NVE Snow',
+      ),
+    )
+    expect(shape(entries)).toEqual([
+      'The Atlas',
+      'The Survey',
+      ['TIGER Roads', ['2022', '2023']],
+      ['NVE', ['Flood', 'Snow']],
+    ])
+  })
 })
 
 describe('repeatsName', () => {

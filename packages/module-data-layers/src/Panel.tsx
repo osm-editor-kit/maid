@@ -8,7 +8,7 @@ import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { InfoTip, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { useQueries } from '@tanstack/react-query'
-import { useId, useMemo, useState, type FormEvent } from 'react'
+import { useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import {
   addDataLayer,
   describeFailure,
@@ -236,13 +236,30 @@ function AddLayerForm({
   const [fileInputKey, setFileInputKey] = useState(0)
   const [errors, setErrors] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  // Cancel while the address is checked: the check's answer must not add the layer afterwards
+  const cancelled = useRef(false)
   const kind = chosen ?? guessKind(url)
+
+  function cancel() {
+    cancelled.current = true
+    onCancel()
+  }
+
+  /** Escape closes only the form, not the whole panel with it */
+  function onKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+    // a control inside the form that handles Escape itself (a list, a tip) keeps it
+    if (event.key !== 'Escape' || event.defaultPrevented) return
+    event.preventDefault()
+    event.stopPropagation()
+    cancel()
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const input: AddInput = { name, kind, url, sourceLayers, color, ...(file ? { file } : {}) }
     setBusy(true)
     const result = await addDataLayer(input, send)
+    if (cancelled.current) return
     setBusy(false)
     if (!result.ok) {
       setErrors(result.errors)
@@ -262,6 +279,7 @@ function AddLayerForm({
   return (
     <form
       onSubmit={submit}
+      onKeyDown={onKeyDown}
       aria-label={m.data_layers_add_title()}
       className="mx-4 my-3 flex flex-col gap-3 rounded-lg border border-zinc-950/10 bg-zinc-50 p-3 dark:border-white/10 dark:bg-white/5"
     >
@@ -336,8 +354,9 @@ function AddLayerForm({
       </div>
       {errors.length > 0 ? (
         <ul role="alert" className="flex flex-col gap-1 text-xs text-red-600 dark:text-red-400">
-          {errors.map((message) => (
-            <li key={message}>{message}</li>
+          {errors.map((message, index) => (
+            // two checks can give the same message
+            <li key={index}>{message}</li>
           ))}
         </ul>
       ) : null}
@@ -345,7 +364,7 @@ function AddLayerForm({
       <div className="flex items-center justify-end gap-2">
         <button
           type="button"
-          onClick={onCancel}
+          onClick={cancel}
           className="h-8 shrink-0 cursor-pointer rounded-md px-3 text-sm inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 dark:hover:bg-white/10"
         >
           {m.data_layers_cancel()}
@@ -375,6 +394,12 @@ export function createPanel(
   function DataLayersPanel() {
     const sections = useExtensionPoint(editor, 'data-layers.section')
     const [adding, setAdding] = useState(false)
+    // after the form closes, the focus goes back to "Add layer" instead of being lost with the form's buttons
+    const focusAdd = useRef(false)
+    const closeForm = () => {
+      focusAdd.current = true
+      setAdding(false)
+    }
     const added = useAddedLayers()
     const files = useFileLayers()
     const hidden = useHiddenIds()
@@ -397,6 +422,12 @@ export function createPanel(
           {adding ? null : (
             <button
               type="button"
+              ref={(button) => {
+                if (button && focusAdd.current) {
+                  focusAdd.current = false
+                  button.focus()
+                }
+              }}
               onClick={() => setAdding(true)}
               className="text-xs font-medium text-blue-700 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
             >
@@ -408,11 +439,11 @@ export function createPanel(
           <AddLayerForm
             colors={colors}
             send={send}
-            onCancel={() => setAdding(false)}
+            onCancel={closeForm}
             onAdded={(result) => {
               if (result.kind === 'url') addLayer(result.layer)
               else addFile(result.layer)
-              setAdding(false)
+              closeForm()
             }}
           />
         ) : null}
