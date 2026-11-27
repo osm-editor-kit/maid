@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/query-core'
 import { z } from 'zod'
 import { SESSION_DATA } from '../fetching/query-client.ts'
 import type { RemoteFetch } from '../fetching/remote-fetch.ts'
+import type { TaginfoStore } from './taginfo-store.ts'
 
 /**
  * Key and value suggestions from taginfo for the tags sheet. The endpoints, parameters and filters are
@@ -23,8 +24,9 @@ export const TAGINFO_API = 'https://taginfo.openstreetmap.org/api/4/'
 export type TaginfoGeometry = 'point' | 'vertex' | 'line' | 'area' | 'relation'
 
 /**
- * Maid rule (fetching-audit.md 5.7, sheet-design.md): a request is made only for at least three characters.
- * iD asks at once; Maid does not, so that a cell with one letter typed makes no request.
+ * Maid rule (fetching-audit.md 5.7, sheet-design.md): a request with a query is made only for at least three
+ * characters, so that a cell with one letter typed makes no request of its own. An empty text asks for the most used
+ * keys or values (as iD does), and one or two characters get that same answer: the caller filters it (2026-11-27).
  */
 export const MIN_QUERY_LENGTH = 3
 
@@ -77,12 +79,20 @@ export interface TaginfoOptions {
   apiUrl?: string
   /** The language of the descriptions. iD sends the UI language. Default 'en'. */
   lang?: string
+  /** Answers kept between visits (taginfo-store.ts). Default none: the session cache only. */
+  store?: TaginfoStore
 }
 
 export interface Taginfo {
-  /** Keys that start with or contain `query`. Empty for fewer than `MIN_QUERY_LENGTH` characters. Never rejects. */
+  /**
+   * Keys that start with or contain `query`; for fewer than `MIN_QUERY_LENGTH` characters the most used keys (the
+   * caller filters them). Never rejects.
+   */
   keys(query: string, geometry?: TaginfoGeometry, signal?: AbortSignal): Promise<TagSuggestion[]>
-  /** Values of `key`. Empty for a key that is popular or excluded (no request). Never rejects. */
+  /**
+   * Values of `key`, for fewer than `MIN_QUERY_LENGTH` characters its most used ones (the caller filters them). Empty
+   * for a key that is popular or excluded (no request). Never rejects.
+   */
   values(
     key: string,
     query: string,
@@ -189,9 +199,18 @@ export function createTaginfo(options: TaginfoOptions): Taginfo {
     row: z.ZodType<T>,
   ): Promise<T[]> {
     const url = new URL(path, base)
-    url.search = new URLSearchParams(params).toString()
+    // an empty query is no parameter (iD's `clean`): the most used keys or values
+    url.search = new URLSearchParams(
+      Object.entries(params).filter(([, value]) => value !== ''),
+    ).toString()
+    const kept = options.store?.get(url.href)
+    if (kept !== undefined) return rowsOf(kept, row)
     const response = await send(url.href, { headers: { Accept: 'application/json' } })
-    return rowsOf(await response.json(), row)
+    const body: unknown = await response.json()
+    const rows = rowsOf(body, row)
+    // only an answer that reads is kept
+    options.store?.set(url.href, body)
+    return rows
   }
 
   async function keysOf(
@@ -277,8 +296,8 @@ export function createTaginfo(options: TaginfoOptions): Taginfo {
   }
 
   return {
-    keys(query, geometry, signal) {
-      if (query.length < MIN_QUERY_LENGTH) return Promise.resolve([])
+    keys(typed, geometry, signal) {
+      const query = typed.length < MIN_QUERY_LENGTH ? '' : typed
       return answerOf(
         () =>
           queries.fetchQuery({
@@ -290,9 +309,9 @@ export function createTaginfo(options: TaginfoOptions): Taginfo {
         signal,
       )
     },
-    values(key, query, geometry, signal) {
+    values(key, typed, geometry, signal) {
       if (key === '' || EXCLUDED_VALUE_KEYS.test(key)) return Promise.resolve([])
-      if (query.length < MIN_QUERY_LENGTH) return Promise.resolve([])
+      const query = typed.length < MIN_QUERY_LENGTH ? '' : typed
       return answerOf(async () => {
         const popular = await popularKeys()
         if (popular.has(key)) return []

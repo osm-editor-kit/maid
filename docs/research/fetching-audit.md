@@ -292,7 +292,7 @@ Storage rules: a link never writes storage (a link opens the page and asks no re
 No Maid feature searches today. If a Wikidata or Taginfo search is added:
 
 - Debounce 300 ms (iD and Rapid use 300 ms for taginfo; iD uses 500 ms for wiki).
-- Minimum 3 characters (iD switches Wikipedia to a search at 8; Maid picks 3).
+- Minimum 3 characters (iD switches Wikipedia to a search at 8; Maid picks 3). taginfo since 2026-11-27: an empty text asks for the most used keys or values (as iD does), one or two characters reuse that answer filtered in the browser, and the answers are kept a week in localStorage (`packages/core/src/taginfo/taginfo-store.ts`, nothing under automation).
 - Each query string is a key. A new keystroke cancels the previous `signal`.
 - The Wikimedia gate runs one at a time, with `origin=*` and `limit=10`.
 - Results stay cached for the session (`staleTime: Infinity`, `gcTime: 1 h`).

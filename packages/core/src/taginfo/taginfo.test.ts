@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { createEditorFetch } from '../fetching/editor-fetch.ts'
 import { createTestClock } from '../fetching/test-clock.ts'
+import { createTaginfoStore, type TaginfoStore } from './taginfo-store.ts'
 import { createTaginfo, MIN_QUERY_LENGTH } from './taginfo.ts'
 
 type Row = Record<string, unknown>
@@ -35,6 +36,7 @@ const json = (body: unknown, status = 200) =>
 function setup(
   respond: (url: URL) => Response | Promise<Response> = defaultRespond,
   automated = false,
+  store?: TaginfoStore,
 ) {
   const calls: URL[] = []
   const clock = createTestClock()
@@ -48,7 +50,7 @@ function setup(
       return respond(target)
     },
   })
-  const taginfo = createTaginfo({ fetch: net.fetch, queries: net.queries })
+  const taginfo = createTaginfo({ fetch: net.fetch, queries: net.queries, store })
   return { taginfo, calls }
 }
 
@@ -98,11 +100,13 @@ describe('keys: iD taginfo.js keys()', () => {
     ])
   })
 
-  test('a query shorter than three characters makes no request', async () => {
+  test('a query shorter than three characters asks for the most used keys, once for all short queries', async () => {
     const { taginfo, calls } = setup()
     expect(MIN_QUERY_LENGTH).toBe(3)
-    expect(await taginfo.keys('hi', 'point')).toEqual([])
-    expect(calls).toHaveLength(0)
+    await taginfo.keys('', 'point')
+    await taginfo.keys('hi', 'point')
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.searchParams.has('query')).toBe(false)
   })
 
   test('a field of the wrong type is dropped, the row stays; a numeric text count still counts', async () => {
@@ -254,10 +258,13 @@ describe('values: iD taginfo.js values()', () => {
     expect(callsTo(calls, '/key/values')).toHaveLength(2)
   })
 
-  test('a query shorter than three characters makes no request', async () => {
+  test('a query shorter than three characters asks for the most used values, once for all short queries', async () => {
     const { taginfo, calls } = setup()
-    expect(await taginfo.values('highway', 're')).toEqual([])
-    expect(calls).toHaveLength(0)
+    await taginfo.values('highway', '')
+    await taginfo.values('highway', 're')
+    const valueCalls = callsTo(calls, '/key/values')
+    expect(valueCalls).toHaveLength(1)
+    expect(valueCalls[0]?.searchParams.has('query')).toBe(false)
   })
 })
 
@@ -331,5 +338,21 @@ describe('errors and automation: no suggestions, no throw', () => {
     const later = await taginfo.keys('hig', 'point')
     expect(later.map((item) => item.value)).toEqual(['highway', 'wiki_only', 'name', 'name:en'])
     expect(calls).toHaveLength(1)
+  })
+})
+
+describe('the store: answers kept between visits', () => {
+  test('a second visit with the same store asks taginfo nothing it asked before', async () => {
+    const items = new Map<string, string>()
+    const store = createTaginfoStore({
+      getItem: (name) => items.get(name) ?? null,
+      setItem: (name, value) => void items.set(name, value),
+      removeItem: (name) => void items.delete(name),
+    })
+    const first = setup(defaultRespond, false, store)
+    const values = await first.taginfo.values('highway', 'res')
+    const second = setup(defaultRespond, false, store)
+    expect(await second.taginfo.values('highway', 'res')).toEqual(values)
+    expect(second.calls).toHaveLength(0)
   })
 })

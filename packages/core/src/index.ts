@@ -95,6 +95,7 @@ export {
   type ServiceId,
   type ServiceRegistry,
 } from './fetching/services.ts'
+export { createTaginfoStore, type TaginfoStore } from './taginfo/taginfo-store.ts'
 export {
   createTaginfo,
   MIN_QUERY_LENGTH,
