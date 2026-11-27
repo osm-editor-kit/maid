@@ -9,11 +9,14 @@
  *   its own whose line runs against the traffic on its side of the road, with `oneway=yes`, is almost always drawn
  *   the wrong way round. The package picks the road and writes the text.
  *
- * A fix with `reverseWay` reverses the way with Maid's Reverse (which keeps `oneway=yes`, as iD) and then applies the
- * package's tag changes. Findings of the severity `info` (a missing width, surface or sign: nice to have) are left
+ * A fix with `reverseWay` reverses the way and then applies the package's tag changes. A fix that flips the `oneway`
+ * values (`oneway_reverse_way`) is a redraw, the riding direction stays: the way is reversed in the redraw model
+ * (`actionReverse` with `reverseOneway`), so the sides of the road and the second side of its keys end as in the
+ * package's `applyTagFix`. A fix that keeps them (`sidepath_line_against_traffic`) turns the traffic round on purpose and
+ * uses Maid's Reverse (which keeps `oneway=yes`, as iD). Findings of the severity `info` (a missing width, surface or sign: nice to have) are left
  * out: Maid has no such level, and the TILDA section lists those attributes already.
  */
-import { actionChangeTags, type Graph, OsmWay } from '@osm-editor-kit/maid-model'
+import { actionChangeTags, actionReverse, type Graph, OsmWay } from '@osm-editor-kit/maid-model'
 import { reverseAction } from '@osm-editor-kit/maid-operations'
 import {
   type Fix,
@@ -119,6 +122,11 @@ function issueOf(
   }
 }
 
+/** A fix that turns `oneway` values while it reverses the way: the riding direction stays (a redraw) */
+function flipsOneway(fix: TagFix): boolean {
+  return Object.values(fix.change ?? {}).some(({ from, to }) => from !== to)
+}
+
 function fixOf(
   issueId: string,
   wayId: string,
@@ -132,7 +140,9 @@ function fixOf(
     label,
     annotation: label,
     actions: () => [
-      ...(fix.reverseWay ? [reverseAction(wayId)] : []),
+      ...(fix.reverseWay
+        ? [flipsOneway(fix) ? actionReverse(wayId, { reverseOneway: true }) : reverseAction(wayId)]
+        : []),
       (graph: Graph) => {
         const way = graph.hasEntity(wayId)
         if (!way) return graph

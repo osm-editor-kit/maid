@@ -53,7 +53,7 @@ export { actionOrthogonalize } from './orthogonalize.ts';
 export { actionOrthogonalizeWays } from './orthogonalize_ways.ts';
 export { actionReflect } from './reflect.ts';
 export { actionRestrictTurn } from './restrict_turn.ts';
-export { actionReverse, reverseKey, reverseValue, reverseWayTags, type ReverseValueOptions } from './reverse.ts';
+export { actionReverse, reverseKey, reverseValue, reverseWayKey, reverseWayTags, reverseWayValue, type ReverseValueOptions } from './reverse.ts';
 export { actionRevert } from './revert.ts';
 export { actionRotate } from './rotate.ts';
 export { actionScale } from './scale.ts';

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { Graph, ModelContext, OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
 import type { RuleContext } from '@osm-editor-kit/maid-validation'
+import { applyTagFix, validateTags } from '@tilda-geo/bicycle-infrastructure-tagging'
 import { tildaTagRules } from './rules.ts'
 
 const model = new ModelContext()
@@ -80,5 +81,70 @@ describe('tildaTagRules: the tag rules of the TILDA tagging package', () => {
   test('a way that is not a highway, and a plain road, have no issues', () => {
     expect(run({ building: 'yes' }).issues).toEqual([])
     expect(run({ highway: 'residential' }).issues).toEqual([])
+  })
+})
+
+describe('oneway_reverse_way: the fix is a redraw, the riding direction stays', () => {
+  const profile = 'radnetz-berlin' as const
+  const inputs: Record<string, Record<string, string>> = {
+    'oneway=-1 with a kerb on the left': {
+      highway: 'cycleway',
+      oneway: '-1',
+      'separation:left': 'kerb',
+    },
+    'oneway:bicycle=-1 with a kerb on the left': {
+      highway: 'path',
+      bicycle: 'designated',
+      foot: 'designated',
+      segregated: 'no',
+      oneway: 'no',
+      'oneway:bicycle': '-1',
+      'separation:left': 'kerb',
+    },
+    'oneway=-1 with sides and a lane direction': {
+      highway: 'cycleway',
+      oneway: '-1',
+      'separation:left': 'kerb',
+      'buffer:right': '1',
+      'traffic_mode:left': 'parking',
+      'surface:left': 'asphalt',
+    },
+  }
+
+  for (const [name, tags] of Object.entries(inputs)) {
+    test(`the tags after the fix are those of the package's applyTagFix: ${name}`, () => {
+      const finding = validateTags(tags, { profile }).find((f) => f.ruleId === 'oneway_reverse_way')
+      expect(finding).toBeDefined()
+      const tagFix = finding!.fixes[0]!
+      const expected = applyTagFix(tags, tagFix)
+
+      const { graph, issues } = run(tags, profile)
+      const issue = issues.find((i) => i.data?.tildaRule === 'oneway_reverse_way')
+      expect(issue).toBeDefined()
+      const fix = issue!.fixes[0]!
+      const after = fix
+        .actions(new Graph(graph))
+        .reduce<Graph>((head, action) => action(head), new Graph(graph))
+      expect(after.entity('w-1').tags).toEqual(expected as Record<string, string>)
+      // the nodes of the way are in the opposite order
+      expect((after.entity('w-1') as OsmWay).nodes).toEqual(['n-2', 'n-1'])
+    })
+  }
+
+  test('a kerb on the left of a oneway=-1 cycleway stays on the left, and the way points the other way', () => {
+    const { graph, issues } = run(
+      { highway: 'cycleway', oneway: '-1', 'separation:left': 'kerb' },
+      profile,
+    )
+    const issue = issues.find((i) => i.data?.tildaRule === 'oneway_reverse_way')!
+    const after = issue.fixes[0]!.actions(new Graph(graph)).reduce<Graph>(
+      (head, action) => action(head),
+      new Graph(graph),
+    )
+    expect(after.entity('w-1').tags).toEqual({
+      highway: 'cycleway',
+      oneway: 'yes',
+      'separation:left': 'kerb',
+    })
   })
 })

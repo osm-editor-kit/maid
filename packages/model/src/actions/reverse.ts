@@ -209,11 +209,19 @@ const LEFT_RIGHT: Record<string, string> = { left: 'right', right: 'left' };
 const ALONG: Record<string, string> = { forward: 'backward', backward: 'forward' };
 
 /**
+ * Whether the way's one-way traffic is the one a lane rides with: `oneway:bicycle` where the way has it (a road whose
+ * bicycle traffic is one-way, or a cycleway), else `oneway`. As the package's `reverseTags` reads it.
+ */
+function onewayTraffic(tags: OsmTags): boolean {
+  return ONE_WAY.has(tags['oneway:bicycle'] ?? tags.oneway ?? '');
+}
+
+/**
  * Whether a reverse turns the traffic of this way round: it is one-way and the reverse keeps its `oneway` (iD's V:
  * "correcting a backwards oneway is the primary reason"). With `reverseOneway` the traffic stays where it is.
  */
 function trafficTurns(tags: OsmTags, reverseOneway: boolean | undefined) {
-  return !reverseOneway && ONE_WAY.has(tags.oneway ?? '');
+  return !reverseOneway && onewayTraffic(tags);
 }
 
 /** The reversed key of a road side (`cycleway:right:separation:left`), or undefined for any other key */
@@ -232,39 +240,57 @@ function reverseSideKey(key: string, turns: boolean): string | undefined {
     .join(':');
 }
 
+/** `cycleway:oneway` (no side) and `<prefix>:<side>:oneway`: the riding direction of a lane */
+function isLaneOnewayKey(key: string): boolean {
+  if (key === 'cycleway:oneway') return true;
+  const parts = key.split(':');
+  return parts.length === 3 && parts[2] === 'oneway' && SIDE_PREFIXES.has(parts[0]!) && SIDES.has(parts[1]!);
+}
+
+/**
+ * Whether the left and right of a riding key (`separation:left`) on this way stay: the way is a one-way way of its own
+ * (a cycleway) and its riding direction stays (`reverseOneway`).
+ */
+function ownRidingStays(key: string, tags: OsmTags, reverseOneway: boolean | undefined): boolean {
+  if (!reverseOneway || !onewayTraffic(tags)) return false;
+  const parts = key.split(':');
+  return parts.length === 2 && RIDING_KEYS.has(parts[0]!) && lookup(LEFT_RIGHT, parts[1]!) !== undefined;
+}
+
+/**
+ * The key of a way's tag after a reverse, by the rules of the road sides above; any other key as iD (`reverseKey`).
+ * `tags` are the tags of the way before the reverse. Pure.
+ */
+export function reverseWayKey(key: string, tags: OsmTags, options: ReverseValueOptions = {}): string {
+  if (RED_TURN_KEY.test(key)) return key;
+  const sideKey = reverseSideKey(key, trafficTurns(tags, options.reverseOneway));
+  if (sideKey !== undefined) return sideKey;
+  if (ownRidingStays(key, tags, options.reverseOneway)) return key;
+  return reverseKey(key);
+}
+
+/**
+ * The value of a way's tag after a reverse: the riding direction of a lane (`<prefix>:<side>:oneway`,
+ * `cycleway:oneway`) turns `yes` ↔ `-1` when the traffic stays and is kept when the traffic turns; any other value as
+ * iD (`reverseValue`). Pure.
+ */
+export function reverseWayValue(key: string, value: string, tags: OsmTags, options: ReverseValueOptions = {}): string {
+  if (RED_TURN_KEY.test(key)) return value;
+  if (isLaneOnewayKey(key)) {
+    return trafficTurns(tags, options.reverseOneway) ? value : (lookup(SIDE_ONEWAY, value) ?? value);
+  }
+  return reverseValue(key, value, tags, options);
+}
+
 /**
  * The tags of a way after a reverse. Keys of a road side follow the rule above; the left and right of the riding keys
  * of a one-way way of its own stay when its traffic stays (`reverseOneway`); every other key as iD (`reverseKey`,
  * `reverseValue`). Pure.
  */
 export function reverseWayTags(tags: OsmTags, options: ReverseValueOptions = {}): OsmTags {
-  const turns = trafficTurns(tags, options.reverseOneway);
-  // a one-way way of its own (a cycleway) whose riding direction stays: its separation and kin keep their side
-  const ownRidingStays =
-    !!options.reverseOneway && (ONE_WAY.has(tags.oneway ?? '') || ONE_WAY.has(tags['oneway:bicycle'] ?? ''));
   const result: OsmTags = {};
   for (const [key, value] of Object.entries(tags)) {
-    if (RED_TURN_KEY.test(key)) {
-      result[key] = value;
-      continue;
-    }
-    const sideKey = reverseSideKey(key, turns);
-    if (sideKey !== undefined) {
-      const parts = key.split(':');
-      const isSideOneway = parts.length === 3 && parts[2] === 'oneway';
-      result[sideKey] = isSideOneway
-        ? turns
-          ? value
-          : (lookup(SIDE_ONEWAY, value) ?? value)
-        : reverseValue(key, value, tags, options);
-      continue;
-    }
-    const parts = key.split(':');
-    if (ownRidingStays && RIDING_KEYS.has(parts[0]!) && parts.length === 2 && lookup(LEFT_RIGHT, parts[1]!) !== undefined) {
-      result[key] = reverseValue(key, value, tags, options);
-      continue;
-    }
-    result[reverseKey(key)] = reverseValue(key, value, tags, options);
+    result[reverseWayKey(key, tags, options)] = reverseWayValue(key, value, tags, options);
   }
   return result;
 }

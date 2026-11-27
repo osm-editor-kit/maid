@@ -312,7 +312,8 @@ function TildaBox({ entity, editor, readOnly, onFieldFocus, profile }: TildaSect
           const isEditing = editing.has(card.side) || !!card.choice
           return (
             <div
-              key={card.twin ? 'both' : card.side}
+              // a side can have two cards (a lane and a sidewalk bicycles may use): the prefix keeps them apart
+              key={`${card.twin ? 'both' : card.side}:${card.result._prefix ?? ''}`}
               data-tilda-card={card.twin ? 'both' : card.side}
               className="rounded-lg border border-zinc-950/10 dark:border-white/15"
               onPointerEnter={() => showSide(card)}

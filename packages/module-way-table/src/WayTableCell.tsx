@@ -138,7 +138,7 @@ export function WayTableCell(props: WayTableCellProps) {
     : column.readOnly
       ? m.way_table_read_only()
       : cell.dependent
-        ? m.way_table_stored_as({ key: storedKeyOf(displayKey, column.reversed) })
+        ? m.way_table_stored_as({ key: storedKeyOf(displayKey, column.reversed, column.tags) })
         : undefined
 
   useEffect(() => {

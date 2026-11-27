@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { reverseKey, reverseValue } from '@osm-editor-kit/maid-model'
+import { reverseKey, reverseValue, reverseWayTags } from '@osm-editor-kit/maid-model'
 import {
   isDirectionDependent,
   isDirectionalKey,
@@ -278,5 +278,46 @@ describe('agreement with the Reverse operation (packages/model reverse.ts)', () 
 
   test('the table shows the reversed incline that Reverse writes', () => {
     expect(mirrorValue('incline', '3%')).toBe('-3%')
+  })
+})
+
+describe('the sides of a road: the table mirrors as Reverse does (docs/research/reverse-side-keys.md)', () => {
+  test('the road side swaps, the second side stays in the riding direction', () => {
+    expect(mirrorKey('cycleway:right:separation:left')).toBe('cycleway:left:separation:left')
+    expect(mirrorKey('cycleway:both:marking:left')).toBe('cycleway:both:marking:left')
+    expect(mirrorKey('cycleway:right:lane:forward')).toBe('cycleway:left:lane:backward')
+    expect(mirrorKey('cycleway:left:oneway')).toBe('cycleway:right:oneway')
+    expect(isDirectionalKey('cycleway:right:separation:left')).toBe(true)
+    expect(isDirectionalKey('cycleway:both:separation:left')).toBe(false)
+  })
+
+  test('the explicit riding direction of a lane turns, so the lane keeps riding where it rode', () => {
+    expect(mirrorValue('cycleway:right:oneway', 'yes')).toBe('-1')
+    expect(mirrorValue('cycleway:left:oneway', '-1')).toBe('yes')
+    expect(mirrorValue('cycleway:right:oneway', 'no')).toBe('no')
+    expect(mirrorValue('cycleway:oneway', 'yes')).toBe('-1')
+    expect(isDirectionDependent('cycleway:right:oneway', 'yes')).toBe(true)
+  })
+
+  test('the left and right of a riding key stay on a one-way way of its own, with the way tags', () => {
+    const cycleway = { highway: 'cycleway', oneway: 'yes', 'separation:left': 'kerb' }
+    expect(mirrorKey('separation:left', cycleway)).toBe('separation:left')
+    expect(mirrorKey('separation:left', { highway: 'cycleway' })).toBe('separation:right')
+    expect(mirrorKey('separation:left')).toBe('separation:right')
+  })
+
+  test('mirrorTags is the Reverse with reverseOneway, for the keys they share', () => {
+    const tags = {
+      highway: 'residential',
+      'cycleway:right': 'lane',
+      'cycleway:right:separation:left': 'bollard',
+      'cycleway:right:oneway': 'yes',
+      'cycleway:left:oneway': '-1',
+      'sidewalk:both:surface': 'paving_stones',
+      'parking:left:orientation': 'parallel',
+    }
+    expect(mirrorTags(tags)).toEqual(reverseWayTags(tags, { reverseOneway: true }))
+    expect(mirrorTags(tags)['cycleway:left:separation:left']).toBe('bollard')
+    expect(mirrorTags(mirrorTags(tags))).toEqual(tags)
   })
 })

@@ -264,7 +264,10 @@ export function WayTableGrid(props: WayTableGridProps) {
               column={column}
               cell={cell}
               referenceValue={referenceValue}
-              edited={edited.get(column.id)?.has(storedKeyOf(row.key, column.reversed)) ?? false}
+              edited={
+                edited.get(column.id)?.has(storedKeyOf(row.key, column.reversed, column.tags)) ??
+                false
+              }
               showChanges={showChanges}
               change={row.changes?.[column.id]}
               previewing={preview?.rowKey === row.key && preview.ids.has(column.id)}

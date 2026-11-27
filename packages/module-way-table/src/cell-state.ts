@@ -47,7 +47,7 @@ export function viewOf(column: Column): ColumnView {
   const view = new Map<string, CellView>()
   for (const [storedKey, value] of Object.entries(column.tags)) {
     if (value === '') continue
-    const key = column.reversed ? mirrorKey(storedKey) : storedKey
+    const key = column.reversed ? mirrorKey(storedKey, column.tags) : storedKey
     const compare = column.reversed ? mirrorValue(storedKey, value, column.tags) : value
     view.set(key, {
       key,

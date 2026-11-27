@@ -45,9 +45,12 @@ export type Edit =
   | { readonly set?: Readonly<Record<string, string>>; readonly remove?: readonly string[] }
   | { readonly skip: SkipReason }
 
-/** The stored key of a display key: mirrored on a reversed way, as is otherwise */
-export function storedKeyOf(displayKey: string, reversed: boolean): string {
-  return reversed ? mirrorKey(displayKey) : displayKey
+/**
+ * The stored key of a display key: mirrored on a reversed way, as is otherwise. The way's tags decide whether a riding
+ * side (`separation:left` of a one-way cycleway) keeps its side, as Reverse does.
+ */
+export function storedKeyOf(displayKey: string, reversed: boolean, tags: Tags = {}): string {
+  return reversed ? mirrorKey(displayKey, tags) : displayKey
 }
 
 /**
@@ -100,7 +103,7 @@ export function planCellWrite(
   displayKey: string,
   value: string | undefined,
 ): PlanResult {
-  const key = storedKeyOf(displayKey, target.reversed)
+  const key = storedKeyOf(displayKey, target.reversed, target.tags)
   return planEdit([target], () =>
     value === undefined || value === '' ? { remove: [key] } : { set: { [key]: value } },
   )

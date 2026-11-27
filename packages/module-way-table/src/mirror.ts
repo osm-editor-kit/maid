@@ -1,9 +1,12 @@
 /**
  * Mirror of the directional keys and direction-dependent values of a way that points the other way. Pure.
  *
- * The keys and values follow the Reverse operation's rules (packages/model, reverse.ts: `reverseKey` and
- * `reverseValue`), so a value the table shows as mirrored is the one Reverse would write. `incline`, `up`/`down`,
- * `forward`/`backward` and the bare `left`/`right` values of any key are mirrored that way. Where the table goes
+ * The keys and values follow the Reverse operation's rules for a reverse that keeps the riding direction
+ * (packages/model, reverse.ts: `reverseWayKey` and `reverseWayValue` with `reverseOneway`, the rules of the road sides
+ * in docs/research/reverse-side-keys.md), so a value the table shows as mirrored is the one Reverse would write when it
+ * turns `oneway` too. The side of a road swaps (`cycleway:right:separation:left` becomes `cycleway:left:separation:left`),
+ * the explicit riding direction of a lane (`cycleway:right:oneway`, `cycleway:oneway`) turns `yes` and `-1`.
+ * `incline`, `up`/`down`, `forward`/`backward` and the bare `left`/`right` values of any key are mirrored that way. Where the table goes
  * further than Reverse, it does so on purpose, as the design asks (docs/research/way-table.md, 2.8, 4.8 and step 7):
  * - `oneway` and `conveying` are always mirrored. Reverse leaves them unless it is asked to (iD#13027: a plain reverse
  *   keeps conveying; iD: correcting a backwards oneway is the usual reason to reverse). The table shows the way's
@@ -25,7 +28,7 @@
  * synonyms `true` (for `yes`) and `reverse` (for `-1`) come back as `yes` and `-1` respectively. That is intended:
  * the value mirror is for display and comparison only. A write never goes through it (see plan.ts).
  */
-import { reverseKey, reverseValue } from '@osm-editor-kit/maid-model'
+import { reverseWayKey, reverseWayValue } from '@osm-editor-kit/maid-model'
 import type { Tags } from './types.ts'
 
 const START_END = /:(start|end)(?=:|$)/g
@@ -55,14 +58,18 @@ function swapStartEnd(key: string): string {
   return key.replace(START_END, (_match, pos: string) => `:${pos === 'start' ? 'end' : 'start'}`)
 }
 
-/** The key with its left/right, forward/backward and start/end parts swapped. Applying it twice gives the key back. */
-export function mirrorKey(key: string): string {
-  return swapStartEnd(reverseKey(key))
+/**
+ * The key with its left/right, forward/backward and start/end parts swapped. Applying it twice gives the key back.
+ * `tags` are the way's tags: the left and right of a riding key of a one-way way of its own (`separation:left` on a
+ * `oneway` cycleway) stay, as in Reverse. Without them every such key swaps.
+ */
+export function mirrorKey(key: string, tags: Tags = {}): string {
+  return swapStartEnd(reverseWayKey(key, tags, { reverseOneway: true }))
 }
 
 /** True when the key names a direction, so that its mirror is another key */
-export function isDirectionalKey(key: string): boolean {
-  return mirrorKey(key) !== key
+export function isDirectionalKey(key: string, tags: Tags = {}): boolean {
+  return mirrorKey(key, tags) !== key
 }
 
 function isOnewayKey(key: string): boolean {
@@ -72,7 +79,7 @@ function isOnewayKey(key: string): boolean {
 
 function mirrorOneway(value: string): string {
   const canonical = ONEWAY_CANONICAL.get(value.trim().toLowerCase()) ?? value
-  return reverseValue('oneway', canonical, {}, { reverseOneway: true })
+  return reverseWayValue('oneway', canonical, {}, { reverseOneway: true })
 }
 
 function isPlacementKey(key: string): boolean {
@@ -146,21 +153,21 @@ export function mirrorValue(key: string, value: string, tags: Tags = {}): string
   if (isOnewayKey(key)) return mirrorOneway(value)
   if (isPlacementKey(key)) return mirrorPlacement(value, laneCountOf(tags))
   if (isLanesPipeKey(key)) return mirrorLanesPipe(key, value)
-  // A plain Reverse keeps conveying (iD#13027); the table shows the way's direction, so it asks for the turn
-  if (key === 'conveying') return reverseValue(key, value, tags, { reverseOneway: true })
-  return reverseValue(key, value, tags)
+  // A plain Reverse keeps conveying and the lane oneway of a one-way road (iD#13027); the table shows the way's
+  // direction, so it asks for the turn
+  return reverseWayValue(key, value, tags, { reverseOneway: true })
 }
 
 /** True when the row (key and value) means something else from the other direction */
 export function isDirectionDependent(key: string, value: string, tags: Tags = {}): boolean {
-  return isDirectionalKey(key) || mirrorValue(key, value, tags) !== value
+  return isDirectionalKey(key, tags) || mirrorValue(key, value, tags) !== value
 }
 
 /** The tags of a way that points the other way: keys mirrored, direction-dependent values mirrored */
 export function mirrorTags(tags: Tags): Record<string, string> {
   const mirrored: Record<string, string> = {}
   for (const [key, value] of Object.entries(tags)) {
-    mirrored[mirrorKey(key)] = mirrorValue(key, value, tags)
+    mirrored[mirrorKey(key, tags)] = mirrorValue(key, value, tags)
   }
   return mirrored
 }
