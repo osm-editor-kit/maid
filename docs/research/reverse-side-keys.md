@@ -47,12 +47,54 @@ How Maid understands the tags today:
 4. `forward`/`backward` anywhere in the key swap, and so does a `:oneway` value of a side (`yes` ↔ `-1`). The lane keeps
    riding where it rode.
 
+## What the wiki and the forum say (2026-11-27)
+
+Tobias asked for this read of the wiki and the forum. A Haiku agent fetched 14 pages; the quote from
+Proposal:Separation was then checked word for word in the browser.
+
+- **The first side** (`cycleway:right`) is relative to the drawn way. This is settled: Key:cycleway says left and
+  right "are relative to the direction in which the way was drawn"; so do "Forward & backward, left & right" and the
+  forum (thread 97632).
+- **The second side** is defined in one place only, [Proposal:Separation](https://wiki.openstreetmap.org/wiki/Proposal:Separation).
+  Its status is "Draft (under way)" since 2020; it was never voted on. The quote, checked word for word:
+  > As a prefix of separation, left and right refer to the direction in which a (cycle)way is used, if it's a oneway
+  > (e.g. separation:left: The left side of the way in traveling direction). If it's not a oneway, but the way is
+  > mapped separately, left and right refers to the direction of the OSM line feature. For bi-directional cycle path
+  > mapped on a highway feature (tagged with cycleway:left:oneway=no or cycleway:right:oneway=no), left and right refer
+  > to the direction of traffic in which the path would be used if it were a one-way path.
+- [Melbourne Bike Lane Project](https://wiki.openstreetmap.org/wiki/Melbourne_Bike_Lane_Project) says the same for
+  `buffer`: "in relation to the direction of travel, not the orientation of the way". The abandoned proposal
+  "Buffered bike lane" said the opposite. The de facto page Key:cycleway:separation says nothing about a second side.
+- No page says what a reverse does to the sides or to `cycleway:<side>:oneway`.
+
+So TILDA's reading (b) is the one documented, but only in a draft. The de facto pages do not settle it.
+
+## Is `oneway=-1` the key? Yes
+
+Tobias's guess holds. With (b), the second side is tied to the riding direction, and the riding direction is carried
+by the `oneway` value. What a reverse must do with the second side depends only on what it does with `oneway`:
+
+| A reverse that…                                                                  | the riding direction | the second side (b)                     |
+| -------------------------------------------------------------------------------- | -------------------- | --------------------------------------- |
+| turns the `oneway` values (`yes` ↔ `-1`): "the line is drawn the other way" (package) | stays where it was   | **stays**                               |
+| keeps the `oneway` values: "the traffic goes the other way" (iD's V)            | turns round          | swaps                                   |
+
+- **iD** keeps the values, so in its own logic the swap of the second side is right for a one-way way of its own.
+  On a road side it is wrong: it turns the lanes of a two-way road round, and they then ride against the traffic.
+- **The package** turns the `oneway` values and also swaps the second side. That mixes the two rows, so it is wrong
+  either way. This is the bug in `reverseTags`.
+- Two cases do not depend on `oneway`:
+  - A way of its own without oneway: its left and right are relative to the line, so they always swap.
+  - A two-way lane on a road (`cycleway:<side>:oneway=no`): its left and right are relative to the traffic next to it,
+    so they never swap.
+
 ## Recommendation
 
 One rule for all four places, the one above:
 
-- **Package** (`reverseTags`, tagging 0.9.2): keep a second left/right under a road side; swap only the side right
-  after the prefix. Add a test with the four example rows. Also port `carriageway_side` from the processing into
+- **Package** (`reverseTags`, tagging 0.9.2): it turns the `oneway` values, so the second side must stay. On a road
+  side, swap only the side right after the prefix. On a way of its own, swap `separation:left` and its kin only when
+  the way is not one-way. Add a test with the four example rows. Also port `carriageway_side` from the processing into
   `@tilda-geo/bicycle-infrastructure`, so the categories read the separation as the processing does.
 - **Maid**: Reverse uses the same rule for the keys under a road side. Best is to take `reverseTags` from the package
   once 0.9.2 has it, for the side keys only, so Maid and TILDA cannot drift apart. Fix the two-sides bug and flip the
