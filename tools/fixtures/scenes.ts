@@ -84,9 +84,9 @@ export const SCENES: Scene[] = [
   {
     name: 'lanes',
     description:
-      'Made-up test cases of lane drawing, one per cell (L01 to L22): roads running on, lanes added and dropped, turn lanes, junctions, a roundabout, forks and merges, bus and cycle lanes, placement, ways drawn against their traffic',
-    bbox: [13.33, 52.6065, 13.3522, 52.62],
-    center: [13.3411, 52.61325],
+      'Made-up test cases of lane drawing, one per cell (L01 to L28): roads running on, lanes added and dropped, turn lanes, junctions, a roundabout, forks and merges, bus and cycle lanes, placement, ways drawn against their traffic',
+    bbox: [13.33, 52.6038, 13.3522, 52.62],
+    center: [13.3411, 52.6119],
     zoom: 16,
     madeBy: 'fixtures-lanes',
   },

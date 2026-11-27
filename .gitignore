@@ -40,3 +40,4 @@ reports/rmgl-bench*.json
 # GitHub Pages build output (bun run pages-build)
 /site/
 reports/sprites-subset.json
+reports/street-quality*.json

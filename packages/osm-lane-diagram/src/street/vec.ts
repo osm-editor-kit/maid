@@ -200,3 +200,80 @@ export function cutSharpBends(points: readonly Vec2[], cut: number, minTurn = 10
   out.push(points[points.length - 1]!)
   return out
 }
+
+/**
+ * An offset edge without the folds an offset makes where it is wider than a segment is long: on the inner side of a
+ * bend with a short segment, or at an end cut at a sharp angle, a piece of the edge runs back against its centre line
+ * and the outline crosses itself. Such a piece is drawn as one point, where the edge's pieces before and after it meet.
+ * Keeps one point per point of the centre line (lane edges and lines stay index for index), and both ends, where the
+ * junctions join.
+ */
+export function unfolded(edge: readonly Vec2[], centre: readonly Vec2[]): Vec2[] {
+  const out = edge.map((p): Vec2 => [p[0], p[1]])
+  const n = out.length
+  for (let pass = 0; pass < n; pass++) {
+    let changed = false
+    for (let k = 0; k + 1 < n; k++) {
+      const piece = sub(out[k + 1]!, out[k]!)
+      if (dot(piece, sub(centre[k + 1]!, centre[k]!)) >= 0) continue
+      changed = true
+      // (a fold at an end, or reaching a piece already drawn into an end, goes into the end)
+      if (k === 0 || out[k] === out[0]) {
+        out[k + 1] = out[0]!
+        continue
+      }
+      if (k + 1 === n - 1 || out[k + 1] === out[n - 1]) {
+        out[k] = out[n - 1]!
+        continue
+      }
+      const before = sub(out[k]!, out[k - 1]!)
+      const after = sub(out[k + 2]!, out[k + 1]!)
+      const middle = scale(add(out[k]!, out[k + 1]!), 0.5)
+      let point = middle
+      const c = cross(before, after)
+      if (Math.abs(c) > 1e-9) {
+        const meet = add(
+          out[k - 1]!,
+          scale(before, cross(sub(out[k + 1]!, out[k - 1]!), after) / c),
+        )
+        // (about parallel pieces meet far off: the middle of the fold then)
+        if (len(sub(meet, middle)) < 2 * len(piece) + 0.5) point = meet
+      }
+      out[k] = point
+      out[k + 1] = point
+    }
+    if (!changed) break
+  }
+  return out
+}
+
+/** Whether a closed ring crosses itself (two of its edges cross; touching does not count) */
+export function crossesItself(ring: readonly Vec2[]): boolean {
+  const n = ring.length
+  const side = (p: Vec2, q: Vec2, r: Vec2) => Math.sign(cross(sub(q, p), sub(r, p)))
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue
+      const [a, b, c, d] = [ring[i]!, ring[(i + 1) % n]!, ring[j]!, ring[(j + 1) % n]!]
+      if (side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0) return true
+    }
+  }
+  return false
+}
+
+/** The convex hull of the points, counter-clockwise (Andrew's monotone chain) */
+export function convexHull(points: readonly Vec2[]): Vec2[] {
+  const sorted = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1])
+  if (sorted.length < 3) return sorted
+  const turn = (o: Vec2, a: Vec2, b: Vec2) => cross(sub(a, o), sub(b, o))
+  const half = (list: Vec2[]) => {
+    const out: Vec2[] = []
+    for (const p of list) {
+      while (out.length >= 2 && turn(out[out.length - 2]!, out[out.length - 1]!, p) <= 0) out.pop()
+      out.push(p)
+    }
+    out.pop()
+    return out
+  }
+  return [...half(sorted), ...half([...sorted].reverse())]
+}
