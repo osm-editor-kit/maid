@@ -149,7 +149,7 @@ const CASES: Case[] = [
     lat: 52.3926675,
     zoom: 18,
     select: 'w43684175',
-    look: 'iD: a shadow under the selected road and triangle midpoints. Maid: a circle for each midpoint and a halo, without the pulse.',
+    look: 'iD: a shadow under the selected road and triangle midpoints. Maid: a halo, without the pulse and without midpoints (a double-click adds a node).',
     notShown:
       'One frame per editor. iD breathes every 800 ms, and the phase at capture is not controlled, so the shadow width can differ between runs.',
   },
