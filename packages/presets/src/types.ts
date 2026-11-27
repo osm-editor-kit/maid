@@ -172,6 +172,11 @@ export type Presets = {
   deprecatedTags(tags: Tags): DeprecatedTag[]
   field(id: string): Field | undefined
   /**
+   * The values the fields that write `key` offer (their `key` or one of their `keys`), with their labels, each value
+   * once, in the fields' order. Empty when no field with options writes the key. For the tag sheet's suggestions.
+   */
+  valueOptions(key: string): FieldOption[]
+  /**
    * The preset's fields that apply: its own `fields` with `{preset}` and template references expanded, filtered by the field's `geometry` and `prerequisiteTag`. Then every `moreFields` entry and universal field whose key (or one of its keys) is in `tags`, even with an empty value (iD's tagsContainFieldKey), without duplicates.
    * With `loc`, a field whose location set does not hold there is left out (iD's `fields(loc)` and `isAllowed`).
    */

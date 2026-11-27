@@ -575,3 +575,17 @@ describe('the schema icons and the options order of the combo fields', () => {
     expect(built.field('plain')?.icons).toBeUndefined()
   })
 })
+
+describe('valueOptions: the values the fields that write a key offer', () => {
+  it('a field key and a key of a field with keys give their options with labels', () => {
+    const cycleway = presets.valueOptions('cycleway:left').map((option) => option.value)
+    expect(cycleway).toContain('lane')
+    expect(cycleway).toContain('track')
+    expect(
+      presets.valueOptions('surface').find((option) => option.value === 'asphalt')?.label,
+    ).toBe('Asphalt')
+  })
+  it('a key no field with options writes has none', () => {
+    expect(presets.valueOptions('no:such:key')).toEqual([])
+  })
+})

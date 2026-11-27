@@ -467,6 +467,25 @@ export function createPresets(data: PresetData): Presets {
   }
   const fields = new Map<string, Field>()
   for (const [id, raw] of rawFields) fields.set(id, buildField(id, raw))
+  // the options of the fields that write a key, by key: built once, on the first question
+  let optionsByKey: Map<string, FieldOption[]> | undefined
+  function valueOptions(key: string): FieldOption[] {
+    if (optionsByKey === undefined) {
+      optionsByKey = new Map()
+      for (const field of fields.values()) {
+        if (field.options.length === 0) continue
+        for (const fieldKey of [field.key, ...(field.keys ?? [])]) {
+          if (fieldKey === undefined) continue
+          const list = optionsByKey.get(fieldKey) ?? []
+          for (const option of field.options) {
+            if (!list.some((known) => known.value === option.value)) list.push(option)
+          }
+          optionsByKey.set(fieldKey, list)
+        }
+      }
+    }
+    return optionsByKey.get(key) ?? []
+  }
 
   function buildField(id: string, raw: RawRecord) {
     const fieldLookup = (key: string) => (fieldId: string) =>
@@ -1130,6 +1149,7 @@ export function createPresets(data: PresetData): Presets {
     preset: (id) => entries.get(id)?.preset,
     defaults,
     field: (id) => fields.get(id),
+    valueOptions,
     fieldsFor,
     moreFieldsFor,
     matchesLocation: (locationSet, loc) => locations.matchesLocation(locationSet, loc),
