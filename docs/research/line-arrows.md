@@ -1,46 +1,51 @@
 # Arrows on lines: drawing direction and oneway
 
-Design proposal, 2026-11-26, for Tobias to decide on. No code has changed. Sketches of every case in every state, on
-map and imagery: **https://claude.ai/artifact/RKGn9wBkgduyGvmVaGswJV** (private until shared).
+Design proposal for Tobias to decide on. v1 2026-11-26, v2 2026-11-27 after his comments. No code has changed.
+Sketches of every case in every state, on map and imagery, with the answers to the comments:
+**https://claude.ai/artifact/RKGn9wBkgduyGvmVaGswJV** (private until shared).
 
 Asked for by Tobias: users find the hook for `oneway=-1` (ADR 0015) unnatural. The drawing-direction arrow should come
 closer to iD but be easier to see; oneways keep their own glyph; both should show together.
 
 ## What exists
 
-- iD (`.reference/id` at `0194f3926`): one marker, `svg/defs.ts` `ideditor-oneway-marker-*`, path
-  `M 6,3 L 0,3 L 0,2 L 6,2 L 5,0 L 10,2.5 L 5,5 z`, 12 x 6 px, `#333` (white, `#eee` on dark and rail lines,
-  `svg/lines.js` `onewayArrowColour`), every 36 px from zoom 16 (`svgMarkerSegments`), mirrored for
+- iD (`.reference/id` at `0194f3926`): one marker, `svg/defs.ts` `ideditor-oneway-marker-*`, 12 x 6 px, `#333`
+  (white, `#eee` on dark and rail lines, `svg/lines.js` `onewayArrowColour`), every 36 px from zoom 16, mirrored for
   `isOneWayBackwards`, doubled for `isBiDirectional`. `oneway=no` cancels every implied oneway (`osm/way.ts`
-  `isOneWay`). Oneway paths also get a dash pattern `6 6 6 18`. iD never shows the drawing direction.
-- Maid: `renderer/src/direction.ts` and `direction-images.ts` draw iD's arrow, the hook (`reversed`) for `-1`, and a
-  white outlined copy of iD's arrow on a selected highway without oneway (`selection-shape.ts`,
-  `highlight-direction`). The bicycle lens draws white arrows and hooks as line patterns (`maid-line-arrow-*`).
+  `isOneWay`). iD never shows the drawing direction. Maid copies iD's implied list in `renderer/src/direction.ts`.
+- Maid: `renderer/src/direction.ts` and `direction-images.ts` draw iD's arrow, the hook for `-1`, and a white outlined
+  arrow on a selected highway without oneway. The bicycle lens draws white arrows and hooks as line patterns.
+- The TILDA package does not read `cycleway=opposite*`; that is lane tagging, not a centerline property.
 
-## Proposal
+## Proposal (v2)
 
-- **Two glyphs, two meanings.** Drawing direction: iD's arrow, bolder (2.6 px shaft, 16 x 8.4 px), white with a dark
-  outline, on hover and selection only. Oneway: a double chevron, dark with a white halo, from OSM 16 every 36 px.
-- **Normal state shows traffic only.** `oneway=-1` is the same chevron turned 180° (`icon-rotate`). No hook.
-- **Hover and selected alternate both**: arrow, chevrons, arrow, chevrons, one pair image every 72 px. For `-1` they
-  point at each other.
-- Reversible and alternating: back-to-back chevrons with a bar. Bicycles exempt (`oneway:bicycle=no`,
-  `cycleway=opposite*`): chevrons plus a small blue counter-chevron. TILDA lines: single white chevrons in the line
-  pattern, mirrored for "against", an outward pair for two-way.
-- Readable on imagery through the two-tone glyphs; single-colour glyphs as SDF images (`icon-color`,
-  `icon-halo-*`, `icon-opacity` for the lens dimming instead of one image per colour).
+- **One combined glyph per anchor**, so drawing direction and oneway never compete for a place on the line. Oneway
+  with the line: two chevrons (they also give the drawing direction). Against the line (`-1`): chevrons back plus a
+  small drawing tick in front, visible at rest. No oneway: the tick alone. Reversible: heads outward with a bar.
+- **All glyphs solid**, a thin white edge for imagery. Colour says who: black for all traffic, blue for bicycles only
+  (contraflow counter-chevron, `oneway=no` + `oneway:bicycle=yes` on shared paths), amber for a missing oneway tag
+  (bicycle lens only).
+- **Two sizes**: roads 100 %, paths, footways, cycleways and the bicycle lens lines 72 % (`icon-size`).
+- **Rest state per style**: the standard style shows drawing ticks only on hover and selection; line-focused styles
+  (the bicycle lens) show a few at rest, every 72 px. Ticks on every open line, waterways included.
+- **Bicycle lens**: the same glyphs as line patterns. Lanes are drawn as oneway also when TILDA only assumes it
+  (`implicit_yes`). Tracks and separate ways need the tag: tagged oneway gives chevrons, tagged two-way a double-headed
+  glyph, untagged (`implicit_yes`, `assumed_no`) the amber tick.
+- Out of scope: `oneway:bus`, `oneway:psv`, `oneway:foot`. Maid may deviate from iD where its glyphs are clearer.
 
-Code to change (details on the page): `direction.ts`, `direction-images.ts`, `layers.ts`, `build.ts` (`cf`
-property), `selection-shape.ts` and `engine.ts` (hover feature, every open line), the bicycle lens `layers.ts`,
-`direction-svg.ts` and `assets/direction/*.svg`, their tests and `check-bike-style`, and a new ADR that supersedes the
+Code to change (details on the page): `direction.ts`, `direction-images.ts`, `layers.ts` (`icon-size`, a new
+`line-direction` layer behind a style option, pair images on the highlight), `build.ts` (`ow`, `sm`),
+`selection-shape.ts` and `engine.ts`, the bicycle lens (`ridingDirection` with "tagged or not", patterns),
+`direction-svg.ts` and `assets/direction/*.svg`, their tests and `check-bike-style`, and a new ADR that replaces the
 hook part of ADR 0015.
 
 ## Open questions for Tobias
 
-1. `oneway=-1` in the normal state: traffic direction only, or a small "drawn against" cue?
-2. Drawing direction on hover too, or on selection only?
-3. Drawing direction for every selected open line (waterways, sided lines), not only highways?
-4. `oneway=no` on a roundabout or motorway: nothing (iD) or a two-way hint?
-5. The blue contraflow counter-chevron in every app, or in Maid Bicycle only?
-6. `oneway:bus`, `oneway:psv`, `oneway:foot`: out of scope?
-7. The oneway glyph deviates from iD in every app: fine?
+1. Drawing ticks on hover too, or on selection only?
+2. `oneway=no` on a roundabout or motorway: only the ticks of a plain line, or a two-way glyph?
+3. Blue for bicycles in every app, or only in Maid Bicycle?
+4. Amber for a missing oneway on tracks: a good signal, or too close to a validation warning?
+
+## Follow-up
+
+The hover and selection glow is too faint in the bicycle lens, where the side lines cover it.
