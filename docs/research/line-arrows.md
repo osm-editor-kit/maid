@@ -39,12 +39,16 @@ Code to change (details on the page): `direction.ts`, `direction-images.ts`, `la
 `direction-svg.ts` and `assets/direction/*.svg`, their tests and `check-bike-style`, and a new ADR that replaces the
 hook part of ADR 0015.
 
-## Open questions for Tobias
+## Decided 2026-11-27
+
+- Roads with a default oneway (roundabout, motorway, iD's implied list) always show their state: chevrons when
+  oneway, the two-way glyph for `oneway=no`.
+- Blue for bicycles is one look for every app.
+- Amber for an untagged oneway on tracks and separate ways stays.
+
+## Open question for Tobias
 
 1. Drawing ticks on hover too, or on selection only?
-2. `oneway=no` on a roundabout or motorway: only the ticks of a plain line, or a two-way glyph?
-3. Blue for bicycles in every app, or only in Maid Bicycle?
-4. Amber for a missing oneway on tracks: a good signal, or too close to a validation warning?
 
 ## Follow-up
 
