@@ -189,6 +189,88 @@ export function reverseValue(
 
 
 /**
+ * The prefixes of keys that describe a side of a road: `cycleway:right`, `sidewalk:left:surface`, `parking:both`.
+ * Maid: differs from iD and Rapid here (Maid docs/research/reverse-side-keys.md, Tobias 2026-11-27 "Wir folgen
+ * Tilda"). A reverse keeps the street as it is:
+ * - the side of the road swaps (iD swaps only the first `:left`/`:right` it finds, so the trailing one of
+ *   `cycleway:right:separation:left` swapped and the road side did not);
+ * - a second left/right under it (`…:separation:left`, `marking`, `buffer`, `traffic_mode`) is read in the riding
+ *   direction of the lane (Proposal:Separation, TILDA). It swaps only when the reverse turns the traffic round;
+ * - an explicit `<prefix>:<side>:oneway` turns `yes` ↔ `-1` when the traffic stays, so the lane keeps riding where it
+ *   rode (iD kept it, and the lanes of a two-way road rode against the traffic afterwards).
+ */
+const SIDE_PREFIXES = new Set(['cycleway', 'sidewalk', 'parking', 'shoulder']);
+const SIDES = new Set(['left', 'right', 'both']);
+/** The keys whose left/right is read in the riding direction of a one-way way of its own (Proposal:Separation) */
+const RIDING_KEYS = new Set(['separation', 'marking', 'buffer', 'traffic_mode']);
+const ONE_WAY = new Set(['yes', '1', 'true', '-1']);
+const SIDE_ONEWAY: Record<string, string> = { yes: '-1', '1': '-1', '-1': 'yes' };
+const LEFT_RIGHT: Record<string, string> = { left: 'right', right: 'left' };
+const ALONG: Record<string, string> = { forward: 'backward', backward: 'forward' };
+
+/**
+ * Whether a reverse turns the traffic of this way round: it is one-way and the reverse keeps its `oneway` (iD's V:
+ * "correcting a backwards oneway is the primary reason"). With `reverseOneway` the traffic stays where it is.
+ */
+function trafficTurns(tags: OsmTags, reverseOneway: boolean | undefined) {
+  return !reverseOneway && ONE_WAY.has(tags.oneway ?? '');
+}
+
+/** The reversed key of a road side (`cycleway:right:separation:left`), or undefined for any other key */
+function reverseSideKey(key: string, turns: boolean): string | undefined {
+  const parts = key.split(':');
+  if (parts.length < 2 || !SIDE_PREFIXES.has(parts[0]!) || !SIDES.has(parts[1]!)) return undefined;
+  return parts
+    .map((part, index) => {
+      if (index === 0) return part;
+      if (index === 1) return lookup(LEFT_RIGHT, part) ?? part;
+      const along = lookup(ALONG, part);
+      if (along !== undefined) return along;
+      // a second side follows the riding direction: it swaps only when the traffic turns round
+      return turns ? (lookup(LEFT_RIGHT, part) ?? part) : part;
+    })
+    .join(':');
+}
+
+/**
+ * The tags of a way after a reverse. Keys of a road side follow the rule above; the left and right of the riding keys
+ * of a one-way way of its own stay when its traffic stays (`reverseOneway`); every other key as iD (`reverseKey`,
+ * `reverseValue`). Pure.
+ */
+export function reverseWayTags(tags: OsmTags, options: ReverseValueOptions = {}): OsmTags {
+  const turns = trafficTurns(tags, options.reverseOneway);
+  // a one-way way of its own (a cycleway) whose riding direction stays: its separation and kin keep their side
+  const ownRidingStays =
+    !!options.reverseOneway && (ONE_WAY.has(tags.oneway ?? '') || ONE_WAY.has(tags['oneway:bicycle'] ?? ''));
+  const result: OsmTags = {};
+  for (const [key, value] of Object.entries(tags)) {
+    if (RED_TURN_KEY.test(key)) {
+      result[key] = value;
+      continue;
+    }
+    const sideKey = reverseSideKey(key, turns);
+    if (sideKey !== undefined) {
+      const parts = key.split(':');
+      const isSideOneway = parts.length === 3 && parts[2] === 'oneway';
+      result[sideKey] = isSideOneway
+        ? turns
+          ? value
+          : (lookup(SIDE_ONEWAY, value) ?? value)
+        : reverseValue(key, value, tags, options);
+      continue;
+    }
+    const parts = key.split(':');
+    if (ownRidingStays && RIDING_KEYS.has(parts[0]!) && parts.length === 2 && lookup(LEFT_RIGHT, parts[1]!) !== undefined) {
+      result[key] = reverseValue(key, value, tags, options);
+      continue;
+    }
+    result[reverseKey(key)] = reverseValue(key, value, tags, options);
+  }
+  return result;
+}
+
+
+/**
  * Order the nodes of a way in reverse order and reverse any direction dependent tags
  * other than `oneway` and `conveying`, which turn only with `reverseOneway`. (We assume that correcting
  * a backwards oneway is the primary reason for reversing a way.)
@@ -244,11 +326,7 @@ export function actionReverse(entityID: EntityID, options?: ReverseOptions): Rev
    */
   function reverseWay(graph: Graph, way: OsmWay): void {
     const nodes: EntityID[] = way.nodes.slice().reverse();
-    const tags: OsmTags = {};
-
-    for (const [key, value] of Object.entries(way.tags)) {
-      tags[reverseKey(key)] = reverseValue(key, value, way.tags, valueOptions);
-    }
+    const tags = reverseWayTags(way.tags, valueOptions);
 
     for (let relation of graph.parentRelations(way)) {
       for (const member of relation.indexedMembers()) {
