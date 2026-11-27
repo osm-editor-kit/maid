@@ -95,8 +95,10 @@ export function Shell(props: {
   const framed = Boolean(sidebarStart) || startShown
   const inSheet = Boolean(sidebar) && !wide
 
+  // `overflow-clip`, not hidden: the browser scrolls a hidden box to bring a focused field into view, which moved the
+  // top bar out and the map up under the pointer; a clipped box cannot be scrolled at all
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-white text-sm text-zinc-950 [--sidebar-width:0px] dark:bg-zinc-900 dark:text-white">
+    <div className="flex h-full flex-col overflow-clip bg-white text-sm text-zinc-950 [--sidebar-width:0px] dark:bg-zinc-900 dark:text-white">
       {topBar}
       <div className="flex min-h-0 flex-1">
         {sidebar && wide ? (
