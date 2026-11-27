@@ -137,7 +137,16 @@ describe('zoom floors of the data layers (MapLibre zoom: OSM minus one)', () => 
 
   test('the highlight layers of the selection and the tools are not floored', () => {
     const layers = buildLayers(options).map(view)
-    expect(layers.find((l) => l.id === 'highlight-midpoint')?.minzoom).toBeUndefined()
+    expect(layers.find((l) => l.id === 'highlight-halo-shape')?.minzoom).toBeUndefined()
+  })
+})
+
+describe('the glyph in the middle of a line', () => {
+  test('every symbol layer has a spacing MapLibre accepts (at least 1): a layer under it is never added', () => {
+    for (const layer of buildLayers(options).map(view)) {
+      const spacing = layer.layout?.['symbol-spacing']
+      if (typeof spacing === 'number') expect([layer.id, spacing >= 1]).toEqual([layer.id, true])
+    }
   })
 })
 
@@ -217,7 +226,7 @@ describe('show only the selection', () => {
 
   test('leaves the highlight layers visible', () => {
     const layers = buildLayers(only).map(view)
-    expect(layers.find((l) => l.id === 'highlight-midpoint')?.layout?.visibility).toBeUndefined()
+    expect(layers.find((l) => l.id === 'highlight-halo-shape')?.layout?.visibility).toBeUndefined()
   })
 
   test('is off by default: the data layers are visible', () => {

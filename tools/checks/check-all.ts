@@ -144,15 +144,15 @@ const RUNS: Run[] = [
  */
 const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   interactions: {
-    maid: 163,
-    bicycle: 163,
-    parking: 163,
-    indoor: 163,
-    lanes: 163,
-    golf: 163,
-    climbing: 163,
-    buildings: 163,
-    maproulette: 163,
+    maid: 157,
+    bicycle: 157,
+    parking: 157,
+    indoor: 157,
+    lanes: 157,
+    golf: 157,
+    climbing: 157,
+    buildings: 157,
+    maproulette: 157,
   },
   edit: {
     maid: 20,

@@ -15,7 +15,7 @@ import { streetCollector, type StreetGraph } from './street-collect.ts'
  * Below the lines of the OSM data (the first line layer of the editor, renderer layers.ts), as Lane Studio draws its
  * lanes under iD's lines: the way, its vertices and the selection stay on top and can be clicked
  */
-const BEFORE = ['line-casing--1', 'line-casing-0', 'label-line', 'highlight-midpoint']
+const BEFORE = ['line-casing--1', 'line-casing-0', 'label-line', 'highlight-halo-shape']
 export const STREET_MIN_ZOOM = 16
 
 type History = MapContentProps['editor']['history']

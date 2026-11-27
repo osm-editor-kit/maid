@@ -14,14 +14,14 @@ import { SIGN_PIXEL_RATIO, signImage, signImageId } from './sign-images.ts'
 
 /**
  * The layer of the editor that ours go below: its oneway arrows when they are on (the first of the markers on the lines:
- * oneway arrows, side markers, the selected way's drawing direction), else the labels of lines, else the midpoint
- * handles. All are above the lines and below the vertices and points, so the infrastructure covers iD's line colours
+ * oneway arrows, side markers, the selected way's drawing direction), else the labels of lines, else the halo of a
+ * selected shape point. All are above the lines and below the vertices and points, so the infrastructure covers iD's line colours
  * but never a marker, a vertex, a point or a label (renderer layers.ts): a mapped oneway and the selected way's
  * drawing direction stay visible on a bicycle line (Tobias, 2026-11-26).
  */
-const BEFORE = ['line-oneway', 'label-line', 'highlight-midpoint']
+const BEFORE = ['line-oneway', 'label-line', 'highlight-halo-shape']
 /** The signs go above the labels of lines (see the layer) */
-const SIGN_BEFORE = ['highlight-midpoint']
+const SIGN_BEFORE = ['highlight-halo-shape']
 
 /**
  * The staging graph of the editor's history and a count of its changes. A load adds to the graph's base in place, so the

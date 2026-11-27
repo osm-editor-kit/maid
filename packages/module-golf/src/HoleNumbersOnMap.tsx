@@ -9,7 +9,7 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { Layer, Source, useMap, type LayerProps } from 'react-map-gl/maplibre'
 import { type GraphLike, holeLines } from './holes.ts'
 
-const BEFORE = ['label-line', 'highlight-midpoint']
+const BEFORE = ['label-line', 'highlight-halo-shape']
 const SOURCE = 'maid-golf-hole-numbers'
 
 const LABELS = {

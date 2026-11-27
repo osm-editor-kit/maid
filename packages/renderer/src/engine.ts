@@ -41,7 +41,7 @@ import { applyConstraints, type Neighbour } from './constraint'
 import { OsmData } from './data'
 import { installDirectionImages } from './direction-images'
 import { DragTool } from './drag'
-import { DrawTool, nearestOnWay, projectedNodes } from './draw'
+import { DrawTool, nearestOnWay } from './draw'
 import { drawnCounts } from './drawn-counts'
 import { entityInfo } from './entity-info'
 import { featureId } from './feature-id'
@@ -65,7 +65,6 @@ import {
   UNLEVELED_STATE,
 } from './layers'
 import { MeasureSession } from './measure-session'
-import { MidpointHandles } from './midpoint-handles'
 import { type Modifiers, NO_MODIFIERS, sameModifiers } from './modifiers'
 import { moduleKeyOf, type ModuleMode, ModuleModeSession, type ScreenPoint } from './module-mode'
 import {
@@ -247,31 +246,6 @@ export class MaidEngine {
       },
       options.fetch ?? standaloneFetch,
     )
-    this.handles = new MidpointHandles({
-      map: () => this.map,
-      data: this.data,
-      mayCompute: () =>
-        this.currentMode === 'browse' &&
-        !this.moduleMode &&
-        !this.draw.active &&
-        !this.transform.active &&
-        !this.measuring,
-      selected: () => this.selectedIds,
-      isDrawn: (id) => this.featureSource.has(id),
-      isReadOnly: (id) => this.isReadOnly(id),
-      projected: (way) => projectedNodes(this, way),
-      pushHighlight: () => this.pushHighlight(),
-      busy: () => this.busy(),
-      dragged: () => this.dragged,
-      dragTo: (id, lon, lat, aim) => this.dragTo(id, lon, lat, aim),
-      insertNode: (edge, loc) => {
-        let id = ''
-        this.change(() => {
-          id = this.performNodeOn({ loc, edge })
-        })
-        return id
-      },
-    })
     this.camera = new Camera({ map: () => this.map, data: this.data, membersOf: this.membersOf })
     this.sender = new Sender({
       editor: options.editor,
@@ -407,12 +381,11 @@ export class MaidEngine {
   }
 
   /**
-   * The map came to rest: what depends on the view is made again (the midpoint handles, and the side line of a field,
-   * whose visible part may bend or leave the screen). The shell's map view calls it on each move end.
+   * The map came to rest: what depends on the view is made again (the side line of a field, whose visible part may
+   * bend or leave the screen). The shell's map view calls it on each move end.
    */
   refreshForView() {
     this.refreshFieldOverlay()
-    this.handles.refresh()
   }
 
   osmZoom() {
@@ -1278,12 +1251,11 @@ export class MaidEngine {
   }
 
   /**
-   * Runs after the mode started or ended: midpoints, highlight, listeners. The cursor is not set here: the map view
+   * Runs after the mode started or ended: highlight, listeners. The cursor is not set here: the map view
    * reads `moduleMode` and gives the map its cursor, so there is one writer of it.
    */
   private moduleChanged() {
     if (!this.moduleMode) this.removeModuleKeys()
-    this.handles.compute()
     this.pushHighlight()
     this.changed()
   }
@@ -1322,8 +1294,6 @@ export class MaidEngine {
     if ((mode === 'move' || mode === 'rotate') && !this.transform.begin(mode, this.selectedIds))
       return false
     this.currentMode = mode
-    // the handles are for browsing only: none while drawing or moving
-    this.handles.compute()
     this.pushHighlight()
     this.changed()
     return true
@@ -1423,17 +1393,12 @@ export class MaidEngine {
   addNodeOn(on: { loc: Loc; edge: [string, string] }) {
     let id = ''
     this.change(() => {
-      id = this.performNodeOn(on)
+      const node = new OsmNode(this.data.context, { loc: on.loc })
+      this.data.history.perform(actionAddEntity(node), actionAddMidpoint(on, node))
+      id = node.id
       this.data.history.commit({ annotation: 'Added a node to a way', selectedIDs: [id] })
     })
     return id
-  }
-
-  /** The node of addNodeOn, in the work in progress and without a commit: the caller commits (a handle drag does). */
-  private performNodeOn(on: { loc: Loc; edge: [string, string] }) {
-    const node = new OsmNode(this.data.context, { loc: on.loc })
-    this.data.history.perform(actionAddEntity(node), actionAddMidpoint(on, node))
-    return node.id
   }
 
   /** Adds a standalone point and returns its id (negative, as for every new entity). One undo step. */
@@ -1504,7 +1469,6 @@ export class MaidEngine {
     return (
       this.dragged !== undefined ||
       this.moduleSession.dragged ||
-      this.handles.pressing ||
       this.draw.active ||
       this.transform.active ||
       this.measuring
@@ -1894,7 +1858,6 @@ export class MaidEngine {
     this.shapeFeatures = shape.features
     // a preview was for the selection and the data as they were
     this.previewFeatures = []
-    this.handles.compute()
     this.pushHighlight()
   }
 
@@ -1906,36 +1869,11 @@ export class MaidEngine {
       type: 'FeatureCollection',
       features: [
         ...this.shapeFeatures,
-        ...this.handles.list,
         ...this.previewFeatures,
         ...this.fieldFeatures,
         ...this.measure.features,
       ],
     })
-  }
-
-  // --- Midpoint handles: a node added to a selected way by a press on the middle of a segment (midpoint-handles.ts) ---
-
-  readonly handles: MidpointHandles
-  get midpointFeatures() {
-    return this.handles.list
-  }
-  midpointAt(point: Point, tolerance?: number) {
-    return this.handles.at(point, tolerance)
-  }
-  get pressingHandle() {
-    return this.handles.pressing
-  }
-  pressMidpoint(point: Point) {
-    return this.handles.press(point)
-  }
-  moveHandle(
-    point: Point,
-    lon: number,
-    lat: number,
-    aim?: { point: Point; layers: string[]; free: boolean },
-  ) {
-    this.handles.move(point, lon, lat, aim)
   }
 
   private fieldOverlay: FieldOverlay | null = null
@@ -2014,7 +1952,6 @@ export class MaidEngine {
     busy: () => this.busy(),
     clearHover: () => this.setHover(null),
     refresh: () => {
-      this.handles.compute()
       this.refreshFieldOverlay()
       this.pushHighlight()
       this.changed()

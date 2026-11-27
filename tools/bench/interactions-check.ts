@@ -6,7 +6,7 @@ import { checkHelpers, pickBuildingAndRoad, type XY } from './check-helpers'
  * closes a drawn area without zooming, Backspace takes back a drawn node and Escape keeps the
  * way, M moves and R rotates with the pointer (M keeps the shape of the ways that share a node with
  * the moved way, as iD does), Cmd+C and Cmd+V copy and paste, one finger
- * drags a node, and a selected way shows midpoint handles: a drag of one adds a node, a click adds nothing.
+ * drags a node, and a double click on a way adds a node that a drag moves on.
  *
  *   bun tools/bench/interactions-check.ts [scene]
  */
@@ -187,119 +187,27 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   )
   await settle()
 
-  // --- midpoint handles: a selected way shows one in the middle of each segment long enough on screen;
-  // a press on one that moves adds a node there, which the drag moves, as one undo step; a click adds nothing
-  // (midpoints.ts, engine.pressMidpoint). A double click on a way adds a node, checked here on a building. ---
-  const handles = () =>
-    page.evaluate(() => {
-      const { map, engine } = window.__maid
-      return engine.midpointFeatures.map((f: any) => {
-        const p = map.project(f.geometry.coordinates)
-        return { edge: [...f.properties.edge] as string[], at: { x: p.x, y: p.y } }
-      })
-    }) as Promise<{ edge: string[]; at: XY }[]>
+  // --- adding a node to a way: a double click on the line adds one and selects it, and a drag moves it on, as in
+  // iD. Maid has no midpoint handles (removed on 2026-11-27, Tobias). ---
   const wayNodes = (id: string) =>
     page.evaluate((id) => [...window.__maid.engine.data.way(id)!.nodes] as string[], id)
-  // the segments of the road that are over 40 px on screen with their middle in view, as "a b" node pairs:
-  // what the handles should be, in the order of the way
-  const roadId = found.road.id
-  const wantedHandles = () =>
-    page.evaluate((id) => {
-      const { map, engine } = window.__maid
-      const { clientWidth: w, clientHeight: h } = map.getContainer()
-      const nodes = engine.data.way(id)!.nodes
-      const at = nodes.map((n) => map.project(engine.data.node(n)!.loc!))
-      const out: string[] = []
-      for (let i = 0; i + 1 < at.length; i++) {
-        const a = at[i]
-        const b = at[i + 1]
-        if (!a || !b) continue
-        if (Math.hypot(b.x - a.x, b.y - a.y) <= 40) continue
-        const x = (a.x + b.x) / 2
-        const y = (a.y + b.y) / 2
-        if (x >= 0 && y >= 0 && x <= w && y <= h) out.push(`${nodes[i]} ${nodes[i + 1]}`)
-      }
-      return out
-    }, roadId) as Promise<string[]>
-  const handlePairs = async () => (await handles()).map((h) => h.edge.join(' '))
-
-  await click(found.road.mid)
-  const wanted = await wantedHandles()
-  report(
-    'a selected road shows a handle on each segment long enough on screen',
-    [true, wanted],
-    [wanted.length > 0, await handlePairs()],
-  )
-  // zoom in: every segment is twice as long on screen, so the set of handles must change (they are
-  // computed when the view stops). Zoom and centre go back afterwards.
-  const view = await page.evaluate<{ zoom: number; centre: [number, number] }>(() => {
-    const { map } = window.__maid
-    const c = map.getCenter()
-    return { zoom: map.getZoom(), centre: [c.lng, c.lat] }
-  })
-  const beforeZoom = await handlePairs()
-  await page.evaluate(({ zoom, centre }) => window.__maid.map.jumpTo({ zoom, center: centre }), {
-    zoom: view.zoom + 1,
-    centre: view.centre,
-  })
-  await settle()
-  const afterZoom = await handlePairs()
-  report(
-    'after the map zooms, the handles are those of the new zoom',
-    await wantedHandles(),
-    afterZoom,
-  )
-  // the check is only meaningful if the zoom did change the set
-  report(
-    'the zoom changed which segments have a handle',
-    true,
-    beforeZoom.join() !== afterZoom.join(),
-  )
-  await page.evaluate(
-    ({ zoom, centre }) => window.__maid.map.jumpTo({ zoom, center: centre }),
-    view,
-  )
-  await settle()
-  // a line that is drawn shows no handle: the handles are for browsing
-  await key('2')
-  const whileDrawing = (await handles()).length
-  await key('Escape')
-  report('no handle while a line is drawn', [0, 'browse'], [whileDrawing, (await state()).mode])
-  await click(free(0))
-  report('an unselected road shows no handle', 0, (await handles()).length)
-
-  // a press on a handle that moves: one node joins the road between the segment's nodes, at the drop
-  await click(found.road.mid)
-  const handle = (await handles())[0]!
   const roadBefore = await wayNodes(found.road.id)
-  await drag(handle.at, free(1))
+  await click(found.road.mid, { count: 2 })
+  await page.waitForTimeout(500)
   const roadAfter = await wayNodes(found.road.id)
   const added = roadAfter.filter((n) => !roadBefore.includes(n))
-  const addedAt = added.length === 1 ? (await where(added))[0] : undefined
-  const at = roadAfter.indexOf(added[0] ?? '')
-  const between =
-    at > 0 &&
-    handle.edge.includes(roadAfter[at - 1] ?? '') &&
-    handle.edge.includes(roadAfter[at + 1] ?? '')
+  const addedNode = added[0] ?? ''
+  const [addedAt] = added.length === 1 ? await where(added) : []
+  if (addedAt) await drag(addedAt, free(1))
+  const [droppedAt] = added.length === 1 ? await where(added) : []
   report(
-    'dragging a handle adds one node between its segment nodes, at the drop, as one undo step',
-    [roadBefore.length + 1, true, true, 'Added a node to a way'],
-    [roadAfter.length, between, addedAt ? near(addedAt, free(1), 3) : false, (await state()).undo],
+    'a double click on a road adds one node to it, and a drag moves that node',
+    [roadBefore.length + 1, [addedNode], true],
+    [roadAfter.length, (await state()).selection, droppedAt ? near(droppedAt, free(1), 3) : false],
   )
   await key('ControlOrMeta+z')
-  report('one undo takes the added node back', roadBefore, await wayNodes(found.road.id))
-
-  // a click on a handle, without a move, adds nothing and keeps the road selected
-  await click(found.road.mid)
-  const pressed = (await handles())[0]!
-  const undoBefore = (await state()).undo
-  const nodesBefore = (await wayNodes(found.road.id)).length
-  await click(pressed.at)
-  report(
-    'a click on a handle adds nothing and keeps the road selected',
-    [nodesBefore, undoBefore, [found.road.id]],
-    [(await wayNodes(found.road.id)).length, (await state()).undo, (await state()).selection],
-  )
+  await key('ControlOrMeta+z')
+  report('two undos take the move and the node back', roadBefore, await wayNodes(found.road.id))
 
   // a double click on the edge of a building adds one node to it and selects it
   const buildingBefore = await wayNodes(first.id)

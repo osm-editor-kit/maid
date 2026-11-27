@@ -856,6 +856,13 @@ Decision: [ADR 0017](../adr/0017-line-direction-glyphs.md), overview: [docs/desi
       **Test for Tobias:** `bun run dev`, open <http://localhost:5173/?scene=small> and hover and select a few roads (a
       oneway, a two-way, a roundabout); then Maid Bicycle on <http://localhost:5176/?scene=bicycle> with the lens
       "Bicycle infrastructure": the third column holds the riding-direction cases, the last two are "not tagged".
+- [x] 2026-11-27: one glyph in the middle of every line, short ones too (its layers were refused by MapLibre at first:
+      a symbol spacing of 0; a test keeps every spacing at 1 or more). The bicycle lens: the road sides cover the
+      road's casing (no dark seam), and the halo of a road with sides reaches past them (lens `halo`). The midpoint
+      handles are gone (Tobias): a double click on a way adds a node, which a drag moves on, as in iD. `bun run check`;
+      `check-interactions` 157 ok, `check-bike-style` 78 ok.
+      **Test for Tobias:** Maid Bicycle, select a short crossing and a road with lanes: a glyph in the middle, no seam
+      between road and lane, the red halo around the lanes too; double-click a road and drag the new node.
 
 ### A line drawn from a way takes its tags (2026-10-28, on main 2026-11-25)
 

@@ -39,7 +39,7 @@ Also: `engine.enterModuleMode(mode)` and `exitModuleMode(id)` (`module-mode.ts`)
 | `data.ts`, `redraw.ts`, `edits.ts` | The OSM data, the rebuild of changed entities, what an edit changed |
 | `sender.ts`, `channels.ts`, `tile-loader.ts`, `tile-loading.ts` | The updates to MapLibre and the tile requests |
 | `presets-hold.ts`, `drawn-counts.ts`, `icon-requests.ts` | Late presets, counts of what is drawn, icon images |
-| `pick.ts`, `pick-order.ts`, `snap.ts`, `snap-aim.ts`, `constraint.ts`, `selection-shape.ts`, `midpoints.ts`, `midpoint-handles.ts` | Picking, snapping, selection shapes, the midpoint handles |
+| `pick.ts`, `pick-order.ts`, `snap.ts`, `snap-aim.ts`, `constraint.ts`, `selection-shape.ts` | Picking, snapping, selection shapes |
 | `draw.ts`, `drag.ts`, `transform.ts`, `turn.ts`, `camera.ts`, `modifiers.ts`, `module-mode.ts` | Drawing, dragging, move and rotate, turning the map, modifier keys, module modes |
 | `measure.ts`, `measure-session.ts`, `nearby.ts`, `related.ts`, `parent-relations.ts`, `entity-info.ts` | Measuring, nearby features, relations on the map, what the inspector reads |
 | `field-overlay.ts`, `operation-preview.ts`, `operation-context.ts`, `tag-edits.ts`, `set-tags-each.ts` | Field lines on the map, operation previews, tag writes |

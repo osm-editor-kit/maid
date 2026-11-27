@@ -221,6 +221,11 @@ function restyleLine(feature: Feature<LineString, LineProps>, style: LensStyle |
     if (sd) p.sd = sd
     else delete p.sd
   }
+  // the halo reaches over what the lens draws beside the line (the bicycle lens's road sides)
+  if (style.halo) {
+    p.hw += 2 * style.halo
+    p.hwl += 2 * style.halo
+  }
   return feature
 }
 

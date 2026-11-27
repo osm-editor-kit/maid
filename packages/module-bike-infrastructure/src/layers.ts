@@ -87,7 +87,9 @@ export const SIDE_WIDTH: Expression = ['step', ['zoom'], 2, 16, 3]
 /**
  * Offset of a road side from the centre line in px, `sign` 1 for the right side and -1 for the left: right at the edge
  * of the road as the editor draws it (its casing, `road` and `roadLow` of the feature; iD draws roads in px, not on the
- * ground), so the line reads as part of the road and not as a separately mapped way. `extra` moves a sidewalk further
+ * ground), so the line reads as part of the road and not as a separately mapped way. The line's inner edge sits on the
+ * edge of the road's fill and covers the casing's 1 px there: no dark seam between the road and its side (Tobias,
+ * 2026-11-27). `extra` moves a sidewalk further
  * out, past the cycleway of the same side. MapLibre zoom 16 is OSM zoom 17, where iD's wider road style starts.
  */
 export function sideOffset(sign: 1 | -1, extra = 0): Expression {
@@ -96,7 +98,7 @@ export function sideOffset(sign: 1 | -1, extra = 0): Expression {
     sign,
     ['+', ['/', ['coalesce', ['get', road], 10], 2], half + extra],
   ]
-  return ['step', ['zoom'], at('roadLow', 1), 16, at('road', 1.5)]
+  return ['step', ['zoom'], at('roadLow', 0), 16, at('road', 0.5)]
 }
 
 /** The offset of a feature: none on the centre line, else by its side and prefix */

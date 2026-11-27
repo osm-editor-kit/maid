@@ -852,7 +852,8 @@ function buildMainLayers(options: LayerOptions) {
       layout: {
         ...markerLayout,
         'symbol-spacing': spacing,
-        // the one glyph in the middle of the line: always drawn, and the spaced glyphs keep clear of it
+        // the one glyph in the middle of the line: always drawn, and the spaced glyphs keep clear of it. Its spacing
+        // means nothing, but MapLibre refuses a layer whose spacing is under 1.
         ...(centre
           ? {
               'symbol-placement': 'line-center',
@@ -912,7 +913,7 @@ function buildMainLayers(options: LayerOptions) {
       glyphLayer(
         'line-oneway-centre',
         ['has', 'ow'],
-        0,
+        GLYPH_SPACING,
         ['get', 'ow'],
         'rest',
         shownIn(!wire),
@@ -921,7 +922,7 @@ function buildMainLayers(options: LayerOptions) {
       glyphLayer(
         'line-oneway-centre-active',
         ['has', 'ow'],
-        0,
+        GLYPH_SPACING,
         ['get', 'ow'],
         'active',
         shownIn(!wire),
@@ -930,7 +931,7 @@ function buildMainLayers(options: LayerOptions) {
       glyphLayer(
         'line-two-way-centre',
         twoWayRest,
-        0,
+        GLYPH_SPACING,
         twoWayKind,
         'rest',
         shownIn(!wire && lineFocus),
@@ -939,7 +940,7 @@ function buildMainLayers(options: LayerOptions) {
       glyphLayer(
         'line-two-way-centre-active',
         ['!', ['has', 'ow']],
-        0,
+        GLYPH_SPACING,
         twoWayKind,
         'active',
         shownIn(!wire),
@@ -1056,24 +1057,6 @@ function buildMainLayers(options: LayerOptions) {
     16,
     r,
   ]
-  // The midpoint handles of the selected ways (midpoints.ts): a press on one adds a node there. Drawn
-  // under the vertices. Not in interactiveLayerIds: the engine finds them itself (midpointAt).
-  layers.push({
-    id: 'highlight-midpoint',
-    type: 'circle',
-    source: SOURCES.highlight,
-    filter: ['==', ['get', 'state'], 'midpoint'],
-    paint: {
-      // smaller and fainter than a vertex: a place where a node could be, not a node
-      'circle-radius': 2.5,
-      'circle-color': '#fff',
-      'circle-opacity': 0.55,
-      'circle-stroke-color': '#666',
-      'circle-stroke-width': 1,
-      'circle-stroke-opacity': 0.55,
-    },
-  })
-
   // A selected node that is only a shape point (an untagged corner of a building): iD's selection shadow under it, as
   // highlight-halo-vertex draws it for the vertices of the data (same radius, without icon). The shape marks it `halo`.
   layers.push({

@@ -89,6 +89,11 @@ export type Lens = {
   rules: LensRule[]
   /** What happens to features no rule matches. Default `dim`. */
   rest?: 'dim' | 'normal' | 'hide'
+  /**
+   * Px the hover and selection halo of a line a rule matches reaches further out on each side, for a lens that draws
+   * more beside the line (the bicycle lens: the road's sides). Undefined or 0: the line's own halo.
+   */
+  halo?: (tags: Tags) => number | undefined
   /** The geometries the lens applies to. Default: all of them. Other features are drawn as usual. */
   geometry?: LensGeometry[]
 }
@@ -103,6 +108,8 @@ export type LensStyle = {
   fillOpacity?: number
   /** `rest: 'hide'`: the feature is not drawn at all */
   hidden?: boolean
+  /** Px the halo reaches further out on each side (Lens `halo`) */
+  halo?: number
 }
 
 /** Alpha of features that no rule matches when `rest` is `dim` */
@@ -145,6 +152,8 @@ export function lensStyle(lens: Lens, tags: Tags, geometry: LensGeometry): LensS
     if (rule.opacity !== undefined) style.opacity = rule.opacity
     if (rule.fillColor !== undefined) style.fillColor = rule.fillColor
     if (rule.fillOpacity !== undefined) style.fillOpacity = rule.fillOpacity
+    const halo = geometry === 'line' ? lens.halo?.(tags) : undefined
+    if (halo) style.halo = halo
     return style
   }
   const rest = lens.rest ?? 'dim'

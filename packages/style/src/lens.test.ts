@@ -70,6 +70,15 @@ describe('lensStyle: rules', () => {
   })
 })
 
+describe('lensStyle: halo', () => {
+  const wide: Lens = { ...roads, halo: (tags) => (tags.cycleway ? 2 : undefined) }
+  test('a matched line gets the halo the lens gives its tags; an area and a line without one do not', () => {
+    expect(lensStyle(wide, { highway: 'primary', cycleway: 'lane' }, 'line')?.halo).toBe(2)
+    expect(lensStyle(wide, { highway: 'primary' }, 'line')?.halo).toBeUndefined()
+    expect(lensStyle(wide, { highway: 'primary', cycleway: 'lane' }, 'area')?.halo).toBeUndefined()
+  })
+})
+
 describe('lensStyle: geometry and rest', () => {
   test('a lens with a geometry limit leaves other geometries alone', () => {
     const lens: Lens = { ...roads, geometry: ['line'] }

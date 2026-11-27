@@ -11,7 +11,7 @@ import { Layer, Source, useMap, type LayerProps } from 'react-map-gl/maplibre'
 import { flatsLabels, type GraphLike } from './flats.ts'
 import { m } from './messages.ts'
 
-const BEFORE = ['label-line', 'highlight-midpoint']
+const BEFORE = ['label-line', 'highlight-halo-shape']
 const SOURCE = 'maid-buildings-flats'
 
 const LABELS = {

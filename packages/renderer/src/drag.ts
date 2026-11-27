@@ -164,15 +164,12 @@ export class DragTool {
    * selection should show after a connection (`selected`), and with the reason of a refusal.
    */
   async endDrag() {
-    // a press on a handle that never moved is over: it added nothing
-    this.engine.handles.release()
     // Over from here: a key that changes while the last move settles must not aim the drag again (refresh),
     // or the release with Shift still held would be undone by the key-up that follows it.
     this.last = undefined
     await this.settleDrag()
     this.engine.setGuides([])
     const id = this.node
-    const added = this.engine.handles.takeNode()
     const aim = this.aim
     this.node = undefined
     this.aim = undefined
@@ -207,9 +204,7 @@ export class DragTool {
           })
         })
       } else {
-        // a node that a handle drag made is a new node of the way, not a moved one
-        const annotation = id === added ? 'Added a node to a way' : 'Moved a node'
-        history.commit({ annotation, selectedIDs: [id] })
+        history.commit({ annotation: 'Moved a node', selectedIDs: [id] })
       }
     }
     if (id) this.engine.setHover(result.selected ?? id)

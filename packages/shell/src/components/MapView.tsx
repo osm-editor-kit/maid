@@ -305,13 +305,6 @@ export function MapView() {
 
   const press = (event: { point: Point; preventDefault: () => void }) => {
     if (mode !== 'browse' || engine.measuring) return
-    // a midpoint handle of the selected way: the press starts a handle drag, which adds a node on first move
-    if (engine.pressMidpoint(event.point)) {
-      event.preventDefault()
-      setStack(null)
-      setCursor('grabbing')
-      return
-    }
     const id = engine.pick(event.point, interactive)
     if (!engine.isDraggable(id)) return
     event.preventDefault() // keeps MapLibre from panning the map with this drag
@@ -330,7 +323,7 @@ export function MapView() {
     const { altKey, ctrlKey } = event.originalEvent
     if (!altKey && !ctrlKey) return false
     if (mode !== 'browse' || engine.measuring) return false
-    if (engine.pick(event.point, interactive) || engine.midpointAt(event.point)) return false
+    if (engine.pick(event.point, interactive)) return false
     event.preventDefault()
     engine.startTurn(event.point)
     setCursor('grabbing')
@@ -364,7 +357,7 @@ export function MapView() {
       setCursor('grab')
       return
     }
-    if (!dragging && !engine.pressingHandle) return
+    if (!dragging) return
     dragging = null
     setCursor('grab')
     // a connection leaves the node that survives selected, as iD does
@@ -397,15 +390,7 @@ export function MapView() {
       engine.measureMove(lng, lat, 'touches' in event.originalEvent)
       return
     }
-    if (engine.pressingHandle) {
-      // the pressed handle becomes a node once the pointer has moved, and that node is dragged on
-      engine.moveHandle(event.point, lng, lat, {
-        point: event.point,
-        layers: interactive,
-        free: event.originalEvent.altKey,
-      })
-      setCursor(engine.dragRefusal ? 'not-allowed' : 'grabbing')
-    } else if (dragging) {
+    if (dragging) {
       // the dragged node snaps to what is under the pointer, unless Alt is held
       engine.dragTo(dragging, lng, lat, {
         point: event.point,
@@ -425,23 +410,15 @@ export function MapView() {
       modulePointer.current = { lng: event.lngLat.lng, lat: event.lngLat.lat }
       release()
     }
-    // a handle press whose release was not seen on the map (the button went up off it) ends here: no node is made by a hover
-    // a turn whose release was not seen on the map ends here too
-    if ((engine.pressingHandle || engine.turning) && event.originalEvent.buttons === 0) release()
+    // a turn whose release was not seen on the map (the button went up off it) ends here
+    if (engine.turning && event.originalEvent.buttons === 0) release()
     movePointer(event)
     // a module mode has the cursor (see `moduleMode` above)
     if (engine.moduleMode) return
-    if (
-      dragging ||
-      engine.pressingHandle ||
-      engine.turning ||
-      mode !== 'browse' ||
-      engine.measuring
-    )
-      return
+    if (dragging || engine.turning || mode !== 'browse' || engine.measuring) return
     const id = engine.pick(event.point, interactive)
     engine.setHover(id)
-    setCursor(engine.midpointAt(event.point) ? 'cell' : id ? 'pointer' : 'grab')
+    setCursor(id ? 'pointer' : 'grab')
   }
   /**
    * A right click, or a long press on a touch screen, opens the edit menu, as in iD: on a
@@ -720,8 +697,6 @@ export function MapView() {
       engine.setMode('browse')
       return
     }
-    // a midpoint handle: a press on it that did not move added nothing, and the click changes nothing
-    if (engine.midpointAt(event.point)) return
     // a photo or a note under the pointer takes the click: it opens, and no feature is selected.
     // Both are module layers outside `interactive`, and only a click asks: a query per click, not per move.
     if (streetImageryClick(event)) return

@@ -6,7 +6,7 @@ import { bikeCollection, type GraphEntity, type GraphLike } from './collect.ts'
 import { bikeWayFeatures, signParts, signPoint, signRotation, type BikeWay } from './features.ts'
 import { ALL_CATEGORIES, GROUPS, groupOf, NO_INFRASTRUCTURE } from './groups.ts'
 import { BIKE_LAYERS, sideOffset } from './layers.ts'
-import { bikeInfrastructureLens } from './lens.ts'
+import { bikeInfrastructureLens, sideReach } from './lens.ts'
 import { BIKE_PRESET_LIST, bikePresetChanges, presetId, SIDEPATH_FIELD } from './presets.ts'
 import { bikeInfraShown, connectBikeInfra, showsBikeInfra } from './shown.ts'
 
@@ -229,6 +229,17 @@ describe('collect', () => {
   })
 })
 
+describe('the halo of a road with sides', () => {
+  test("reaches past the side lines: a lane 2 px, a sidewalk where bicycles ride 5.5 px, else the road's own", () => {
+    expect(sideReach({ highway: 'secondary', 'cycleway:right': 'lane' })).toBe(2)
+    expect(sideReach({ highway: 'secondary', cycleway: 'track' })).toBe(2)
+    expect(sideReach({ highway: 'secondary', 'sidewalk:right:bicycle': 'yes' })).toBe(5.5)
+    expect(sideReach({ highway: 'secondary', 'cycleway:both': 'no' })).toBeUndefined()
+    expect(sideReach({ highway: 'secondary', 'cycleway:right:width': '2' })).toBeUndefined()
+    expect(sideReach({ highway: 'cycleway' })).toBeUndefined()
+  })
+})
+
 describe('layers', () => {
   test('ids are unique and every layer reads the feature colour or a fixed one', () => {
     const ids = BIKE_LAYERS.map((layer) => layer.id)
@@ -239,14 +250,14 @@ describe('layers', () => {
     expect(sideOffset(1)).toEqual([
       'step',
       ['zoom'],
-      ['*', 1, ['+', ['/', ['coalesce', ['get', 'roadLow'], 10], 2], 1]],
+      ['*', 1, ['+', ['/', ['coalesce', ['get', 'roadLow'], 10], 2], 0]],
       16,
-      ['*', 1, ['+', ['/', ['coalesce', ['get', 'road'], 10], 2], 1.5]],
+      ['*', 1, ['+', ['/', ['coalesce', ['get', 'road'], 10], 2], 0.5]],
     ])
     expect(sideOffset(-1, 3.5)[4]).toEqual([
       '*',
       -1,
-      ['+', ['/', ['coalesce', ['get', 'road'], 10], 2], 5],
+      ['+', ['/', ['coalesce', ['get', 'road'], 10], 2], 4],
     ])
   })
 

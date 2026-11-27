@@ -4,7 +4,7 @@
  * lane under the pointer in the table or the diagram (`laneFocus`, hover-store.ts) is amber, the chosen one blue and
  * wider.
  *
- * The bands go above the lines of the OSM data and below their labels, midpoint handles and vertices (the layers of
+ * The bands go above the lines of the OSM data and below their labels and vertices (the layers of
  * the editor named in BEFORE, as the bicycle infrastructure does): they cover the road's own colour, which says less
  * than the lanes while the road is selected, but never hide a vertex the person wants to drag.
  *
@@ -22,7 +22,7 @@ import { bandFeatures, LANES_LAYERS, LANES_SOURCE, type LanesLayer } from './lay
 import { sceneBands } from './scene-bands.ts'
 
 /** The editor layers ours go below, the first one on the map wins (renderer layers.ts): labels of lines, midpoints */
-const BEFORE = ['label-line', 'highlight-midpoint']
+const BEFORE = ['label-line', 'highlight-halo-shape']
 
 /** What the overlay reads of an entity of the staging graph */
 type Entity = {

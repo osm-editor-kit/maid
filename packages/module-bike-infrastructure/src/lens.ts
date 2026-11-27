@@ -73,4 +73,27 @@ export const bikeInfrastructureLens: Lens = {
     { match: { building: true }, opacity: 1 },
     { match: { highway: true }, opacity: 1 },
   ],
+  halo: sideReach,
+}
+
+const SIDE_KEY = /^cycleway(:(left|right|both))?$/
+const NO_SIDE = new Set(['no', 'none'])
+const BICYCLE_KEY = /^sidewalk(:(left|right|both))?:bicycle$/
+const BICYCLE_YES = new Set(['yes', 'designated', 'permissive'])
+
+/**
+ * How far the road's side lines reach past its casing, in px (layers.ts sideOffset: a lane 2 px, a sidewalk where
+ * bicycles ride 5.5 px): the hover and selection halo reaches that much further, so it still shows around them (Tobias,
+ * 2026-11-27). Read from the tags, not from TILDA: it runs for every road the map draws. A side drawn as "separate" is
+ * counted as a lane, a little more than its dotted line needs.
+ */
+export function sideReach(tags: Readonly<Record<string, string | undefined>>): number | undefined {
+  let lane = false
+  for (const key in tags) {
+    const value = tags[key]
+    if (value === undefined) continue
+    if (BICYCLE_KEY.test(key) && BICYCLE_YES.has(value)) return 5.5
+    if (!lane && SIDE_KEY.test(key) && !NO_SIDE.has(value)) lane = true
+  }
+  return lane ? 2 : undefined
 }
