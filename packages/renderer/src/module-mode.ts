@@ -86,11 +86,12 @@ export type ModuleMode = {
 export const CLICK_AFTER_DRAG_MS = 300
 
 /**
- * ... and only when it is this close to where the drag ended (px): MapLibre reports a press and release in one place
- * as a click, so the click of a drag is where it ended. A quick click elsewhere is a click (the extrude check clicks
- * the outline right after a pull).
+ * ... and only when it is closer than this (px) both to where the drag ended and to where its press was: MapLibre reports a
+ * press and release in one place (its `clickTolerance`, 3 px) as a click, so a drag yields a click only when it ends
+ * where it started, and that click is where it ended. A quick click elsewhere is a click (the extrude check clicks the
+ * outline right after a pull), and so is a new click where a long drag ended.
  */
-export const CLICK_AFTER_DRAG_PX = 4
+export const CLICK_AFTER_DRAG_PX = 3
 
 /** The key a mode may take from a key press, or undefined. Keys with Control, Alt or Meta are the editor's (Mod+Backspace deletes) and keys in a text field are the field's. */
 export function moduleKeyOf(event: {
@@ -133,6 +134,8 @@ export class ModuleModeSession {
   private current?: ModuleMode
   private dragging?: string
   private lastDragEnd = Number.NEGATIVE_INFINITY
+  /** The pixel where the handle drag under way or just ended was pressed */
+  private pressPoint: ScreenPoint = { x: Number.NaN, y: Number.NaN }
   /** The last pixel of the handle drag under way or just ended */
   private dragPoint: ScreenPoint = { x: Number.NaN, y: Number.NaN }
 
@@ -179,6 +182,7 @@ export class ModuleModeSession {
     const handle = layers.length > 0 ? this.host.handleAt(point, layers) : undefined
     if (handle === undefined) return false
     this.dragging = handle
+    this.pressPoint = point
     this.dragPoint = point
     mode.onDragStart?.(handle, lon, lat, this.dragInfo())
     return true
@@ -204,14 +208,19 @@ export class ModuleModeSession {
     mode.onDragEnd?.(handle, lon, lat, this.dragInfo())
   }
 
-  /** A click on the map. Ignored right after a handle drag where it ended: MapLibre reports that as a click */
+  /**
+   * A click on the map. The one click MapLibre reports for a handle drag (right after it, where it ended and where it
+   * was pressed) is ignored, once: the next click counts.
+   */
   click(point: ScreenPoint, lon: number, lat: number) {
     const mode = this.current
     if (!mode) return
-    const { x, y } = this.dragPoint
+    const near = (p: ScreenPoint) => Math.hypot(point.x - p.x, point.y - p.y) < CLICK_AFTER_DRAG_PX
     const endOfDrag =
       this.host.now() - this.lastDragEnd < CLICK_AFTER_DRAG_MS &&
-      Math.hypot(point.x - x, point.y - y) <= CLICK_AFTER_DRAG_PX
+      near(this.dragPoint) &&
+      near(this.pressPoint)
+    this.forgetDrag()
     if (endOfDrag) return
     mode.onClick?.(lon, lat, this.infoAt(mode, point))
   }
@@ -243,11 +252,19 @@ export class ModuleModeSession {
     return { modifiers: { ...this.host.modifiers() } }
   }
 
+  /** Forgets the drag that just ended, so no later click is taken for its end */
+  private forgetDrag() {
+    this.lastDragEnd = Number.NEGATIVE_INFINITY
+    this.pressPoint = { x: Number.NaN, y: Number.NaN }
+    this.dragPoint = { x: Number.NaN, y: Number.NaN }
+  }
+
   /** Drops the state (and any drag) and returns the mode that was under way */
   private clear(): ModuleMode | undefined {
     const previous = this.current
     this.current = undefined
     this.dragging = undefined
+    this.forgetDrag()
     return previous
   }
 }

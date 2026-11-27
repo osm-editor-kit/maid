@@ -10,6 +10,7 @@ import {
   EDIT_SOURCES,
   interactiveLayerIds,
   type LayerOptions,
+  LINE_CENTRE_SOURCES,
   PIN_SHADOW,
   PIN_ZOOM,
   PLAQUE_SHADOW,
@@ -683,15 +684,32 @@ describe('display: the wireframe and the changes in colour (iD)', () => {
   test('every line has one glyph in its middle, drawn whatever else is there; the spaced ones give way to it', () => {
     const layers = buildLayers(options).map(view)
     const at = (id: string) => layers.findIndex((l) => l.id === id)
-    for (const id of ['line-oneway-centre', 'line-two-way-centre-active']) {
+    for (const id of [
+      'line-oneway-centre',
+      'line-oneway-centre-active',
+      'line-two-way-centre',
+      'line-two-way-centre-active',
+    ]) {
       const centre = layers[at(id)]!
-      expect(centre.layout?.['symbol-placement']).toBe('line-center')
+      // one point per way (line-centre.ts), not `line-center`, which places one per tile piece of a line
+      expect(centre.source).toBe(LINE_CENTRE_SOURCES.base)
+      expect(centre.layout?.['symbol-placement']).toBe('point')
+      expect(centre.layout?.['icon-rotate']).toEqual(['get', 'br'])
+      expect(centre.layout?.['icon-rotation-alignment']).toBe('map')
       expect(centre.layout?.['icon-allow-overlap']).toBe(true)
-      // in the collision index, so the spaced glyphs keep clear of it
-      expect(centre.layout?.['icon-ignore-placement']).toBe(false)
+      // the rest glyph is in the collision index, so the spaced glyphs keep clear of it; the active one is invisible at
+      // rest and takes no room, so it never knocks out the glyphs of other lines
+      expect(centre.layout?.['icon-ignore-placement']).toBe(id.endsWith('-active'))
     }
     // placed first: above the spaced layers
     expect(at('line-oneway-centre')).toBeGreaterThan(at('line-two-way-active'))
+    // with their edit and selection twins on the centre twins
+    expect(layers.find((l) => l.id === 'line-oneway-centre--edit')?.source).toBe(
+      LINE_CENTRE_SOURCES.live,
+    )
+    expect(layers.find((l) => l.id === 'line-oneway-centre--select')?.source).toBe(
+      LINE_CENTRE_SOURCES.select,
+    )
   })
 
   test('the glyphs never cover a vertex: symbols that keep-out squares on the vertices push away', () => {

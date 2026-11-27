@@ -19,8 +19,10 @@ import {
   notify,
   settingsActions,
   setBearing,
+  onWayHeadingWanted,
   setPitch,
   setWayHeading,
+  wayHeadingWanted,
 } from '@osm-editor-kit/maid-ui'
 import * as maplibregl from 'maplibre-gl'
 import type { StyleSpecification } from 'maplibre-gl'
@@ -238,11 +240,18 @@ export function MapView() {
     // the chunks for the inspector, the panels and the dock: after the first view is drawn, in idle time
     void preloadAfterFirstSettle(engine)
   }
-  const handleMove = (_: ViewStateChangeEvent) => {
+  // The selected way's direction on screen, for the inspector's side columns. Only while one of them is shown
+  // (wayHeadingWanted): the engine's call is not made on every frame of a move when nobody reads it.
+  const refreshWayHeading = () => {
+    if (wayHeadingWanted()) setWayHeading(engine.selectedWayHeading())
+  }
+  const handleMove = (event: ViewStateChangeEvent) => {
     // a rotation of a direction starts again from the next pointer position (transform.ts viewChanged)
     engine.transform.viewChanged()
+    // the turn and the way's heading on the same frame, so the compass and the side piece never differ
+    setBearing(event.viewState.bearing)
     // the inspector's side columns turn their piece of the way with the map (way-heading.ts; set only on a change)
-    setWayHeading(engine.selectedWayHeading())
+    refreshWayHeading()
     // load while moving, but not on every frame
     const now = performance.now()
     if (now - lastTileCheck < 100) return
@@ -261,7 +270,7 @@ export function MapView() {
     resized.current = true
   }
   const handleMoveEnd = (event: ViewStateChangeEvent) => {
-    setWayHeading(engine.selectedWayHeading())
+    refreshWayHeading()
     engine.loadVisibleTiles()
     engine.refreshForView()
     const { zoom, latitude, longitude, bearing, pitch } = event.viewState
@@ -452,13 +461,18 @@ export function MapView() {
     setMenu({ ...place, ...screen })
   }
   // The selected way's direction on screen, for the inspector's side columns: again on every change of the engine
-  // (the selection, an edit of the way); the map's moves set it in handleMove
+  // (the selection, an edit of the way) and when a side column appears (way-heading.ts); the map's moves set it in
+  // handleMove
   useEffect(() => {
-    const update = () => setWayHeading(engine.selectedWayHeading())
+    const update = () => {
+      if (wayHeadingWanted()) setWayHeading(engine.selectedWayHeading())
+    }
     update()
     const stop = engine.subscribe(update)
+    const stopWanted = onWayHeadingWanted(update)
     return () => {
       stop()
+      stopWanted()
     }
   }, [engine])
   // While rotating, two fingers turn the selection (RotateHandle.tsx), not the map; a pinch still zooms
@@ -736,9 +750,18 @@ export function MapView() {
     }
     // on the line of a way a double click adds a node there, as in iD; elsewhere it zooms
     const node = engine.insertNode(event.point, interactive)
-    if (!node) return
+    if (!node) {
+      // the second click of a double click near a node of a way picks that node: no node is added, and the map
+      // must not zoom either. Inside an area (no line under the pointer) it zooms.
+      const picked = engine.pick(event.point, interactive)
+      if (picked?.[0] === 'n' && engine.data.nodeWays.has(picked) && !engine.isReadOnly(picked))
+        event.preventDefault()
+      return
+    }
     event.preventDefault()
     select(node)
+    // the pill of the click before listed the features there; the new node is what is selected now
+    setStack(null)
   }
 
   // the map's cursor: a module mode's while it is on, else the pointer's in browse mode, else the crosshair

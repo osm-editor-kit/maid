@@ -170,18 +170,58 @@ describe('handles of a module mode are dragged', () => {
     expect(session.dragged).toBe(false)
   })
 
-  test('a click right after a drag, where it ended, is not a click', () => {
+  test('the click MapLibre reports for a drag that ends where it was pressed is not a click', () => {
     const { session, log, advance } = sessionWith({ '10,10': 'end' })
     session.enter(modeLogging('reroute', log))
     session.press({ x: 10, y: 10 }, 13.4, 52.5)
-    session.move(at, 13.41, 52.5)
-    session.release(13.41, 52.5)
+    session.move({ x: 30, y: 10 }, 13.41, 52.5)
+    session.move({ x: 11, y: 10 }, 13.4, 52.5)
+    session.release(13.4, 52.5)
     advance(CLICK_AFTER_DRAG_MS - 1)
-    session.click(at, 13.41, 52.5)
+    session.click({ x: 11, y: 10 }, 13.4, 52.5)
     expect(log.some((line) => line.startsWith('click'))).toBe(false)
     advance(2)
     session.click(at, 13.5, 52.5)
     expect(log.at(-1)).toBe('click 13.5,52.5')
+  })
+
+  test('a press on a handle let go in place is no click either', () => {
+    const { session, log } = sessionWith({ '10,10': 'end' })
+    session.enter(modeLogging('reroute', log))
+    session.press({ x: 10, y: 10 }, 13.4, 52.5)
+    session.release(13.4, 52.5)
+    session.click({ x: 10, y: 10 }, 13.4, 52.5)
+    expect(log.some((line) => line.startsWith('click'))).toBe(false)
+  })
+
+  test('only one click is taken for the end of a drag: a second quick one in the same place counts', () => {
+    const { session, log } = sessionWith({ '10,10': 'end' })
+    session.enter(modeLogging('reroute', log))
+    session.press({ x: 10, y: 10 }, 13.4, 52.5)
+    session.release(13.4, 52.5)
+    session.click({ x: 10, y: 10 }, 13.4, 52.5)
+    session.click({ x: 10, y: 10 }, 13.4, 52.5)
+    expect(log.filter((line) => line.startsWith('click'))).toEqual(['click 13.4,52.5'])
+  })
+
+  test('a quick click where a long drag ended is a click: MapLibre reported no click for that drag', () => {
+    const { session, log } = sessionWith({ '10,10': 'end' })
+    session.enter(modeLogging('reroute', log))
+    session.press({ x: 10, y: 10 }, 13.4, 52.5)
+    session.move({ x: 60, y: 10 }, 13.45, 52.5)
+    session.release(13.45, 52.5)
+    session.click({ x: 60, y: 10 }, 13.45, 52.5)
+    expect(log.at(-1)).toBe('click 13.45,52.5')
+  })
+
+  test('a new mode forgets the drag of the one before', () => {
+    const { session, log } = sessionWith({ '10,10': 'end' })
+    session.enter(modeLogging('reroute', log))
+    session.press({ x: 10, y: 10 }, 13.4, 52.5)
+    session.release(13.4, 52.5)
+    session.enter(modeLogging('other', log))
+    session.click({ x: 10, y: 10 }, 13.4, 52.5)
+    expect(log.at(-1)).toBe('click 13.4,52.5')
   })
 
   test('a quick click away from where a drag ended is a click', () => {

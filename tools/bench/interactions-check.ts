@@ -1831,7 +1831,16 @@ failed += await runCheck(
         const way = id.startsWith('w') && engine.data.way(id)
         if (!way || engine.data.wayMultipolygons.has(id) || way.nodes.length < 2) continue
         const at = (n: string) => map.project(engine.data.node(n)!.loc!)
-        if (way.tags.highway && !road && way.nodes[0] !== way.nodes[way.nodes.length - 1]) road = id
+        // a road with no width yet: the check adds the width field and expects it empty (the order MapLibre returns
+        // features in changes with the layers, so the first road may be one that has a width)
+        if (
+          way.tags.highway &&
+          way.tags.width === undefined &&
+          way.tags.maxwidth === undefined &&
+          !road &&
+          way.nodes[0] !== way.nodes[way.nodes.length - 1]
+        )
+          road = id
         if (way.tags.building && !building) {
           const a = at(way.nodes[0]!)
           const b = at(way.nodes[1]!)

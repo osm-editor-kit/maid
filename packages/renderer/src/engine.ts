@@ -63,6 +63,7 @@ import {
   SELECT_SOURCES,
   SOURCES,
   UNLEVELED_STATE,
+  withCentres,
 } from './layers'
 import { MeasureSession } from './measure-session'
 import { type Modifiers, NO_MODIFIERS, sameModifiers } from './modifiers'
@@ -907,7 +908,8 @@ export class MaidEngine {
         if (id === undefined || this.sender.editing.has(id) || this.sender.live[name].has(id))
           continue
         this.sender.editing.add(id)
-        this.map?.setFeatureState({ source: SOURCES[name], id }, { editing: true })
+        for (const source of withCentres(SOURCES[name]))
+          this.map?.setFeatureState({ source, id }, { editing: true })
       }
     }
   }
@@ -1012,9 +1014,11 @@ export class MaidEngine {
       // only where the state was set: MapLibre throws on its next frame when a key is removed
       // from a feature that has no state in that source
       for (const id of this.sender.editing) {
-        const target = { source: SOURCES[name], id }
-        if (map?.getFeatureState(target).editing !== undefined)
-          map.removeFeatureState(target, 'editing')
+        for (const source of withCentres(SOURCES[name])) {
+          const target = { source, id }
+          if (map?.getFeatureState(target).editing !== undefined)
+            map.removeFeatureState(target, 'editing')
+        }
       }
     }
     this.sender.editing.clear()
@@ -1828,11 +1832,11 @@ export class MaidEngine {
     const set = (id: string | null, on: boolean) => {
       const name = id && this.featureSource.get(id)
       if (!name) return
-      // a feature can be in the big source, in the live tier, or (hidden) in both
-      map.setFeatureState({ source: SOURCES[name], id: id! }, { [kind]: on })
-      map.setFeatureState({ source: EDIT_SOURCES[name], id: id! }, { [kind]: on })
-      // the copy the layers draw below the data's floor has the same state (the halo, the pin)
-      map.setFeatureState({ source: SELECT_SOURCES[name], id: id! }, { [kind]: on })
+      // a feature can be in the big source, in the live tier, or (hidden) in both; the copy the layers draw below the
+      // data's floor has the same state (the halo, the pin); a line's centre point too (its centre glyph)
+      for (const tier of [SOURCES[name], EDIT_SOURCES[name], SELECT_SOURCES[name]])
+        for (const source of withCentres(tier))
+          map.setFeatureState({ source, id: id! }, { [kind]: on })
     }
     for (const id of previous) set(id, false)
     for (const id of kind === 'hover' ? (hoverId ? [hoverId] : []) : selectedIds) set(id, true)

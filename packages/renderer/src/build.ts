@@ -341,6 +341,9 @@ function partialFeature(
   if (stroke.color) props.sc = stroke.color
   const sd = dashKey(stroke.dash, stroke.width)
   if (sd) props.sd = sd
+  // the length the spaced glyphs ask for (layers.ts longEnough): without it a long outline had its middle glyph alone.
+  // No `tr`: an area's outline is not travelled, it shows its drawing direction only.
+  props.len = Math.round(lineMetres(coords))
   markLevels(props, floorsOf(tags), tags)
   return {
     type: 'Feature',

@@ -22,6 +22,7 @@ import {
   buildLayers,
   EDIT_SOURCES,
   interactiveLayerIds,
+  LINE_CENTRE_SOURCES,
   SELECT_SOURCES,
   SOURCES,
 } from '../../../packages/renderer/src/layers.ts'
@@ -95,6 +96,8 @@ export function prepare(outDir: string): Prepared {
       ACTIVE_SOURCE,
       ...Object.values(EDIT_SOURCES),
       ...Object.values(SELECT_SOURCES),
+      // the middle glyphs' points: empty here, so the centre layers find their source (the bench draws no glyphs)
+      ...Object.values(LINE_CENTRE_SOURCES),
     ],
     dataSources: {
       areas: SOURCES.areas,

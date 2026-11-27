@@ -18,7 +18,7 @@ riding direction of a road side. One chevron: this way only. One chevron back: a
 It shows on hover and selection only, combined with the chevrons into one image. A road side drawn beside its
 centerline never gets it: its drawing direction is the centerline's.
 
-**Colour · who.** Ink: all traffic. Blue: bicycles only (`oneway:bicycle` off `highway=cycleway`; the bicycles' way back
+**Colour · who.** Ink: all traffic. Blue: bicycles only (`oneway:bicycle` off `highway=cycleway`, or on a cycleway without `oneway`, as TILDA reads it; the bicycles' way back
 on a contraflow road). Amber: the riding direction should be tagged and is not (tracks and ways of their own, bicycle
 lens only). Every part is solid, on an 8 px grid, with a thin edge in the opposite tone so it reads on a road fill and on
 imagery. Where iD draws its arrows white (dark lines, rail, pedestrian streets) the glyph is white with a dark edge.
@@ -147,9 +147,11 @@ an untagged lane or track oneway as not tagged with its default, and a way's own
   line-focused editor.
 - Each pair draws the same lines with the same spacing and image size, so the rest and the active glyph sit on the same
   anchors. Feature state (`hover`, `selected`) fades one into the other: hover and selection move nothing.
-- One more pair puts a glyph in the middle of every line (`symbol-placement: line-center`, drawn whatever is there),
-  so a short line, or a short piece in a tile where MapLibre places nothing along the line, shows its direction too.
-  It is placed first; the spaced glyphs keep clear of it.
+- One more pair puts a glyph in the middle of every line, drawn whatever is there, so a short line shows its direction
+  too. It is drawn from one point per way (`line-centre.ts`, the middle by length with the line's angle there), not with
+  `symbol-placement: line-center`, which works per tile piece and could draw two glyphs on a line across a tile border.
+  The rest glyph is placed first and the spaced glyphs keep clear of it; the active one takes no room, so an invisible
+  glyph never pushes another line's glyph away.
 - Size follows the line: inside the road fill (the fill minus 2 px), 5.2 px over a thinner line.
 - The bicycle lens draws only the road sides' riding direction, as `line-pattern` images
   `maid-line-glyph-<with|against|both|missing>` (`features.ts` `ridingDirection`); the way itself shows the renderer's

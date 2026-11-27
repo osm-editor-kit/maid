@@ -63,11 +63,38 @@ export const SELECT_SOURCES = {
   points: 'osm-points-select',
   vertices: 'osm-vertices-select',
 } as const
+/**
+ * The middle point of every line, one per way, in each tier (base, live, selection): the centre glyph is drawn from
+ * them (line-centre.ts). The sender fills them from the line sources' updates and the engine gives them the lines'
+ * feature state, so they hold the same ids and states as their lines. Not in SOURCES: they are no SourceName.
+ */
+export const LINE_CENTRE_SOURCES = {
+  base: 'osm-line-centres',
+  live: 'osm-line-centres-edit',
+  select: 'osm-line-centres-select',
+} as const
+const CENTRE_OF: Record<string, string> = {
+  [SOURCES.lines]: LINE_CENTRE_SOURCES.base,
+  [EDIT_SOURCES.lines]: LINE_CENTRE_SOURCES.live,
+  [SELECT_SOURCES.lines]: LINE_CENTRE_SOURCES.select,
+}
+/** The centre source that goes with a line source, or undefined for any other source */
+export function centreSourceOf(sourceId: string): string | undefined {
+  return CENTRE_OF[sourceId]
+}
+/** The source and, for a line source, its centre source: where a line's feature state goes */
+export function withCentres(sourceId: string): string[] {
+  const centre = CENTRE_OF[sourceId]
+  return centre ? [sourceId, centre] : [sourceId]
+}
+EDIT_OF[LINE_CENTRE_SOURCES.base] = LINE_CENTRE_SOURCES.live
+
 const SELECT_OF: Record<string, string> = {
   [SOURCES.areas]: SELECT_SOURCES.areas,
   [SOURCES.lines]: SELECT_SOURCES.lines,
   [SOURCES.points]: SELECT_SOURCES.points,
   [SOURCES.vertices]: SELECT_SOURCES.vertices,
+  [LINE_CENTRE_SOURCES.base]: LINE_CENTRE_SOURCES.select,
 }
 
 /**
@@ -862,19 +889,22 @@ function buildMainLayers(options: LayerOptions) {
     ): LayerSpecification => ({
       id,
       type: 'symbol',
-      source: SOURCES.lines,
+      source: centre ? LINE_CENTRE_SOURCES.base : SOURCES.lines,
       filter,
       minzoom: 15,
       layout: {
         ...markerLayout,
         'symbol-spacing': spacing,
-        // the one glyph in the middle of the line: always drawn, and the spaced glyphs keep clear of it. Its spacing
-        // means nothing, but MapLibre refuses a layer whose spacing is under 1.
+        // The one glyph in the middle of the line, from its centre point (line-centre.ts): one per way, also for a way
+        // across a tile border, where `line-center` placed one per tile piece. Turned along the line on the map. Always
+        // drawn. Only the rest glyph takes room, so the spaced glyphs of its line keep clear of it; the active one sits
+        // on the same place and is invisible at rest, so it takes none and never knocks out another line's glyphs.
         ...(centre
           ? {
-              'symbol-placement': 'line-center',
+              'symbol-placement': 'point',
+              'icon-rotate': ['get', 'br'],
               'icon-allow-overlap': true,
-              'icon-ignore-placement': false,
+              'icon-ignore-placement': state === 'active',
             }
           : {}),
         'icon-image': glyphImage(kind, state),
@@ -925,7 +955,8 @@ function buildMainLayers(options: LayerOptions) {
       ),
       // One glyph in the middle of every line, so a short one (or a short piece in a tile, where MapLibre places none
       // along the line) shows its direction too (Tobias, 2026-11-27). Above the spaced layers: MapLibre places it first,
-      // and the spaced glyphs give way to it, so the two never stack. Rest and active again in pairs.
+      // and the spaced glyphs give way to the rest glyph, so the two never stack. Rest and active again in pairs, from
+      // the centre points (LINE_CENTRE_SOURCES).
       glyphLayer(
         'line-oneway-centre',
         ['has', 'ow'],

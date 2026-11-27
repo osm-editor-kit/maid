@@ -233,6 +233,9 @@ describe('outlines of an incomplete multipolygon', () => {
     const stroke = outlineStroke({ type: 'multipolygon', landuse: 'grass' })
     expect(outline.properties?.sc).toBe(stroke.color)
     expect(outline.properties?.cw).toBe(0)
+    // its length, for the spaced glyphs (layers.ts longEnough); not travelled
+    expect(outline.properties?.len).toBeGreaterThan(0)
+    expect(outline.properties?.tr).toBeUndefined()
   })
 
   it('styles the outline of an old-style multipolygon by the tags of its tagged outer way', () => {

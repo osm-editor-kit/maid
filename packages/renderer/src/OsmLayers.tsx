@@ -6,6 +6,7 @@ import {
   ACTIVE_SOURCE,
   buildLayers,
   EDIT_SOURCES,
+  LINE_CENTRE_SOURCES,
   SELECT_SOURCES,
   SOURCES,
   type LayerOptions,
@@ -58,6 +59,10 @@ export function OsmLayers({ options, sourceOptions }: Props) {
       {/* the hovered and selected points, a few features: the engine sets them (layers.ts ACTIVE_SOURCE) */}
       <Source id={ACTIVE_SOURCE} type="geojson" data={EMPTY} {...source} />
       {Object.values(EDIT_SOURCES).map((id) => (
+        <Source key={id} id={id} type="geojson" data={EMPTY} {...source} />
+      ))}
+      {/* the middle point of each line, for its centre glyph, in each tier: the sender fills them (line-centre.ts) */}
+      {Object.values(LINE_CENTRE_SOURCES).map((id) => (
         <Source key={id} id={id} type="geojson" data={EMPTY} {...source} />
       ))}
       {/* the selection's copies: drawn below the floor of the data, see layers.ts */}

@@ -60,13 +60,25 @@ describe('ridingOf: the riding direction from the tags (iD isOneWay, isOneWayBac
     )
   })
 
-  test('oneway:bicycle makes a two-way path one way for bicycles, off highway=cycleway only', () => {
+  test('oneway:bicycle makes a two-way path one way for bicycles', () => {
     const path = { highway: 'path', bicycle: 'designated', foot: 'designated' }
     expect(ridingOf({ ...path, 'oneway:bicycle': 'yes' })).toBe('bike-with')
     expect(ridingOf({ ...path, oneway: 'no', 'oneway:bicycle': '-1' })).toBe('bike-against')
-    // on a cycleway, oneway is the cyclists' own: oneway:bicycle says nothing more
-    expect(ridingOf({ highway: 'cycleway', 'oneway:bicycle': 'yes' })).toBeUndefined()
+    // on a cycleway, oneway is the cyclists' own: oneway:bicycle=no adds no contraflow
     expect(ridingOf({ highway: 'cycleway', oneway: 'yes', 'oneway:bicycle': 'no' })).toBe('with')
+  })
+
+  test('oneway:bicycle=yes|-1 on a cycleway without oneway is one way, as TILDA reads it', () => {
+    // TILDA (bicycle-infrastructure onewayValue, sideLineReversed): oneway:bicycle first, -1 against the line
+    expect(ridingOf({ highway: 'cycleway', 'oneway:bicycle': 'yes' })).toBe('bike-with')
+    expect(ridingOf({ highway: 'cycleway', 'oneway:bicycle': '-1' })).toBe('bike-against')
+    expect(ridingOf({ highway: 'cycleway', oneway: 'no', 'oneway:bicycle': 'yes' })).toBe(
+      'bike-with',
+    )
+    // tagged, so not amber
+    expect(needsRidingTag({ highway: 'cycleway', 'oneway:bicycle': '-1' })).toBe(false)
+    // oneway=yes stays the cyclists' own
+    expect(ridingOf({ highway: 'cycleway', oneway: 'yes', 'oneway:bicycle': 'yes' })).toBe('with')
   })
 
   test('oneway:bicycle off a highway says nothing', () => {

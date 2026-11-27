@@ -56,17 +56,18 @@ function mainDirection(tags: Tags): GlyphKind | undefined {
 /**
  * The glyph a line always shows (at rest too), or undefined for a line that is two-way by default and shows its
  * riding direction only on hover and selection (or at rest in a line-focused style, layers.ts `line-two-way`).
- * `oneway:bicycle` counts off `highway=cycleway` only, where `oneway` is the cyclists' own (Tobias, 2026-11-27): on a
- * one-way road `oneway:bicycle=no` adds the bicycles' way back, on a two-way path `oneway:bicycle=yes|-1` makes it
- * one way for bicycles.
+ * `oneway:bicycle=no` counts off `highway=cycleway` only, where `oneway` is the cyclists' own (Tobias, 2026-11-27): on
+ * a one-way road it adds the bicycles' way back. `oneway:bicycle=yes|-1` on a two-way path or cycleway makes it one way
+ * for bicycles; on a cycleway without `oneway` too, as TILDA reads it (`oneway:bicycle` before `oneway`, `-1` against
+ * the line), else Maid Bicycle would draw it two-way where TILDA draws one way.
  */
 export function ridingOf(tags: Tags): GlyphKind | undefined {
   const main = mainDirection(tags)
   // a highway's tag only: on a river or a piste it says nothing
-  const bicycle =
-    tags.highway === undefined || tags.highway === 'cycleway' ? undefined : tags['oneway:bicycle']
-  if (bicycle === 'no' && main === 'with') return 'contraflow'
-  if (bicycle === 'no' && main === 'against') return 'contraflow-against'
+  const bicycle = tags.highway === undefined ? undefined : tags['oneway:bicycle']
+  if (tags.highway !== 'cycleway' && bicycle === 'no' && main === 'with') return 'contraflow'
+  if (tags.highway !== 'cycleway' && bicycle === 'no' && main === 'against')
+    return 'contraflow-against'
   if (main === undefined || main === 'both') {
     if (bicycle === 'yes') return 'bike-with'
     if (bicycle === '-1') return 'bike-against'

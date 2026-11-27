@@ -13,7 +13,16 @@ import type { SourceName } from './build'
 import { type Channel, makeChannels, SOURCE_NAMES } from './channels'
 import type { EngineMetrics } from './engine'
 import { featureId } from './feature-id'
-import { ACTIVE_SOURCE, EDIT_SOURCES, SELECT_SOURCES, SOURCES } from './layers'
+import {
+  ACTIVE_SOURCE,
+  centreSourceOf,
+  EDIT_SOURCES,
+  LINE_CENTRE_SOURCES,
+  SELECT_SOURCES,
+  SOURCES,
+  withCentres,
+} from './layers'
+import { centreDiff } from './line-centre'
 import type { TileLoader } from './tile-loader'
 
 export interface SenderHost {
@@ -109,8 +118,17 @@ export class Sender {
       channel.queue = []
       channel.removals = []
       this.dataSeq++
-      await source.updateData({ add, remove })
-      await this.tilesReloaded(channel.sourceId)
+      // a line source's centre points follow it in the same update (layers.ts LINE_CENTRE_SOURCES)
+      const centreId = centreSourceOf(channel.sourceId)
+      const centres = centreId ? this.host.map()?.getSource<GeoJSONSource>(centreId) : undefined
+      await Promise.all([
+        source.updateData({ add, remove }),
+        centres?.updateData(centreDiff(add, remove)),
+      ])
+      await Promise.all([
+        this.tilesReloaded(channel.sourceId),
+        centreId ? this.tilesReloaded(centreId) : undefined,
+      ])
     } finally {
       this.dataSeq++
       channel.busy = false
@@ -175,7 +193,8 @@ export class Sender {
         for (const id of done) {
           this.live[name].delete(id)
           if (this.editing.delete(id))
-            map.removeFeatureState({ source: SOURCES[name], id }, 'editing')
+            for (const source of withCentres(SOURCES[name]))
+              map.removeFeatureState({ source, id }, 'editing')
         }
         const channel = this.channels.live[name]
         channel.removals = channel.removals.concat(done)
@@ -284,9 +303,11 @@ export class Sender {
 
   /** True when MapLibre holds every source the engine feeds as loaded (no tile of it is being rebuilt) */
   sourcesLoaded(map: MapLibreMap) {
-    return [ACTIVE_SOURCE, ...this.allChannels().map((channel) => channel.sourceId)].every(
-      (id) => !map.getSource(id) || map.isSourceLoaded(id),
-    )
+    return [
+      ACTIVE_SOURCE,
+      ...Object.values(LINE_CENTRE_SOURCES),
+      ...this.allChannels().map((channel) => channel.sourceId),
+    ].every((id) => !map.getSource(id) || map.isSourceLoaded(id))
   }
 
   /**
