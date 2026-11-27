@@ -84,5 +84,6 @@
   "tilda_category_not_expected": "Aucune infrastructure cyclable attendue",
   "tilda_line_direction": "Sens de la ligne :",
   "tilda_line_direction_hint": "Le sens de dessin du chemin, tel que le montrent les flèches blanches sur le chemin sélectionné",
-  "tilda_rule_sidepath_direction": "Piste cyclable dessinée à contresens"
+  "tilda_rule_sidepath_direction": "Piste cyclable dessinée à contresens",
+  "tilda_rule_tags": "Étiquetage vélo TILDA"
 }

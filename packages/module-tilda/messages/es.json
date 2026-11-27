@@ -84,5 +84,6 @@
   "tilda_category_not_expected": "No se espera infraestructura ciclista",
   "tilda_line_direction": "Sentido de la línea:",
   "tilda_line_direction_hint": "El sentido de dibujo de la vía, como lo muestran las flechas blancas de la vía seleccionada",
-  "tilda_rule_sidepath_direction": "Carril bici dibujado contra el tráfico"
+  "tilda_rule_sidepath_direction": "Carril bici dibujado contra el tráfico",
+  "tilda_rule_tags": "Etiquetado ciclista TILDA"
 }

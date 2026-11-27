@@ -84,5 +84,6 @@
   "tilda_category_not_expected": "No bike infrastructure expected",
   "tilda_line_direction": "Line direction:",
   "tilda_line_direction_hint": "The way's drawing direction, as the white arrows on the selected way show it on the map",
-  "tilda_rule_sidepath_direction": "Cycle path drawn against the traffic"
+  "tilda_rule_sidepath_direction": "Cycle path drawn against the traffic",
+  "tilda_rule_tags": "TILDA bicycle tagging"
 }

@@ -153,7 +153,7 @@
       ],
       "area": "tilda",
       "decision": "adopted",
-      "reason": "Generic package updates. Maid now shows a planned tag with choices (separation of a protected lane: bollard, flex_post, ...) as buttons in 'Change to' and counts any of them as reached (TildaSection.tsx ChangeTo, cards.ts planReached). The rest (new checks, cycleway:both:oneway=yes read per side, roundabouts, contraflow lanes) is inside the packages and came with the bump. The fork's rule tips in core.yaml are its own texts; Maid has not wired the package's /validation rules yet (step 'The validation rules of @tilda-geo/bicycle-infrastructure-tagging/validation as Maid rules').",
+      "reason": "Generic package updates. Maid now shows a planned tag with choices (separation of a protected lane: bollard, flex_post, ...) as buttons in 'Change to' and counts any of them as reached (TildaSection.tsx ChangeTo, cards.ts planReached). The rest (new checks, cycleway:both:oneway=yes read per side, roundabouts, contraflow lanes) is inside the packages and came with the bump. The fork's rule tips in core.yaml are its own texts; Maid runs the package's /validation rules since 2026-11-27 (tildaTagRules in module-tilda, profile radnetz-berlin, without the info findings).",
       "decidedBy": "agent",
       "date": "2026-11-20",
       "ours": ["c73e5b9feeef6672a13dfc7f17c4cd806aaecded"],
