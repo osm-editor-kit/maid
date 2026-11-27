@@ -143,4 +143,10 @@ proposal, Melbourne, TILDA). Points 1, 2 and 4 are bugs in any reading.
 | iD                     | Issue drafts in `docs/upstream/`: bug 1 (only one side per key) and bug 2 (lane `:oneway` on two-way roads). Point 3 needs the meaning settled first, in the wiki: Proposal:Separation is still a draft. | Bugs 1 and 2 hold in any reading; point 3 is a tagging question.                                         |
 | Wiki                   | A person adds the second-side rule and the effect of a reverse to Key:cycleway:separation (de facto), with a link to this section.                                                                                         | Today the de facto page is silent, and only a draft defines the meaning.                                |
 
-Nothing has been changed in the code yet (2026-11-27).
+Status (2026-11-27):
+
+- Package: `@tilda-geo/bicycle-infrastructure-tagging` 0.9.2 on npm (`d49b36c`).
+- Maid: `af09501`, `reverseWayTags` in `packages/model/src/actions/reverse.ts`, tests in `reverse-sides.test.ts`.
+- Our fork: `1643433` on `radnetz-mapping`. Its sidepath extract test now expects the kerb on `separation:left`.
+- iD: two issue drafts in [../upstream/id-reverse-side-keys.md](../upstream/id-reverse-side-keys.md), not filed.
+- Wiki: a draft in [../upstream/wiki-cycleway-separation-sides.md](../upstream/wiki-cycleway-separation-sides.md), not posted.
