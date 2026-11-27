@@ -28,6 +28,11 @@ export type SheetCellProps = {
   warningIcon?: boolean
   /** Columns this cell spans (a merged cell, SheetRow.merged) */
   span?: number
+  /**
+   * A mouse pick from the suggestion list: the grid commits the edit (the input has the picked value) and keeps the
+   * focus on this cell. One function for all renders, so the memo holds.
+   */
+  onPick?: (input: HTMLTextAreaElement) => void
 }
 
 /**
@@ -56,6 +61,7 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
     warning,
     warningIcon = false,
     span = 1,
+    onPick,
   } = props
   const committed = data?.value.kind === 'value' ? data.value.text : ''
   const mixed = data?.value.kind === 'mixed' ? data.value.values : undefined
@@ -98,8 +104,10 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
     input.value = item.value
     setDraft(item.value)
     suggestions.dismiss(item.value)
-    // Blur commits, as it does for any edit that ends (Sheet's onBlur).
-    input.blur()
+    // The grid commits, as for Enter, and the focus stays in the cell (a blur would be a leave of the sheet: the focus
+    // on the page, a pending row dropped without its warning).
+    if (onPick !== undefined) onPick(input)
+    else input.blur()
   }
 
   // Runs before the grid's key handler (this input is inside it): a key the list takes stops here, except

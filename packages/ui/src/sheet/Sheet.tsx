@@ -20,6 +20,7 @@ import { newRowIds } from './ids.ts'
 import { actionForKey, togglesRow } from './keys.ts'
 import { takeFallback } from './paste-path.ts'
 import {
+  clearPendingCells,
   clearSelection,
   commitEdit,
   initialSheetState,
@@ -165,8 +166,22 @@ export function Sheet(props: SheetProps) {
   const root = useRef<HTMLDivElement>(null)
   const grid = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<CellRef | null>(null)
-  /** Rows removed by a key press: the focus moves to the active cell once they are gone */
-  const refocusAfter = useRef<RowId[] | null>(null)
+  /** The focus is in the sheet (a real leave clears it; a row removed under the focus does not) */
+  const inSheet = useRef(false)
+  /** The handlers of the latest render, for callbacks that run later: an async clipboard read, a pick in a list */
+  const mounted = useRef(false)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+  const latest = useRef<{
+    paste: (text: string) => void
+    pick: (input: HTMLTextAreaElement) => void
+  }>({ paste: () => {}, pick: () => {} })
+  // one function for every render, so the memoized cells keep their props
+  const [onCellPick] = useState(() => (input: HTMLTextAreaElement) => latest.current.pick(input))
   const track = useRef<Track | undefined>(undefined)
   const pasteCount = useRef(0)
   const pasteWait = useRef<number | null>(null)
@@ -254,14 +269,32 @@ export function Sheet(props: SheetProps) {
     setStatus(note === undefined ? undefined : { text: note.text, refused: [] })
   }
 
+  useEffect(() => {
+    latest.current = {
+      paste: (text) => {
+        pasteText(text, false, null)
+      },
+      pick: (input) => {
+        // a pick from the list ends the edit as Enter does, but stays on the cell: the focus stays in the sheet
+        if (state.mode === 'edit') moveTo(leaveEdit(input, 'stay', state))
+      },
+    }
+  })
+
   // The focus moves after the render that shows the new active cell (a new row has no input before it).
   useEffect(() => {
-    // rows removed with the keyboard: once they are gone, the focus goes to the active cell that took their place
-    const removed = refocusAfter.current
-    if (removed !== null && state.active !== null && !removed.includes(state.active.row)) {
-      refocusAfter.current = null
-      pendingFocus.current ??= state.active
+    // The row with the focus is gone (Delete, the row menu, an undo): the focus goes to the active cell that took its
+    // place, never to the page, where the next Delete would be the editor's (it deletes the feature).
+    const focused = document.activeElement
+    let lost = false
+    if (focused === null || focused === document.body) {
+      lost = inSheet.current
+    } else if (focused instanceof HTMLElement && grid.current?.contains(focused) === true) {
+      // a cell or a row's button
+      const row = focused.closest<HTMLElement>('[data-row]')?.dataset.row
+      lost = row !== undefined && !shape.rowIds.includes(row)
     }
+    if (lost && state.active !== null) pendingFocus.current ??= state.active
     const target = pendingFocus.current
     if (target === null) return
     pendingFocus.current = null
@@ -311,10 +344,21 @@ export function Sheet(props: SheetProps) {
     return result.state
   }
 
-  /** Opens the active cell for typing: the input becomes writable now, so the key's own input goes in. */
-  function beginEdit(input: HTMLTextAreaElement, how: 'replace' | 'keep'): void {
+  /** The input of the active cell: the one every key, edit and commit acts on. */
+  function activeInput(): HTMLTextAreaElement | null {
+    return state.active === null ? null : cellInput(grid.current, state.active)
+  }
+
+  /**
+   * Opens the active cell for typing: its input becomes writable and has the focus now, so the key's own input goes
+   * in (the state and the focus never disagree about the cell being edited).
+   */
+  function beginEdit(how: 'replace' | 'keep'): void {
     const active = state.active
     if (active === null || state.mode === 'edit' || shape.readOnly(active)) return
+    const input = activeInput()
+    if (input === null) return
+    if (document.activeElement !== input) input.focus({ preventScroll: true })
     input.readOnly = false
     if (how === 'replace') {
       input.select()
@@ -411,7 +455,9 @@ export function Sheet(props: SheetProps) {
     if (out.changes.length > 0 && onChange !== undefined) {
       onChange({ cause: 'paste', changes: out.changes })
     }
-    const onNewRow = anchor.row === state.trailingId || anchor.row === state.inserted?.id
+    const onPending = anchor.row === state.pending?.id
+    const onNewRow =
+      anchor.row === state.trailingId || anchor.row === state.inserted?.id || onPending
     if (out.pending !== undefined && showTrailing && onNewRow) {
       // a row the host cannot take as it is: it stays as a pending row, its cell open for the fix
       next = sheetReducer(
@@ -428,6 +474,9 @@ export function Sheet(props: SheetProps) {
       text: (describePaste ?? defaultDescribePaste)(out.report),
       refused: out.report.refused,
     })
+    // a paste into the pending row that the host took as tags: the row was the place it went to, not a row of its own
+    if (onPending && out.changes.length > 0)
+      next = sheetReducer(next, { type: 'dropPending' }, shape)
     next = resolved(next)
     setState(next)
     pendingFocus.current = out.focus ?? next.active
@@ -448,17 +497,25 @@ export function Sheet(props: SheetProps) {
       pasteWait.current = taken.pending
       if (!taken.take) return
       void navigator.clipboard.readText().then(
+        // the handlers of the render the read ends in, not of the one the key press was in; nothing when the sheet
+        // was replaced meanwhile (another feature selected): the text was meant for the old one
         (text) => {
-          pasteText(text, false, null)
+          if (mounted.current) latest.current.paste(text)
         },
-        () => setStatus({ text: m.ui_sheet_read_refused(), refused: [] }),
+        () => {
+          if (mounted.current) setStatus({ text: m.ui_sheet_read_refused(), refused: [] })
+        },
       )
     }, 0)
   }
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void {
-    const input = event.target
-    if (!(input instanceof HTMLTextAreaElement) || input.closest('[data-col]') === null) return
+    const target = event.target
+    if (!(target instanceof HTMLTextAreaElement) || target.closest('[data-col]') === null) return
+    // A key acts on the active cell. A focus left on another cell (it should not happen) follows it first, so a typed
+    // character, Cmd/Ctrl+A and a commit all go to the cell the sheet shows as active.
+    const input = activeInput() ?? target
+    if (input !== target) input.focus({ preventScroll: true })
     const result = actionForKey(
       {
         key: event.key,
@@ -480,7 +537,7 @@ export function Sheet(props: SheetProps) {
         if (result.action.type === 'insertBelow' && !showTrailing) return
         if (result.prevent) event.preventDefault()
         if (result.action.type === 'startEdit') {
-          beginEdit(input, result.action.how)
+          beginEdit(result.action.how)
           return
         }
         moveTo(sheetReducer(state, result.action, shape))
@@ -506,17 +563,20 @@ export function Sheet(props: SheetProps) {
         setDraftNote(undefined)
         setState(sheetReducer(state, { type: 'endEdit', after: 'stay' }, shape))
         return
-      case 'clear':
+      case 'clear': {
         event.preventDefault()
+        // the pending row has texts, not data: Delete clears them here
+        const cleared = clearPendingCells(state, shape)
+        if (cleared !== state) setState(cleared)
         clearSelectionAs('delete')
         return
+      }
       case 'removeRows': {
         event.preventDefault()
         const ids = selectedRowIds(state, shape)
         const batch = removeRows(ids, rows)
         if (batch === undefined || onChange === undefined) return
-        // the focused input goes with its row: the focus follows to the cell that takes its place
-        refocusAfter.current = ids
+        // the focused input goes with its row: the focus follows to the cell that takes its place (the effect above)
         onChange(batch)
         return
       }
@@ -549,7 +609,7 @@ export function Sheet(props: SheetProps) {
     pasteWait.current = null
     const editing = state.mode === 'edit'
     const text = event.clipboardData.getData('text/plain')
-    if (!pasteText(text, editing, editing ? input : null)) return
+    if (!pasteText(text, editing, editing ? (openInput(grid.current) ?? input) : null)) return
     event.preventDefault()
   }
 
@@ -582,6 +642,11 @@ export function Sheet(props: SheetProps) {
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+      // the focus follows the drag to its last cell, the active one: keys and edits then act there, not on the start
+      const current = track.current
+      if (current?.moved === true && current.last !== undefined) {
+        cellInput(grid.current, current.last)?.focus({ preventScroll: true })
+      }
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
@@ -658,10 +723,8 @@ export function Sheet(props: SheetProps) {
     )
       return
     if (current.kind === 'mouse' && current.browse !== true) return
-    const input = cellInput(grid.current, current.cell)
-    if (input === null) return
-    input.focus({ preventScroll: true })
-    beginEdit(input, 'keep')
+    if (cellInput(grid.current, current.cell) === null) return
+    beginEdit('keep')
   }
 
   /** A double click edits the cell, the text kept and the caret at its end. */
@@ -670,13 +733,11 @@ export function Sheet(props: SheetProps) {
     const cellElement = event.target.closest<HTMLElement>('[data-col]')
     const cell = cellElement === null ? undefined : cellRefOf(cellElement)
     if (cell === undefined || !sameCell(state.active, cell) || state.mode !== 'navigate') return
-    const input = cellInput(grid.current, cell)
-    if (input === null) return
-    input.focus({ preventScroll: true })
-    beginEdit(input, 'keep')
+    beginEdit('keep')
   }
 
   function onFocus(event: ReactFocusEvent<HTMLDivElement>): void {
+    inSheet.current = true
     if (state.active !== null) return
     const target = event.target
     const cell =
@@ -686,12 +747,25 @@ export function Sheet(props: SheetProps) {
 
   function onBlur(event: ReactFocusEvent<HTMLDivElement>): void {
     const next = event.relatedTarget
+    const input = event.target
     // the row menu is part of the sheet: its focus is not leaving
-    const leaving =
+    const outside =
       !(next instanceof Node) ||
       (grid.current?.contains(next) !== true && root.current?.contains(next) !== true)
+    // Another app or window took the focus (the page lost it): no leave, the pending row waits for the next real one.
+    const away = next === null && !document.hasFocus()
+    // The focused row was removed: the focus goes to the cell that takes its place (the effect), not out of the sheet.
+    const row =
+      input instanceof HTMLElement
+        ? input.closest<HTMLElement>('[data-row]')?.dataset.row
+        : undefined
+    const dying =
+      next === null &&
+      input instanceof Node &&
+      (!input.isConnected || (row !== undefined && !shape.rowIds.includes(row)))
+    const leaving = outside && !away && !dying
+    if (leaving) inSheet.current = false
     let base = state
-    const input = event.target
     if (input instanceof HTMLTextAreaElement && !input.readOnly)
       base = leaveEdit(input, 'stay', state)
     if (leaving) base = sheetReducer(resolved(base, true), { type: 'leave' }, shape)
@@ -898,6 +972,7 @@ export function Sheet(props: SheetProps) {
                       warning={row.warning}
                       warningIcon={c + span - 1 === columns.length - 1}
                       span={span}
+                      onPick={onCellPick}
                     />
                   )
                 })}

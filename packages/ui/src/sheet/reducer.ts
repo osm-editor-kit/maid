@@ -400,8 +400,15 @@ function step(state: SheetState, action: SheetAction, shape: SheetShape): SheetS
     case 'openPending': {
       if (!shape.colIds.includes(action.focus)) return state
       const onInserted = state.inserted !== null && state.inserted.id === action.at
-      if (!onInserted && action.at !== state.trailingId) return state
+      // a paste into the pending row itself replaces it: same place, a new id (its cells start over, no old draft)
+      const onPending = state.pending !== null && state.pending.id === action.at
+      if (!onInserted && !onPending && action.at !== state.trailingId) return state
       const id = `t${state.nextId}`
+      const after = onPending
+        ? (state.pending?.after ?? null)
+        : onInserted
+          ? (state.inserted?.after ?? null)
+          : null
       return {
         ...state,
         active: { row: id, col: action.focus },
@@ -412,12 +419,23 @@ function step(state: SheetState, action: SheetAction, shape: SheetShape): SheetS
         editStart: 'keep',
         tabOrigin: null,
         inserted: null,
-        pending: {
-          id,
-          after: onInserted ? (state.inserted?.after ?? null) : null,
-          cells: action.cells,
-        },
+        pending: { id, after, cells: action.cells },
         nextId: state.nextId + 1,
+      }
+    }
+    case 'dropPending': {
+      const pending = state.pending
+      if (pending === null) return state
+      const col = state.active?.col ?? shape.colIds[0]
+      const onIt = state.active?.row === pending.id && col !== undefined
+      return {
+        ...state,
+        pending: null,
+        active: onIt ? ownerOf(shape, { row: state.trailingId, col }) : state.active,
+        anchor: state.anchor?.row === pending.id || onIt ? null : state.anchor,
+        rowsSelected: onIt ? false : state.rowsSelected,
+        mode: onIt ? 'navigate' : state.mode,
+        tabOrigin: onIt ? null : state.tabOrigin,
       }
     }
     case 'leave':
@@ -677,6 +695,22 @@ function commitPending(
     next = finishEdit(working, shape, 'stay')
   }
   return { state: settle(next), invalid }
+}
+
+/**
+ * Delete on the pending row (navigation mode): its texts in the selected cells go. The row is no data, so
+ * clearSelection has nothing to clear there. A row that ends all empty goes without a word once the focus is off it.
+ */
+export function clearPendingCells(state: SheetState, shape: SheetShape): SheetState {
+  const pending = state.pending
+  if (pending === null) return state
+  const cols = selectedCells(state, shape)
+    .filter((cell) => cell.row === pending.id)
+    .map((cell) => ownerOf(shape, cell).col)
+  if (!cols.some((col) => (pending.cells[col] ?? '') !== '')) return state
+  const cells = { ...pending.cells }
+  for (const col of cols) cells[col] = ''
+  return { ...state, pending: { ...pending, cells } }
 }
 
 /** What resolvePending gives: the next state, the insert (when the row became data) or why it was dropped. */

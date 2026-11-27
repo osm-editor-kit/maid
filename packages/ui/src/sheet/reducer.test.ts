@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  clearPendingCells,
   clearSelection,
   commitEdit,
   initialSheetState,
@@ -887,6 +888,58 @@ describe('the pending row: a pasted row that is not data yet', () => {
     const start = open({ key: 'highway', value: 'residential' })
     expect(resolvePending(start, rows, columns).state).toBe(start)
     expect(resolvePending(start, rows, columns, true).dropped).toBe('This row repeats another row')
+  })
+
+  it('a paste into the pending row replaces it in its place, with a new id (its cell starts over)', () => {
+    const inserted = sheetReducer(focus(cell('a', 'key')), { type: 'insertBelow' }, shape)
+    const first = sheetReducer(
+      inserted,
+      {
+        type: 'openPending',
+        at: inserted.inserted?.id ?? '',
+        cells: { key: 'highway' },
+        focus: 'key',
+      },
+      shapeOf(rows, columns, { trailingId: 't0', inserted: inserted.inserted }),
+    )
+    const id = first.pending?.id ?? ''
+    const again = sheetReducer(
+      first,
+      { type: 'openPending', at: id, cells: { key: 'name', value: 'B' }, focus: 'key' },
+      shapeWith(first),
+    )
+    expect(again.pending?.id).not.toBe(id)
+    expect(again.pending?.after).toBe('a')
+    expect(again.pending?.cells).toEqual({ key: 'name', value: 'B' })
+    expect(again.active).toEqual(cell(again.pending?.id ?? '', 'key'))
+    expect(again.mode).toBe('edit')
+  })
+
+  it('dropPending: the row goes, the focus on it moves to the trailing row in its column', () => {
+    const start = open({ key: 'highway', value: 'residential' })
+    const next = sheetReducer(start, { type: 'dropPending' }, shapeWith(start))
+    expect(next.pending).toBeNull()
+    expect(next.active).toEqual(cell('t0', 'key'))
+    expect(next.mode).toBe('navigate')
+    const elsewhere = { ...start, mode: 'navigate' as const, active: cell('a', 'value') }
+    expect(sheetReducer(elsewhere, { type: 'dropPending' }, shapeWith(elsewhere)).active).toEqual(
+      cell('a', 'value'),
+    )
+  })
+
+  it('clearPendingCells: Delete empties the selected cells of the pending row, nothing else', () => {
+    const start = { ...open({ key: 'highway', value: 'residential' }), mode: 'navigate' as const }
+    const one = clearPendingCells(start, shapeWith(start))
+    expect(one.pending?.cells).toEqual({ key: '', value: 'residential' })
+    const both = { ...start, anchor: cell('t1', 'value') }
+    expect(clearPendingCells(both, shapeWith(both)).pending?.cells).toEqual({ key: '', value: '' })
+    const away = { ...start, active: cell('a', 'key') }
+    expect(clearPendingCells(away, shapeWith(away))).toBe(away)
+    // a row that ends all empty goes without a word
+    const emptied = clearPendingCells(both, shapeWith(both))
+    expect(resolvePending({ ...emptied, active: cell('a', 'key') }, rows, columns).dropped).toBe(
+      undefined,
+    )
   })
 
   it('is never a selected row, and a row above it that goes moves it to the end', () => {

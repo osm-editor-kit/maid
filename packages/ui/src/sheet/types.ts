@@ -304,10 +304,13 @@ export type SheetAction =
   /** An empty row under `row` (default: the active one), with the focus in its first cell */
   | { type: 'insertBelow'; row?: RowId }
   /**
-   * A pending row in place of the new row `at` (the trailing or the inserted row), with `focus` in edit mode and the
-   * caret after its text. An earlier pending row is replaced: resolve it first.
+   * A pending row in place of the new row `at` (the trailing, the inserted or the pending row itself), with `focus` in
+   * edit mode and the caret after its text. An earlier pending row is replaced: resolve it first (a paste into the
+   * pending row replaces it in its place, with a new id).
    */
   | { type: 'openPending'; at: RowId; cells: Record<ColId, string>; focus: ColId }
+  /** The pending row goes without a word (a paste into it made the tag a row); the focus on it goes to the trailing row */
+  | { type: 'dropPending' }
   /** The focus left the sheet: the range collapses and an inserted row that stayed empty goes */
   | { type: 'leave' }
   | { type: 'collapse' }

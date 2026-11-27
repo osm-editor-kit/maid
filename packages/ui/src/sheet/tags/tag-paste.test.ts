@@ -143,6 +143,23 @@ describe('planTagsPaste: the plan of a paste into the Tags sheet', () => {
       expect(plan.pending?.focus).toBe('key')
     })
 
+    it('also into the open key cell of a pending row (no row of the sheet): the sheet replaces that row', () => {
+      const plan = planTagsPaste(
+        {
+          text: `${key}=again`,
+          rows: sheetRows(names),
+          columns: TAG_COLUMNS,
+          anchor: { row: 't5', col: 'key' },
+          selection: [{ row: 't5', col: 'key' }],
+          editing: true,
+          newRowId,
+        },
+        { tags: names, previous: rowsFromTags(names, NO_TAG_ROWS) },
+      )
+      if (plan === 'native') throw new Error('expected a plan')
+      expect(plan.pending).toEqual({ cells: { key, value: 'again' }, focus: 'key' })
+    })
+
     it('an open edit of a value cell takes the text as it is', () => {
       expect(paste(`${key}=other`, 'value', true)).toBe('native')
     })

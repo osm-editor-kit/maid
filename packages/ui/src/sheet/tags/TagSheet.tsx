@@ -407,6 +407,8 @@ export function TagSheet(props: TagSheetProps) {
   return (
     <div ref={root} className="flex flex-col" onBlur={onLeave}>
       <Sheet
+        // another feature is another sheet: the active cell, an open pending row and the message start over
+        key={featureKey}
         label={label}
         columns={columns}
         rows={rows}
