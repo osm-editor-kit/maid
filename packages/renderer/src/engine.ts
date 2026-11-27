@@ -50,6 +50,7 @@ import {
   fieldOverlayFeatures,
   type FieldOverlay,
   type LonLat,
+  type Point2,
 } from './field-overlay'
 import {
   ACTIVE_SOURCE,
@@ -92,6 +93,7 @@ import type { Loc, Point } from './snap'
 import { TagEdits } from './tag-edits'
 import { TileLoader } from './tile-loader'
 import { TransformTool } from './transform'
+import { visibleHeading } from './way-heading'
 
 export type EngineOptions = {
   /** The editor that owns the OSM data and the edit history. The engine reads and changes them there. */
@@ -1947,6 +1949,31 @@ export class MaidEngine {
   setFieldOverlay(overlay: FieldOverlay | null) {
     this.fieldOverlay = overlay
     this.refreshFieldOverlay()
+  }
+
+  /**
+   * The direction of the one selected way as the person sees it: the main direction of its part inside the map's view,
+   * in degrees clockwise from the screen's up, in the way's drawing direction (way-heading.ts). The inspector's side
+   * columns draw it. Undefined without a map, unless exactly one way is selected, or when none of it is in view.
+   */
+  selectedWayHeading(): number | undefined {
+    const id = this.selectedIds.length === 1 ? this.selectedIds[0] : undefined
+    const way = id?.[0] === 'w' ? this.data.way(id) : undefined
+    const map = this.map
+    if (!way || !map) return undefined
+    const screen: Point2[] = []
+    for (const nodeId of way.nodes) {
+      const loc = this.data.node(nodeId)?.loc
+      if (!loc) continue
+      const at = map.project([loc[0], loc[1]])
+      screen.push([at.x, at.y])
+    }
+    const container = map.getContainer()
+    return visibleHeading(
+      screen,
+      { width: container.clientWidth, height: container.clientHeight },
+      way.nodes[0] === way.nodes[way.nodes.length - 1],
+    )
   }
 
   private refreshFieldOverlay() {

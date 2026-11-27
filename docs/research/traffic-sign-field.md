@@ -289,7 +289,7 @@ not show images, and does not call the converter. It is the fallback to keep for
   (`addFields` and `addMoreFields`). So the React field is one instance per key, with its label from the field definition
   (as iD's `fieldForRow`, `group:37-47`).
 - Maid's "more fields" (`addMoreFields`) take the place of iD's "Per direction" toggle and of the side rows: a direction or
-  side appears once it has a value or is added by hand. The `DirectionalGroup.tsx` component in `packages/ui` shows the
+  side appears once it has a value or is added by hand. The `SidedField.tsx` component in `packages/ui` shows the
   side pattern for other keys; it is an option for layout, not a dependency.
 - Decision for step 1: no merge of direction signs into the whole way. Maid shows the keys as they are stored. Merging can
   hide a stored `traffic_sign:forward` value behind the whole way's sign (section 2.9), which is a surprise in a field that

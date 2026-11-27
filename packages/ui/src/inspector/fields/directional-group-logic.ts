@@ -1,5 +1,11 @@
-import type { Field } from '@osm-editor-kit/maid-presets'
-import { directionalKeys, type DirectionalSide, type SideState } from './directional-logic.ts'
+import type { Field, Tags } from '@osm-editor-kit/maid-presets'
+import {
+  directionalKeys,
+  sideStates,
+  type DirectionalSide,
+  type SideState,
+} from './directional-logic.ts'
+import type { CombinedTags } from './shared.ts'
 
 /**
  * The values of a parent's side that make the sub field of that side meaningless (no parking, no cycle
@@ -74,4 +80,51 @@ export function unusedSides(
   const unused = (state: SideState) =>
     state.value !== undefined && UNUSED_SIDE_VALUES.includes(state.value)
   return { left: unused(parentSides.left), right: unused(parentSides.right) }
+}
+
+/** A row of a sided field's block: the directional field, or a sub field under its parent's row (`parent`) */
+export type SidedRow = { field: Field; parent?: Field }
+
+/**
+ * The rows of a block of the field list when it is a field with a left and a right side (SidedFieldBlock): a group's
+ * parent and its sub fields (each sub row knows its parent), or a directional combo with a key on its own. Undefined
+ * for any other field, which keeps its own row. The blocks stay at their place in the preset's order.
+ */
+export function sidedRowsOf(block: DirectionalBlock): SidedRow[] | undefined {
+  if (block.kind === 'group') {
+    return [
+      { field: block.parent },
+      ...block.subs.map((sub) => ({ field: sub, parent: block.parent })),
+    ]
+  }
+  const { field } = block
+  return field.type === 'directionalCombo' && field.key !== undefined ? [{ field }] : undefined
+}
+
+/**
+ * The sub fields that a choice of their parent opens: a field of `offered` (the preset's moreFields) that is a sub
+ * field of one of the rows (isSubOf) whose side has a value that uses it (not no, none or separate: unusedSides), and
+ * that is not a row yet. Parking on a side opens its orientation: the next decision is a row at once, empty, under
+ * its parent, without a pick from "Add field". In the order of `offered`.
+ */
+export function openedSubFields(
+  rows: readonly Field[],
+  offered: readonly Field[],
+  tags: Tags,
+  combined?: CombinedTags,
+  features?: readonly Tags[],
+): Field[] {
+  const shown = new Set(rows.map((field) => field.id))
+  const opens = (parent: Field) => {
+    if (parent.key === undefined) return false
+    const sides = sideStates(directionalKeys(parent.key), tags, combined, features)
+    const unused = unusedSides(sides)
+    const used = (side: DirectionalSide) =>
+      (sides[side].value !== undefined || sides[side].mixed !== undefined) && !unused[side]
+    return used('left') || used('right')
+  }
+  return offered.filter(
+    (field) =>
+      !shown.has(field.id) && rows.some((parent) => isSubOf(parent, field) && opens(parent)),
+  )
 }

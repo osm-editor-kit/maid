@@ -14,7 +14,14 @@ import {
   type MaidEngine,
   type LayerOptions,
 } from '@osm-editor-kit/maid-renderer'
-import { getSettings, notify, settingsActions, setBearing, setPitch } from '@osm-editor-kit/maid-ui'
+import {
+  getSettings,
+  notify,
+  settingsActions,
+  setBearing,
+  setPitch,
+  setWayHeading,
+} from '@osm-editor-kit/maid-ui'
 import * as maplibregl from 'maplibre-gl'
 import type { StyleSpecification } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
@@ -233,6 +240,8 @@ export function MapView() {
   const handleMove = (_: ViewStateChangeEvent) => {
     // a rotation of a direction starts again from the next pointer position (transform.ts viewChanged)
     engine.transform.viewChanged()
+    // the inspector's side columns turn their piece of the way with the map (way-heading.ts; set only on a change)
+    setWayHeading(engine.selectedWayHeading())
     // load while moving, but not on every frame
     const now = performance.now()
     if (now - lastTileCheck < 100) return
@@ -251,6 +260,7 @@ export function MapView() {
     resized.current = true
   }
   const handleMoveEnd = (event: ViewStateChangeEvent) => {
+    setWayHeading(engine.selectedWayHeading())
     engine.loadVisibleTiles()
     engine.refreshForView()
     const { zoom, latitude, longitude, bearing, pitch } = event.viewState
@@ -463,6 +473,16 @@ export function MapView() {
     setStack(null)
     setMenu({ ...place, ...screen })
   }
+  // The selected way's direction on screen, for the inspector's side columns: again on every change of the engine
+  // (the selection, an edit of the way); the map's moves set it in handleMove
+  useEffect(() => {
+    const update = () => setWayHeading(engine.selectedWayHeading())
+    update()
+    const stop = engine.subscribe(update)
+    return () => {
+      stop()
+    }
+  }, [engine])
   // While rotating, two fingers turn the selection (RotateHandle.tsx), not the map; a pinch still zooms
   useEffect(() => {
     const map = engine.map

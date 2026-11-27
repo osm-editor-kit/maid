@@ -1,6 +1,6 @@
 import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
-import { useId, type ReactNode } from 'react'
+import { useId } from 'react'
 import { ComboField } from './Combo.tsx'
 import {
   directionalKeys,
@@ -53,8 +53,8 @@ export function ReversedHint(props: { tags: Tags; features?: readonly Tags[] }) 
  *
  * Row.tsx keys the control by the field's tag values; the type is listed in STEADY_TYPES so that
  * the combos keep the focus when a write from one side changes the tags.
- * A field with sub fields (parking:both:orientation) is shown by DirectionalGroup instead, which
- * uses DirectionalSideCombo for each of its rows.
+ * In the field list every directional field is shown by SidedFieldBlock instead (SidedField.tsx), which uses
+ * SideComboInput for each side; this field is for a directional field shown on its own.
  */
 export function DirectionalComboField(props: FieldProps) {
   const { field, tags, onChange, onChangeTags, combined, features } = props
@@ -79,13 +79,8 @@ export function DirectionalComboField(props: FieldProps) {
   )
 }
 
-/**
- * One side of a directional field as a combo over the field's options, on a row with its label. The label
- * is the side's name for a field on its own, and the field's label in a group. `actions` go after the combo
- * (a group row's info, revert and remove buttons). `unusedReason`: the side is not used (a sub field whose
- * parent says so): the combo is disabled, keeps its value, and the reason is its description.
- */
-export function DirectionalSideCombo(props: {
+/** One side of a directional field on its own: the side's name, then its combo (SideComboInput) */
+function DirectionalSideCombo(props: {
   field: Field
   side: DirectionalSide
   label: string
@@ -95,28 +90,48 @@ export function DirectionalSideCombo(props: {
   features?: readonly Tags[]
   onChange: FieldProps['onChange']
   onChangeTags?: FieldProps['onChangeTags']
-  actions?: ReactNode
-  unusedReason?: string
-  /**
-   * The row takes the columns of its parent grid (CSS subgrid): the grouped block (DirectionalGroup) lines up the
-   * combos of all its rows, whatever buttons each row has. On its own the row has columns of its own.
-   */
-  subgrid?: boolean
 }) {
-  const {
-    field,
-    side,
-    label,
-    tags,
-    combined,
-    features,
-    onChange,
-    onChangeTags,
-    actions,
-    unusedReason,
-    subgrid = false,
-  } = props
+  const { field, side, label } = props
   const id = useId()
+  const key = field.key
+  if (key === undefined) return null
+  const sideKey = side === 'left' ? directionalKeys(key).left : directionalKeys(key).right
+  return (
+    <div
+      className="grid min-w-0 grid-cols-[6rem_minmax(0,1fr)] items-center gap-2"
+      // the side's own key, for the map (PresetFields onFieldFocus); the innermost one counts
+      data-focus-key={sideKey}
+      data-focus-side={side}
+    >
+      <label htmlFor={id} className={LABEL} title={label}>
+        {label}
+      </label>
+      <SideComboInput id={id} {...props} />
+    </div>
+  )
+}
+
+/**
+ * The combo of one side of a directional field, without a row around it: the field's options over the side's key
+ * (`label` names it for the combo). The side shows its own key, or what the common keys say (sideStates); a choice
+ * writes the tags as iD does (directionalWrite), several features only the side's key (sideOnlyWrite). `unusedReason`:
+ * the side is not used (a sub field whose parent says so): the combo is disabled, keeps its value, and the reason is
+ * its description. Used by a side's row (DirectionalSideCombo) and by a side of a sided field (SidedField.tsx).
+ */
+export function SideComboInput(props: {
+  id: string
+  field: Field
+  side: DirectionalSide
+  label: string
+  tags: Tags
+  combined?: CombinedTags
+  features?: readonly Tags[]
+  onChange: FieldProps['onChange']
+  onChangeTags?: FieldProps['onChangeTags']
+  unusedReason?: string
+}) {
+  const { id, field, side, label, tags, combined, features, onChange, onChangeTags, unusedReason } =
+    props
   const reasonId = useId()
   const key = field.key
   if (key === undefined) return null
@@ -147,20 +162,7 @@ export function DirectionalSideCombo(props: {
         : sideOnlyWrite(keys, tags, side, next),
     )
   return (
-    <div
-      className={
-        subgrid
-          ? 'col-span-3 grid min-w-0 grid-cols-subgrid items-center'
-          : `grid min-w-0 items-center gap-2 ${actions ? 'grid-cols-[6rem_minmax(0,1fr)_auto]' : 'grid-cols-[6rem_minmax(0,1fr)]'}`
-      }
-      // the side's own key, for the map (PresetFields onFieldFocus); the innermost one counts
-      data-focus-key={sideKey}
-      data-focus-side={side}
-      title={unusedReason}
-    >
-      <label htmlFor={id} className={LABEL} title={label}>
-        {label}
-      </label>
+    <>
       <ComboField
         // the combo's draft starts over when this side's value changes elsewhere
         key={`${sideKey}=${value ?? ''}|${state.mixed ? JSON.stringify(state.mixed) : ''}`}
@@ -177,11 +179,6 @@ export function DirectionalSideCombo(props: {
           {unusedReason}
         </span>
       ) : null}
-      {actions ? (
-        <span className="flex items-center justify-end gap-1">{actions}</span>
-      ) : subgrid ? (
-        <span />
-      ) : null}
-    </div>
+    </>
   )
 }

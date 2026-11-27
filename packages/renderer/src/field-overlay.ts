@@ -86,7 +86,11 @@ function lerp(a: Point2, b: Point2, t: number): Point2 {
 }
 
 /** Liang-Barsky: the parameters (0..1) of the part of segment a-b inside the viewport, or undefined */
-function clipToViewport(a: Point2, b: Point2, viewport: Viewport): [number, number] | undefined {
+export function clipToViewport(
+  a: Point2,
+  b: Point2,
+  viewport: Viewport,
+): [number, number] | undefined {
   const dx = b[0] - a[0]
   const dy = b[1] - a[1]
   const p = [-dx, dx, -dy, dy]

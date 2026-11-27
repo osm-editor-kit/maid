@@ -23,9 +23,12 @@ import { AddressField } from './fields/Address.tsx'
 import { CheckField } from './fields/Check.tsx'
 import { ComboField } from './fields/Combo.tsx'
 import { ColourField, DateField } from './fields/DateColour.tsx'
-import { groupDirectionalFields } from './fields/directional-group-logic.ts'
+import {
+  groupDirectionalFields,
+  openedSubFields,
+  sidedRowsOf,
+} from './fields/directional-group-logic.ts'
 import { DirectionalComboField } from './fields/Directional.tsx'
-import { DirectionalGroup } from './fields/DirectionalGroup.tsx'
 import { FallbackField } from './fields/Fallback.tsx'
 import { EmailField, IdentifierField, TelField, UrlField } from './fields/Link.tsx'
 import { LocalizedField } from './fields/Localized.tsx'
@@ -42,6 +45,7 @@ import type {
   FieldProps,
   IconRenderer,
 } from './fields/shared.ts'
+import { SidedFieldBlock } from './fields/SidedField.tsx'
 import { TextField, TextareaField } from './fields/Text.tsx'
 import { fieldKeys } from './logic.ts'
 import { assignRelatedTags, relatedBaseKeys, relatedButtonKeys } from './related-logic.ts'
@@ -247,7 +251,9 @@ export function PresetFields(props: {
   }, [onFieldFocus])
 
   const registry = { ...defaultFieldComponents, ...components }
-  const rows = rowFields(fields, pickedFields(picked, [...fields, ...moreFields]))
+  // a sided field's choice that opens a sub field (parking on a side: its orientation) shows that sub field at once
+  const shown = [...fields, ...openedSubFields(fields, moreFields, tags, combined, features)]
+  const rows = rowFields(shown, pickedFields(picked, [...fields, ...moreFields]))
   const offer = onChange ? addableFields(moreFields, new Set(rows.map((field) => field.id))) : []
   // a tag is related to a row when it is about one of the row's keys and no field of its own has that key
   const ownKeys = [...fields, ...moreFields].flatMap((field) => fieldKeys(field, tags))
@@ -272,7 +278,8 @@ export function PresetFields(props: {
     if (field.key !== undefined && value !== undefined) onChange?.(field.key, value)
   }
 
-  // a directional field with its sub fields (parking:both:orientation) is one block, at the parent's place
+  // a field with a left and a right side is one block at its place, its sub fields (parking:both:orientation) as rows
+  // under it
   const blocks = groupDirectionalFields(rows)
 
   if (rows.length === 0 && offer.length === 0) return null
@@ -302,12 +309,14 @@ export function PresetFields(props: {
         report()
       }}
     >
-      {blocks.map((block) =>
-        block.kind === 'group' ? (
-          <div key={block.parent.id} className="empty:hidden">
-            <DirectionalGroup
-              parent={block.parent}
-              subs={block.subs}
+      {blocks.map((block) => {
+        const sided = sidedRowsOf(block)
+        // a group is always sided: this is a field on its own
+        const single = block.kind === 'field' ? block.field : block.parent
+        return sided ? (
+          <div key={sided[0]!.field.id} className="empty:hidden">
+            <SidedFieldBlock
+              rows={sided}
               tags={tags}
               combined={combined}
               features={features}
@@ -320,14 +329,14 @@ export function PresetFields(props: {
           </div>
         ) : (
           <div
-            key={block.field.id}
-            data-field-id={block.field.id}
+            key={single.id}
+            data-field-id={single.id}
             // the row's own key, for the map; a directional side inside it has its own and is the innermost
-            data-focus-key={block.field.key}
+            data-focus-key={single.key}
             className="empty:hidden"
           >
             <FieldRow
-              field={block.field}
+              field={single}
               tags={tags}
               combined={combined}
               features={features}
@@ -335,7 +344,7 @@ export function PresetFields(props: {
               onChange={onChange}
               onChangeTags={onChangeTags}
               registry={registry}
-              related={relatedOf(block.field)}
+              related={relatedOf(single)}
               loadReference={loadReference}
               measure={measure}
               address={address}
@@ -343,8 +352,8 @@ export function PresetFields(props: {
               excludedKeys={block.field.type === 'access' ? accessExcluded : undefined}
             />
           </div>
-        ),
-      )}
+        )
+      })}
       {offer.length > 0 ? <AddField fields={offer} onPick={pick} /> : null}
     </div>
   )
