@@ -120,7 +120,9 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
         <p aria-live="polite" className="sr-only">
           {results.length === 0
             ? m.ui_no_field_matches()
-            : `${results.length} ${results.length === 1 ? 'field' : 'fields'}`}
+            : results.length === 1
+              ? m.ui_field_count_one()
+              : m.ui_field_count_other({ count: results.length })}
         </p>
 
         {results.length === 0 ? (

@@ -495,6 +495,8 @@
   "ui_cell_suggestions": "Afficher les suggestions pour {column} de {row}",
   "ui_search_fields": "Rechercher des champs",
   "ui_no_field_matches": "Aucun champ ne correspond",
+  "ui_field_count_one": "1 champ",
+  "ui_field_count_other": "{count} champs",
   "ui_fields_to_add": "Champs à ajouter",
   "ui_set_to_today": "Définir sur aujourd’hui",
   "ui_pick_date": "Choisir une date",
