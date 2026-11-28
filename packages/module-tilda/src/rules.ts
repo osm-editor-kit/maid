@@ -13,8 +13,10 @@
  * values (`oneway_reverse_way`) is a redraw, the riding direction stays: the way is reversed in the redraw model
  * (`actionReverse` with `reverseOneway`), so the sides of the road and the second side of its keys end as in the
  * package's `applyTagFix`. A fix that keeps them (`sidepath_line_against_traffic`) turns the traffic round on purpose and
- * uses Maid's Reverse (which keeps `oneway=yes`, as iD). Findings of the severity `info` (a missing width, surface or sign: nice to have) are left
- * out: Maid has no such level, and the TILDA section lists those attributes already.
+ * uses Maid's Reverse (which keeps `oneway=yes`, as iD).
+ *
+ * Findings of the severity `info` are hints (`info` in Maid too, Tobias, 2026-11-28), except the missing attributes
+ * (a width, surface, sign or oneway: nice to have), which the TILDA section's checklist lists already.
  */
 import { actionChangeTags, actionReverse, type Graph, OsmWay } from '@osm-editor-kit/maid-model'
 import { reverseAction } from '@osm-editor-kit/maid-operations'
@@ -47,6 +49,16 @@ const GEOMETRY_RULES = ['sidepath_line_against_traffic']
  * The package's rules on the tags of a way with `highway`. `profile` as in the package: `tilda-geo` (the todos of
  * tilda-geo) or `radnetz-berlin` (those and the rules of the iD Radnetz fork, e.g. `cycleway_oneway_wrong`).
  */
+/** The `info` rules whose attribute the TILDA section's checklist asks for: not repeated in the Issues list */
+const CHECKLIST_RULES: ReadonlySet<string> = new Set([
+  'missing_traffic_sign_vehicle_destination',
+  'missing_traffic_sign_244',
+  'missing_traffic_sign',
+  'missing_width',
+  'missing_surface',
+  'missing_oneway',
+])
+
 export function tildaTagRules(options: { profile?: ValidationProfile } = {}): Rule {
   const { profile = 'radnetz-berlin' } = options
   return {
@@ -63,7 +75,7 @@ export function tildaTagRules(options: { profile?: ValidationProfile } = {}): Ru
         ...(coords.length > 1 ? { length: lengthOf(coords) } : {}),
       })
       return findings
-        .filter((finding) => finding.severity !== 'info')
+        .filter((finding) => finding.severity !== 'info' || !CHECKLIST_RULES.has(finding.ruleId))
         .map((finding) => issueOf(TAGS_RULE_ID, entity.id, finding, coords))
     },
   }
@@ -113,7 +125,7 @@ function issueOf(
   return {
     id,
     rule: ruleId,
-    severity: finding.severity === 'error' ? 'error' : 'warning',
+    severity: finding.severity,
     message: renderMessage(finding.message, language),
     entityIds: [wayId],
     ...(middle ? { loc: [middle[0], middle[1]] as [number, number] } : {}),

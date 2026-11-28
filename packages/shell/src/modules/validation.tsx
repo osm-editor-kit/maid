@@ -293,6 +293,13 @@ function applyFix(editor: Editor, issue: Issue, fix: Fix) {
 const SEVERITY = {
   error: 'bg-red-500',
   warning: 'bg-amber-500',
+  info: 'bg-blue-500',
+}
+
+const SEVERITY_LABEL = {
+  error: () => m.issues_severity_error(),
+  warning: () => m.issues_severity_warning(),
+  info: () => m.issues_severity_info(),
 }
 
 /** One line of a tag diff, as the rule gives it in `data.tagDiff` (iD's TagDiff): `+` added, `-` removed, `~` kept */
@@ -353,9 +360,7 @@ export function IssueRow(props: {
     <li className="flex items-start gap-2 border-b border-zinc-950/5 py-1.5 text-xs last:border-0 dark:border-white/5">
       <span
         role="img"
-        aria-label={
-          issue.severity === 'error' ? m.issues_severity_error() : m.issues_severity_warning()
-        }
+        aria-label={SEVERITY_LABEL[issue.severity]()}
         className={`mt-1 size-2 shrink-0 rounded-full ${existing ? 'bg-zinc-400' : SEVERITY[issue.severity]}`}
       />
       <div className={`min-w-0 flex-1 ${existing ? 'text-zinc-600 dark:text-zinc-400' : ''}`}>
@@ -380,7 +385,7 @@ export function IssueRow(props: {
             ))}
           </div>
         )}
-        {(issue.fixes.length > 0 || issue.severity === 'warning') && (
+        {(issue.fixes.length > 0 || issue.severity !== 'error') && (
           <div className="mt-1 flex flex-wrap gap-1.5">
             {issue.fixes.map((fix) => (
               <button
@@ -395,8 +400,8 @@ export function IssueRow(props: {
                 {fix.label}
               </button>
             ))}
-            {/* only a warning can be ignored: an error stops the upload */}
-            {issue.severity === 'warning' && (
+            {/* a warning or a hint can be ignored: an error stops the upload */}
+            {issue.severity !== 'error' && (
               <button
                 type="button"
                 onClick={() => ignoreIssue(issue.id)}

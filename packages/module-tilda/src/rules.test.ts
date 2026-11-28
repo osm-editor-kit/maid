@@ -58,10 +58,21 @@ describe('tildaTagRules: the tag rules of the TILDA tagging package', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  test('findings of the severity info (a missing width) are left out', () => {
+  test('the missing attributes of the checklist (a missing width) are left out', () => {
     const { issues } = run({ highway: 'cycleway', oneway: 'yes', segregated: 'no' })
-    expect(issues.every((i) => i.severity === 'error' || i.severity === 'warning')).toBe(true)
     expect(issues.some((i) => i.data?.tildaRule === 'missing_width')).toBe(false)
+    expect(issues.some((i) => i.data?.tildaRule === 'missing_surface')).toBe(false)
+  })
+
+  test('a lane oneway that repeats the default is a hint (info)', () => {
+    const { issues } = run({
+      highway: 'residential',
+      'cycleway:right': 'lane',
+      'cycleway:right:lane': 'exclusive',
+      'cycleway:right:oneway': 'yes',
+    })
+    const issue = issues.find((i) => i.data?.tildaRule === 'cycleway_oneway_redundant')
+    expect(issue?.severity).toBe('info')
   })
 
   test('the Radnetz rules run with the default profile and not with tilda-geo', () => {
