@@ -724,6 +724,149 @@ export const CASES: LaneCase[] = [
       )
     },
   },
+  {
+    id: 'L23',
+    title: 'A corner cut short',
+    shows:
+      'A road of four lanes turns a right angle in two bends of 45° with a piece of 3 m between them, and back again: on the inner side of each corner the lane edges would run back over themselves; they meet in one point instead.',
+    draw: (way) => {
+      way(
+        [
+          [-100, -30],
+          [0, -30],
+          [2, -28],
+          [2, 28],
+          [4, 30],
+          [104, 30],
+        ],
+        { highway: 'primary', name: 'L23 Corner', ...twoByTwo },
+      )
+    },
+  },
+  {
+    id: 'L24',
+    title: 'A corner just after a short piece',
+    shows:
+      'Two ways of a street meet at a bend of about 95°, the first with a piece of 1 m before the corner: the inner kerb’s corner lies further back than that piece is long, so the piece’s inner edge is drawn into the corner, not back past it.',
+    draw: (way) => {
+      const tags = { highway: 'residential', name: 'L24 Corner' }
+      way(
+        [
+          [-100, 0.26],
+          [-0.97, 0.26],
+          [0, 0],
+        ],
+        tags,
+      )
+      way(
+        [
+          [0, 0],
+          [17.4, 98.5],
+        ],
+        tags,
+      )
+    },
+  },
+  {
+    id: 'L25',
+    title: 'A side street where the main road gets narrower',
+    shows:
+      'The main road is 8 m wide on one side of a side street and 6.5 m on the other, with a slight bend: the kerb opposite the side street steps at the node, it is not drawn out to where the two kerbs would meet tens of metres away.',
+    draw: (way) => {
+      way(
+        [
+          [-120, -2],
+          [0, 0],
+        ],
+        { highway: 'secondary', name: 'L25 Main', width: '8' },
+      )
+      way(
+        [
+          [0, 0],
+          [120, 6],
+        ],
+        { highway: 'secondary', name: 'L25 Main' },
+      )
+      way(
+        [
+          [0, 0],
+          [0, 100],
+        ],
+        { highway: 'residential', name: 'L25 Side' },
+      )
+    },
+  },
+  {
+    id: 'L26',
+    title: 'A turning loop',
+    shows:
+      'A service road ends in a loop back to itself (one way through the same node twice): the junction’s surface stays at the node, it does not reach round the loop.',
+    draw: (way) => {
+      way(
+        [
+          [0, -100],
+          [0, 0],
+          [0, 8],
+          [0, 38],
+          [0, 60],
+          [25, 45],
+          [13.59, 6.34],
+          [2.3, 1.93],
+          [0, 0],
+        ],
+        { highway: 'service', name: 'L26 Loop' },
+      )
+    },
+  },
+  {
+    id: 'L27',
+    title: 'A wide side street at a bend',
+    shows:
+      'A side street 7.5 m wide joins a narrow main road where it bends by about 20°: the surface is only the side street’s mouth on its side of the main road; the main road’s kerb opposite runs through.',
+    draw: (way) => {
+      const polar = (angle: number, r: number): Point => [
+        r * Math.cos((angle * Math.PI) / 180),
+        r * Math.sin((angle * Math.PI) / 180),
+      ]
+      way([polar(-45, 80), [0, 0]], { highway: 'residential', name: 'L27 Main', width: '6' })
+      way([[0, 0], polar(113, 80)], { highway: 'residential', name: 'L27 Main', width: '5' })
+      way([[0, 0], polar(-149, 60)], { highway: 'residential', name: 'L27 Side', width: '7.5' })
+    },
+  },
+  {
+    id: 'L28',
+    title: 'A side street bending just before the main road',
+    shows:
+      'A one-way side street bends a few metres before it meets a one-way main road with a cycle lane on its right: the side street’s end lies askew over the main road’s kerb; the surface of the mouth still does not cross itself.',
+    draw: (way) => {
+      way(
+        [
+          [-21, 24],
+          [0, 0],
+          [60, -66],
+        ],
+        {
+          highway: 'secondary',
+          name: 'L28 Main',
+          oneway: 'yes',
+          lanes: '2',
+          'width:lanes': '3.3|3.3',
+          'cycleway:right': 'lane',
+          'cycleway:right:width': '2',
+          placement: 'middle_of:2',
+          'turn:lanes': 'left|through',
+        },
+      )
+      way(
+        [
+          [-40, -11],
+          [-3.3, -2],
+          [0, 0],
+        ],
+        { highway: 'residential', name: 'L28 Side', oneway: 'yes', width: '3.5' },
+      )
+    },
+  },
 ]
 
 /**

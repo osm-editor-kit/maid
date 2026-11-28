@@ -72,8 +72,8 @@ Also ported (2026-11-26):
 Left out so far (Lane Studio has them): guide lines in junctions of several nodes, connectivity relations, carriageway areas,
 painted islands, turning heads, hard shoulders, forks of four arms or inside a junction of several nodes, left-hand
 traffic. Tests: `src/street/street.test.ts` (made-up roads after Lane Studio's test cases), and in module-lanes
-`lane-cases.test.ts` over the 22 made-up cases of `fixtures/lanes`. On the dense fixture 6 of 763 junction outlines and
-26 of about 5,000 lane outlines cross themselves (collinear points at mouths, very short pieces at sharp angles).
+`lane-cases.test.ts` over the 28 made-up cases of `fixtures/lanes`. On the dense fixture no junction outline and 1 of about
+5,000 lane outlines cross themselves (`bun run street-quality`: a turning loop whose two ends meet the same junction).
 
 ## Where it comes from
 

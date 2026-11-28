@@ -209,4 +209,51 @@ describe('what each case is about', () => {
     const { geometry } = draw('L22')
     expect(tapers(geometry)).toHaveLength(0)
   })
+
+  test('L23 a corner cut short: the inner lane edges meet in a point, no outline folds back over itself', () => {
+    const { geometry } = draw('L23')
+    expect(geometry.lanes.length).toBeGreaterThan(0)
+    for (const lane of geometry.lanes) expect(crosses(lane.ring)).toBe(false)
+  })
+
+  test('L24 a corner after a short piece: the piece’s inner edge goes into the corner, not back past it', () => {
+    const { geometry } = draw('L24')
+    expect(geometry.lanes.length).toBeGreaterThan(0)
+    for (const lane of geometry.lanes) expect(crosses(lane.ring)).toBe(false)
+  })
+
+  /** How far the surface of the case's only junction reaches from its node, in metres */
+  const junctionReach = (id: string) => {
+    const { geometry, metres, data } = draw(id)
+    expect(geometry.junctions).toHaveLength(1)
+    const node = metres(data.nodes[geometry.junctions[0]!.nodeId]!.loc)
+    return Math.max(
+      ...geometry.junctions[0]!.ring.map((p) =>
+        Math.hypot(metres(p)[0] - node[0], metres(p)[1] - node[1]),
+      ),
+    )
+  }
+
+  test('L25 the main road narrows at a side street: the opposite kerb steps, no corner thrown 20 m out', () => {
+    // the main road is 8 m wide, the side street 5.5 m: the mouth lies within 10 m of the node
+    expect(junctionReach('L25')).toBeLessThan(10)
+  })
+
+  test('L26 a turning loop: the junction’s surface stays at the node, it does not reach round the loop', () => {
+    expect(junctionReach('L26')).toBeLessThan(8)
+  })
+
+  test('L27 a wide side street at a bend: the mouth’s outline does not cross itself', () => {
+    const { geometry } = draw('L27')
+    expect(geometry.junctions).toHaveLength(1)
+    expect(geometry.junctions[0]!.ring.length).toBeGreaterThanOrEqual(3)
+    expect(crosses(geometry.junctions[0]!.ring)).toBe(false)
+  })
+
+  test('L28 a side street bending before the main road: the mouth’s outline does not cross itself', () => {
+    const { geometry } = draw('L28')
+    expect(geometry.junctions).toHaveLength(1)
+    expect(geometry.junctions[0]!.ring.length).toBeGreaterThanOrEqual(3)
+    expect(crosses(geometry.junctions[0]!.ring)).toBe(false)
+  })
 })

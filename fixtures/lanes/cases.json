@@ -218,5 +218,65 @@
       13.3366586,
       52.6078728
     ]
+  },
+  {
+    "id": "L23",
+    "title": "A corner cut short",
+    "shows": "A road of four lanes turns a right angle in two bends of 45° with a piece of 3 m between them, and back again: on the inner side of each corner the lane edges would run back over themselves; they meet in one point instead.",
+    "file": "cases/l23.json",
+    "centre": [
+      13.3411272,
+      52.6078728
+    ]
+  },
+  {
+    "id": "L24",
+    "title": "A corner just after a short piece",
+    "shows": "Two ways of a street meet at a bend of about 95°, the first with a piece of 1 m before the corner: the inner kerb’s corner lies further back than that piece is long, so the piece’s inner edge is drawn into the corner, not back past it.",
+    "file": "cases/l24.json",
+    "centre": [
+      13.3455366,
+      52.6078728
+    ]
+  },
+  {
+    "id": "L25",
+    "title": "A side street where the main road gets narrower",
+    "shows": "The main road is 8 m wide on one side of a side street and 6.5 m on the other, with a slight bend: the kerb opposite the side street steps at the node, it is not drawn out to where the two kerbs would meet tens of metres away.",
+    "file": "cases/l25.json",
+    "centre": [
+      13.3499757,
+      52.6078728
+    ]
+  },
+  {
+    "id": "L26",
+    "title": "A turning loop",
+    "shows": "A service road ends in a loop back to itself (one way through the same node twice): the junction’s surface stays at the node, it does not reach round the loop.",
+    "file": "cases/l26.json",
+    "centre": [
+      13.3324045,
+      52.6049982
+    ]
+  },
+  {
+    "id": "L27",
+    "title": "A wide side street at a bend",
+    "shows": "A side street 7.5 m wide joins a narrow main road where it bends by about 20°: the surface is only the side street’s mouth on its side of the main road; the main road’s kerb opposite runs through.",
+    "file": "cases/l27.json",
+    "centre": [
+      13.3366586,
+      52.6051779
+    ]
+  },
+  {
+    "id": "L28",
+    "title": "A side street bending just before the main road",
+    "shows": "A one-way side street bends a few metres before it meets a one-way main road with a cycle lane on its right: the side street’s end lies askew over the main road’s kerb; the surface of the mouth still does not cross itself.",
+    "file": "cases/l28.json",
+    "centre": [
+      13.3410976,
+      52.6051779
+    ]
   }
 ]

@@ -10,7 +10,7 @@ Made by `bun run fixtures-lanes` (`tools/fixtures/lanes.ts`): change the cases t
 ## Files
 
 - `cases.json`: the catalogue: `id`, `title`, `shows` (what the case is about), `file`, `centre` ([lon, lat]).
-- `cases/l01.json` … `cases/l22.json`: one case each, in the fixture format of Lane Studio's geometry tests
+- `cases/l01.json` … `cases/l28.json`: one case each, in the fixture format of Lane Studio's geometry tests
   (`test/spec/lanes/fixtures` in <https://github.com/MarcelMarzec/LaneStudio>):
 
   ```json
@@ -38,6 +38,8 @@ Made by `bun run fixtures-lanes` (`tools/fixtures/lanes.ts`): change the cases t
 | L09 | Crossroads with turn lanes | L20 | Two roads merge |
 | L10 | A skewed crossing | L21 | Small streets without lane tags |
 | L11 | A road splits into a dual carriageway | L22 | Widths per lane |
+
+L23–L28 came from the outlines that crossed themselves on the `dense` scene (`bun run street-quality`): L23 a corner cut short, L24 a corner just after a short piece, L25 a side street where the main road gets narrower, L26 a turning loop, L27 a wide side street at a bend, L28 a side street bending just before the main road.
 
 ## Real places
 

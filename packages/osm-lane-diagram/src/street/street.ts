@@ -58,6 +58,9 @@ import {
   metricFrame,
   offsetPolyline,
   pointAlong,
+  unfolded,
+  convexHull,
+  crossesItself,
   polylineLength,
   rightNormal,
   scale,
@@ -352,10 +355,10 @@ function lineMeeting(a: Vec2, da: Vec2, b: Vec2, db: Vec2): Vec2 | undefined {
   return add(a, scale(da, t))
 }
 
-function projectOnto(points: readonly Vec2[], p: Vec2): number {
+function projectOnto(points: readonly Vec2[], p: Vec2, upTo = Infinity): number {
   let best = { distance: Infinity, s: 0 }
   let s = 0
-  for (let i = 1; i < points.length; i++) {
+  for (let i = 1; i < points.length && s < upTo; i++) {
     const a = points[i - 1]!
     const b = points[i]!
     const ab = sub(b, a)
@@ -588,15 +591,19 @@ function cleaned(points: readonly Vec2[]): Vec2[] {
   return points.filter((p, i) => len(sub(p, points[(i + 1) % points.length]!)) > 0.05)
 }
 
-/** Where the segments a–b and c–d cross, or undefined (touching ends do not count) */
-function crossing(a: Vec2, b: Vec2, c: Vec2, d: Vec2): Vec2 | undefined {
+/**
+ * Where the segments a–b and c–d cross, or undefined (touching ends do not count, unless `touching`: then an end lying
+ * on the other segment, to a micrometre, counts too)
+ */
+function crossing(a: Vec2, b: Vec2, c: Vec2, d: Vec2, touching = false): Vec2 | undefined {
   const ab = sub(b, a)
   const cd = sub(d, c)
   const k = cross(ab, cd)
   if (Math.abs(k) < 1e-9) return undefined
   const t = cross(sub(c, a), cd) / k
   const u = cross(sub(c, a), ab) / k
-  return t > 1e-6 && t < 1 - 1e-6 && u > 1e-6 && u < 1 - 1e-6 ? add(a, scale(ab, t)) : undefined
+  const e = touching ? -1e-6 : 1e-6
+  return t > e && t < 1 - e && u > e && u < 1 - e ? add(a, scale(ab, t)) : undefined
 }
 
 /** A loop of an outline is cut off where it has at most this many points */
@@ -609,7 +616,7 @@ const LOOP_POINTS = 12
  */
 function unlooped(ring: readonly Vec2[]): Vec2[] {
   let points = [...ring]
-  for (let pass = 0; pass < 8; pass++) {
+  for (let pass = 0; pass < 32; pass++) {
     let changed = false
     for (let i = 0; i < points.length && points.length > 4; i++) {
       const n = points.length
@@ -617,12 +624,14 @@ function unlooped(ring: readonly Vec2[]): Vec2[] {
       const b = points[(i + 1) % n]!
       for (let step = 2; step <= LOOP_POINTS && step < n / 2; step++) {
         const j = (i + step) % n
-        const meet = crossing(a, b, points[j]!, points[(j + 1) % n]!)
+        const meet = crossing(a, b, points[j]!, points[(j + 1) % n]!, true)
         if (!meet) continue
         // points i+1 … j go, the crossing takes their place
         const kept: Vec2[] = []
         for (let k = (j + 1) % n; k !== (i + 1) % n; k = (k + 1) % n) kept.push(points[k]!)
         kept.push(meet)
+        // a cut that takes much of the surface is no small loop: that crossing stays
+        if (Math.abs(signedArea2(kept)) <= Math.abs(signedArea2(points)) * 0.7) continue
         points = kept
         changed = true
         break
@@ -630,8 +639,7 @@ function unlooped(ring: readonly Vec2[]): Vec2[] {
     }
     if (!changed) break
   }
-  // a cut that takes much of the surface was no small loop: the outline stays as it was
-  return Math.abs(signedArea2(points)) > Math.abs(signedArea2(ring)) * 0.7 ? points : [...ring]
+  return points
 }
 
 /**
@@ -711,6 +719,8 @@ function junctionAt(
       rightDirection: direction,
     }
   })
+  /** The main road's arms whose surface is only the mouth of a side road */
+  const mouths = new Set<number>()
   // the main road's end of the box reaches along it to the corners of the side roads next to it
   if (through) {
     for (const i of through) {
@@ -720,12 +730,20 @@ function junctionAt(
       const previous = (i - 1 + arms.length) % arms.length
       const reach = { left: 0, right: 0 }
       if (!onMain(next)) {
-        reach.left = Math.min(MAX_CLEARANCE, length, projectOnto(arm.points, ends[next]!.right))
+        reach.left = Math.min(
+          MAX_CLEARANCE,
+          length,
+          projectOnto(arm.points, ends[next]!.right, MAX_CLEARANCE),
+        )
         ends[i]!.left = edgeAt(arm, reach.left, 'left')
         ends[i]!.leftDirection = directionAt(arm, reach.left)
       }
       if (!onMain(previous)) {
-        reach.right = Math.min(MAX_CLEARANCE, length, projectOnto(arm.points, ends[previous]!.left))
+        reach.right = Math.min(
+          MAX_CLEARANCE,
+          length,
+          projectOnto(arm.points, ends[previous]!.left, MAX_CLEARANCE),
+        )
         ends[i]!.right = edgeAt(arm, reach.right, 'right')
         ends[i]!.rightDirection = directionAt(arm, reach.right)
       }
@@ -743,6 +761,7 @@ function junctionAt(
       // roads joining on one side only (a T-junction): the surface is only the mouth outside the main road's kerb on that
       // side, not a wedge across the main road's lanes (Lane Studio's `mouthOnly`, here for two-way roads too)
       if (!grouped && onMain(next) !== onMain(previous)) {
+        mouths.add(i)
         const facing = onMain(next) ? 'right' : 'left'
         const other = facing === 'left' ? 'right' : 'left'
         ends[i]![other] = ends[i]![facing]
@@ -764,7 +783,8 @@ function junctionAt(
   if (through) {
     arms.forEach((arm, i) => {
       const j = (i + 1) % arms.length
-      if (!onMain(i) || !onMain(j) || i === j) return
+      // (not on the side of a T-junction without a side road: its surface there is the mouth's kerb, not the bend)
+      if (!onMain(i) || !onMain(j) || i === j || mouths.has(i) || mouths.has(j)) return
       const end = ends[i]!
       const next = ends[j]!
       const node = arm.points[0]!
@@ -772,7 +792,8 @@ function junctionAt(
         len(sub(p, node)) < Math.max(Math.abs(arm.left), Math.abs(arm.right)) * 2 + 1
       if (!atNode(end.left) || !atNode(next.right)) return
       const meet = lineMeeting(end.left, arm.first, next.right, arms[j]!.first)
-      if (meet && len(sub(meet, node)) < 50) {
+      // (the edges of two halves about in line but of different widths meet far off: they keep their own ends)
+      if (meet && atNode(meet)) {
         end.left = meet
         next.right = meet
       }
@@ -795,7 +816,10 @@ function junctionAt(
     if (!(onMain(i) && onMain(j)) && len(sub(next.right, end.left)) > 0.5) kerbs.push(corner)
   })
   const guides = guidesAt(arms, result, through)
-  const outline = unlooped(cleaned(points))
+  let outline = unlooped(cleaned(points))
+  // still crossing itself: a side road whose end lies askew over the main road's kerb, so its corners and their places
+  // on the kerb come in the wrong order. The surface of the few points of one node is then their hull
+  if (crossesItself(outline)) outline = convexHull(outline)
   result.junctions.push({
     nodeId,
     // a mouth with no width (a side road ending right at the main road's kerb) has no surface, only its kerbs
@@ -1545,6 +1569,10 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
         boundary.right = moved(boundary.right, forkShift(run, lane.right, target[1]), weights)
       })
     }
+    for (const boundary of boundaries) {
+      boundary.left = unfolded(boundary.left, sliced)
+      boundary.right = unfolded(boundary.right, sliced)
+    }
     line.lanes.forEach((lane, laneIndex) => {
       const { left, right } = boundaries[laneIndex]!
       out.lanes.push({
@@ -1569,13 +1597,18 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
       if (to - from < 2) continue
       for (const taper of run.tapers) {
         const edge = (target: number) =>
-          run.fork
-            ? moved(
-                offset(local.map(() => taper.collapse)),
-                forkShift(run, taper.collapse, target),
-                [...weights],
-              )
-            : offset(local.map((_, i) => taper.collapse + (target - taper.collapse) * weights[i]!))
+          unfolded(
+            run.fork
+              ? moved(
+                  offset(local.map(() => taper.collapse)),
+                  forkShift(run, taper.collapse, target),
+                  [...weights],
+                )
+              : offset(
+                  local.map((_, i) => taper.collapse + (target - taper.collapse) * weights[i]!),
+                ),
+            sliced,
+          )
         out.lanes.push({
           wayId: way.id,
           laneId: `${taper.lane.id}#taper`,
