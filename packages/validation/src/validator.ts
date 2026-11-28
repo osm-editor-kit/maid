@@ -6,7 +6,7 @@ import { sharedIssues } from './shared-issues.ts'
 import type { Issue, PresetLookup, Rule, RuleContext, Validator } from './types.ts'
 import { createWayIndex } from './way-index.ts'
 
-const severityRank: Record<Issue['severity'], number> = { error: 0, warning: 1 }
+const severityRank: Record<Issue['severity'], number> = { error: 0, warning: 1, info: 2 }
 
 function compareText(a: string, b: string) {
   return a < b ? -1 : a > b ? 1 : 0
@@ -84,9 +84,9 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
     return sorted
   }
 
-  /** Whether the person ignores this issue. Only a warning can be ignored. */
+  /** Whether the person ignores this issue. A warning and a hint can be ignored, an error cannot. */
   function isIgnored(issue: Issue, ignored: ReadonlySet<string>) {
-    return issue.severity === 'warning' && ignored.has(issue.id)
+    return issue.severity !== 'error' && ignored.has(issue.id)
   }
 
   /** The issues that are shown: all but the ignored warnings, and the existing ones unless they are shown */

@@ -1,6 +1,10 @@
 import type { Action, DifferenceChange, Graph, OsmEntity, OsmWay } from '@osm-editor-kit/maid-model'
 
-export type Severity = 'error' | 'warning'
+/**
+ * `error` stops the upload, `warning` asks for a look, `info` is a hint that changes nothing about the data's
+ * meaning (a tag that only repeats the default). Warnings and hints can be ignored.
+ */
+export type Severity = 'error' | 'warning' | 'info'
 
 /** Something a person can do about an issue, as actions that become one undo step */
 export type Fix = {

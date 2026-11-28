@@ -202,6 +202,7 @@
   "issues_close_points_map": "Puntos muy cercanos",
   "issues_severity_error": "Error",
   "issues_severity_warning": "Advertencia",
+  "issues_severity_info": "Sugerencia",
   "relations_section_members": "Miembros",
   "relations_section_relations": "Relaciones",
   "relations_new_relation": "Nueva relación…",
