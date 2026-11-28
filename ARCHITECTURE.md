@@ -166,9 +166,11 @@ German, French and Spanish. The decisions are in [ADR 0009](docs/adr/0009-decisi
   agent drafts until a person reads them.
 - **Headless packages** (operations, validation, presets) return a message id with values, not sentences. The text is
   made where it is shown. Read a text when it is shown, never at module level, as the language is set at mount.
-- **Preset names and fields** come from the tagging schema, not from Paraglide, and are English only for now
-  (`packages/presets/src/default.ts`). The other languages are an open step in
-  [steps.md](docs/build-out/steps.md#translations).
+- **Preset names and fields** come from the tagging schema, not from Paraglide: the English file is in the presets'
+  data (`packages/presets/src/default.ts`), and the file of the app's language (de, fr, es) is a chunk of its own,
+  loaded in parallel with the presets by `presetTranslations()` of the shell in each app's `maid.config.ts` and passed
+  to `makePresets(localized)`. English fills what a language lacks. Texts that modules add with `withChanges` stay
+  English.
 - **The language** is chosen once at mount (`packages/shell/src/mount.tsx`): `?lang=`, then the stored choice, then the
   browser, then the app's `defaultLocale`, then English. Automated runs are always English. Changing it reloads the page.
 

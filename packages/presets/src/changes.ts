@@ -168,6 +168,9 @@ export function withChanges(base: PresetData, changes: PresetChanges): PresetDat
   const trFields: RawRecord = { ...asRecord(section.fields) }
   const trPresets: RawRecord = { ...asRecord(section.presets) }
   const hasField = (id: string) => Object.hasOwn(fields, id)
+  // The shown language's texts (data.localized): a text this change replaces in English is dropped there, so the
+  // change's English text shows instead of the schema's translation of the text it replaced.
+  const localized = localizedCopy(base.localized)
 
   // 1. fields first: presets and universal fields may refer to them
   for (const [id, value] of entriesOf(input.fields, 'fields', report)) {
@@ -175,6 +178,7 @@ export function withChanges(base: PresetData, changes: PresetChanges): PresetDat
     if (definition === undefined) continue
     fields[id] = definition.raw
     trFields[id] = definition.text
+    localized.fields[id] = undefined
   }
 
   // 2. new and replaced presets
@@ -183,6 +187,7 @@ export function withChanges(base: PresetData, changes: PresetChanges): PresetDat
     if (definition === undefined) continue
     presets[id] = definition.raw
     trPresets[id] = { name: definition.name }
+    localized.presets[id] = undefined
   }
 
   // 3. edits to presets in the data. as iD: a preset that ends with no fields shows none (no inheritance)
@@ -199,7 +204,11 @@ export function withChanges(base: PresetData, changes: PresetChanges): PresetDat
     checkKeys(value, EDIT_KEYS, path, report)
     const raw: RawRecord = { ...asRecord(presets[id]) }
     const name = readString(value, 'name', path, report)
-    if (name !== undefined) trPresets[id] = { ...asRecord(own(trPresets, id)), name }
+    if (name !== undefined) {
+      trPresets[id] = { ...asRecord(own(trPresets, id)), name }
+      const { name: _replaced, ...rest } = asRecord(own(localized.presets, id)) ?? {}
+      localized.presets[id] = rest
+    }
     const hide = readBoolean(value, 'hide', path, report)
     if (hide !== undefined) raw.searchable = !hide
     for (const which of ['fields', 'moreFields'] as const) {
@@ -252,6 +261,22 @@ export function withChanges(base: PresetData, changes: PresetChanges): PresetDat
       ...root,
       en: { ...en, presets: { ...section, fields: trFields, presets: trPresets } },
     },
+    ...(base.localized === undefined ? {} : { localized: localized.file() }),
+  }
+}
+
+/** Copies of the `presets` and `fields` sections of a translation file of another language, and the file they make. */
+function localizedCopy(file: unknown) {
+  const root = asRecord(file) ?? {}
+  const [language = 'xx'] = Object.keys(root)
+  const top: RawRecord = { ...asRecord(root[language]) }
+  const section: RawRecord = { ...asRecord(top.presets) }
+  const presets: RawRecord = { ...asRecord(section.presets) }
+  const fields: RawRecord = { ...asRecord(section.fields) }
+  return {
+    presets,
+    fields,
+    file: () => ({ [language]: { ...top, presets: { ...section, presets, fields } } }),
   }
 }
 

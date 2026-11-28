@@ -32,6 +32,7 @@ import {
   relations,
   sceneBounds,
   validation,
+  presetTranslations,
 } from '@osm-editor-kit/maid-shell'
 import { defaultRules } from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
@@ -65,7 +66,11 @@ function editorConfig(config: Config) {
    * (mount.tsx) and the presets are made later still. Until they are there, pins and vertices have no icon and the
    * inspector waits.
    */
-  const presets = lazyPresets(() => import('./presets').then((module) => module.makePresets()))
+  const presets = lazyPresets(() =>
+    Promise.all([import('./presets'), presetTranslations()]).then(([module, localized]) =>
+      module.makePresets(localized),
+    ),
+  )
   const bbox = fixtureBounds(config, BBOX)
   const modules: MaidModule[] = [
     // private task lists: a GeoJSON file of features to check, the progress in this browser (ADR 0013, ADR 0016)

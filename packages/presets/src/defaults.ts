@@ -2,7 +2,7 @@
 // that the type picker lists when the search is empty. Port of iD's presetIndex.defaults (modules/presets/index.js)
 // and presetCategory (modules/presets/category.ts). Not ported: addable presets (iD's addablePresetIDs), because
 // Maid offers every preset. README.md, "Compared with iD", lists the rules and the tests that pin them.
-import { asRecord, asString, asStrings, isGeometry, own } from './raw.ts'
+import { asRecord, asString, asStrings, isGeometry, own, translationSection } from './raw.ts'
 import type { Geometry, Preset, PresetCategory, PresetData, PresetRow } from './types.ts'
 
 /** iD lists a category only when more than one of its members is offered (`members.length > 1`). */
@@ -56,14 +56,16 @@ export function defaultIdsOf(value: unknown): Partial<Record<Geometry, string[]>
 }
 
 /**
- * The name of a category in the English translation (`presets.categories.<id>.name`), as preset names are read;
- * the id when the translation has none.
+ * The name of a category (`presets.categories.<id>.name`), as preset names are read: in the shown language's file
+ * (`localized`) first, then in the English one; the id when neither has one.
  */
-export function categoryNameOf(translations: unknown, id: string) {
-  const en = asRecord(asRecord(translations)?.en)
-  const categories = asRecord(asRecord(en?.presets)?.categories)
-  const entry = categories ? own(categories, id) : undefined
-  return asString(asRecord(entry)?.name) ?? id
+export function categoryNameOf(translations: unknown, id: string, localized?: unknown) {
+  for (const file of [localized, translations]) {
+    const entry = own(translationSection(file, 'categories'), id)
+    const name = asString(asRecord(entry)?.name)
+    if (name !== undefined) return name
+  }
+  return id
 }
 
 /**
@@ -138,7 +140,7 @@ function categoryRow(
 export function createDefaults(data: PresetData, preset: (id: string) => Preset | undefined) {
   const categories = categoriesOf(data.categories)
   const lists = defaultIdsOf(data.defaults)
-  const categoryName = (id: string) => categoryNameOf(data.translations, id)
+  const categoryName = (id: string) => categoryNameOf(data.translations, id, data.localized)
   return (geometries: readonly Geometry[]): PresetRow[] => {
     const [first] = geometries
     if (first === undefined) return []

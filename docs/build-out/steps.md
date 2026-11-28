@@ -390,8 +390,10 @@ Also decided: the editor is deployed to GitHub Pages by a workflow, a fork choos
 
 ### Translations
 
-- [ ] Step 1: `packages/i18n` with Paraglide (pinned to 2.25.4), English, German (informal "Du"), French, Spanish; the language choice; the preset texts as one JSON file per language made from the tagging schema; the UI's texts; a script that lists missing keys. [paraglide-study.md](../research/paraglide-study.md)
-      Built: Paraglide for the app and per module, the language choice, `i18n-check` ([ARCHITECTURE.md](../../ARCHITECTURE.md#texts-and-languages)). Open: the preset texts in other languages than English.
+- [x] Step 1: `packages/i18n` with Paraglide (pinned to 2.25.4), English, German (informal "Du"), French, Spanish; the language choice; the preset texts as one JSON file per language made from the tagging schema; the UI's texts; a script that lists missing keys. [paraglide-study.md](../research/paraglide-study.md)
+      Built: Paraglide for the app and per module, the language choice, `i18n-check` ([ARCHITECTURE.md](../../ARCHITECTURE.md#texts-and-languages)).
+      Done 2026-11-28: the preset texts in de, fr, es. The tagging schema's translation file of the app's language (`dist/translations/<lang>.min.json`, as it is) is a chunk of its own (de 105 kB, fr 98 kB, es 116 kB gzipped), loaded in parallel with the presets chunk (`presetTranslations()` in each app's `maid.config.ts`); English loads nothing more, and the entry and presets chunks are unchanged. Preset names, field labels, placeholders, option labels, terms, role labels and category names are looked up in that language, then English (`PresetData.localized`, `packages/presets/src/localized.test.ts`). "Add field" and the type search match the shown texts. Texts a module adds or replaces with `withChanges` stay English (the schema's translation of a replaced text is dropped). Not read: language variants (`de-CH`).
+      Test for Tobias: open Maid with `?lang=de`, select a cycleway: the type reads "Radweg", the fields "Breite (Meter)", "Struktur" with the option "Brücke"; in "Feld hinzufügen" type "Beleu" and "Beleuchtung" is offered. With `?lang=en` everything is English as before.
 - [ ] Step 2: validation, operations and undo labels return a message id with values; the journal stores those.
 
 ### The module system

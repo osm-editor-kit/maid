@@ -16,9 +16,12 @@ import { trafficSignPresetChanges } from '@osm-editor-kit/maid-module-traffic-si
 import { createPresets, withChanges } from '@osm-editor-kit/maid-presets'
 import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
 
-export function makePresets() {
+export function makePresets(localized?: unknown) {
   const withSigns = withChanges(
-    withChanges(withChanges(defaultPresetData, streetImageryPresetChanges), surfacePresetChanges),
+    withChanges(
+      withChanges({ ...defaultPresetData, localized }, streetImageryPresetChanges),
+      surfacePresetChanges,
+    ),
     trafficSignPresetChanges,
   )
   return createPresets(withChanges(withSigns, bikePresetChanges(withSigns)))

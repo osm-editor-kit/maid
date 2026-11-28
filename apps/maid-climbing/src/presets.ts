@@ -9,8 +9,11 @@ import { streetImageryPresetChanges } from '@osm-editor-kit/maid-module-street-i
 import { createPresets, withChanges } from '@osm-editor-kit/maid-presets'
 import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
 
-export function makePresets() {
+export function makePresets(localized?: unknown) {
   return createPresets(
-    withChanges(withChanges(defaultPresetData, streetImageryPresetChanges), climbingPresetChanges),
+    withChanges(
+      withChanges({ ...defaultPresetData, localized }, streetImageryPresetChanges),
+      climbingPresetChanges,
+    ),
   )
 }

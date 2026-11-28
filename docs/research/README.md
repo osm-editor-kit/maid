@@ -10,6 +10,7 @@ Findings that the plan builds on. Collected 2026-10-10 by research subagents rea
 - [first-paint-audit.md](first-paint-audit.md): what a first visit loads before and after the first view, and what to cut (2026-10-29)
 - [projections-and-coordinates.md](projections-and-coordinates.md): MapLibre's custom projections, precision near the poles and at high zoom, and why Rapid's world coordinates would not save memory (2026-11-11)
 - [maplibre-updatedata-stale-tiles.md](maplibre-updatedata-stale-tiles.md): why a feature that `updateData` removed stayed in a tile (two causes), and the workaround in the renderer's `IncrementalSource` (2026-11-27)
+- [photocad-street-space-drafts.md](photocad-street-space-drafts.md): what PhotoCAD does, and how drafts of the street space (trees, cabinets, parking lanes, sidewalks, lanes) from photos and aerial imagery could reach a person for review in Maid (2026-11-05)
 
 ## How to read these notes
 

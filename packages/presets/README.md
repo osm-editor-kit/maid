@@ -13,7 +13,7 @@ const fields = defaultPresets.fieldsFor(preset, tags, 'point')
 - The default data is a separate entry (`/default`), so importing the package alone does not pull in the JSON.
 - `match` is called for every point drawn on the map. It uses an index by geometry and first tag key and does not scan the presets.
 
-Not ported yet: categories, recently used presets, addable presets, preset defaults per geometry, language variants of names. Location sets are ported (see below). Names and labels are English only. The rules that are ported, and the ones that are not, are listed under [Compared with iD](#compared-with-id).
+Not ported yet: categories, recently used presets, addable presets, preset defaults per geometry, language variants of names (`de-CH`). Location sets are ported (see below). Names, labels, options, terms and category names come from `data.localized` (the shown language's translation file, `loadPresetTranslations` in `./translations`, one lazy chunk per language for de, fr, es), then from English, then from the schema. The rules that are ported, and the ones that are not, are listed under [Compared with iD](#compared-with-id).
 
 ## Changing presets in a child app
 
@@ -58,7 +58,7 @@ Options can be a record of value to label, or a list of `{ value, label }`. A re
 
 - Partial changes to a field: a field definition replaces the whole field, so change it with all its properties.
 - Side labels of a directional combo (iD's `strings.types`): `Field` has no place for them.
-- Other languages: texts are written in English only. Terms and aliases of an existing preset cannot be changed without replacing the preset.
+- Other languages: texts are written in English only, and a field or preset name a change replaces shows that English text in every language (the schema's translation of the replaced text is dropped). Terms and aliases of an existing preset cannot be changed without replacing the preset.
 - `{preset}` and `{@templates/…}` references in a definition: list the field ids.
 - `locationSet` in a definition: a field or preset that a change adds or replaces has no location set, so it applies everywhere. `FieldDefinition` and `PresetDefinition` take none.
 

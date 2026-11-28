@@ -61,3 +61,17 @@ export function referenceOf(text: string) {
 export function own(section: RawRecord, id: string) {
   return Object.hasOwn(section, id) ? section[id] : undefined
 }
+
+/**
+ * A section of a tagging-schema translation file (`{ <language>: { presets: { presets, fields, categories } } }`):
+ * the `en` entry when there is one, else the file's first. Empty when the file does not have that shape.
+ */
+export function translationSection(
+  translations: unknown,
+  section: 'presets' | 'fields' | 'categories',
+): RawRecord {
+  const root = asRecord(translations)
+  if (root === undefined) return {}
+  const language = asRecord(Object.hasOwn(root, 'en') ? root.en : Object.values(root)[0])
+  return asRecord(asRecord(language?.presets)?.[section]) ?? {}
+}

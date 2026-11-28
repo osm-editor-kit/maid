@@ -496,6 +496,8 @@
   "ui_cell_suggestions": "Show the suggestions for {column} of {row}",
   "ui_search_fields": "Search fields",
   "ui_no_field_matches": "No field matches",
+  "ui_field_count_one": "1 field",
+  "ui_field_count_other": "{count} fields",
   "ui_fields_to_add": "Fields to add",
   "ui_set_to_today": "Set to today",
   "ui_pick_date": "Pick a date",
