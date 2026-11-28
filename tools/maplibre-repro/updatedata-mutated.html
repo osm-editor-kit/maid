@@ -1,0 +1,105 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  MapLibre: updateData leaves a removed feature in its tile when the source's data object was
+  changed
+</title>
+<link rel="stylesheet" href="/maplibre-gl/dist/maplibre-gl.css" />
+<style>
+  html,
+  body,
+  #map {
+    height: 100%;
+    margin: 0;
+  }
+  #out {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 1;
+    background: #fff;
+    padding: 8px;
+    font: 13px/1.4 monospace;
+    white-space: pre;
+  }
+</style>
+<div id="map"></div>
+<div id="out">running…</div>
+<script type="module">
+  // Local copy for our own runs. For an upstream report replace both URLs with a CDN build, e.g.
+  // https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs and .../maplibre-gl.css
+  import { Map } from '/maplibre-gl/dist/maplibre-gl.mjs'
+
+  // copy=1: hand MapLibre a copy of the collection, so changing ours later does not reach it (the workaround)
+  const COPY = new URLSearchParams(location.search).get('copy') === '1'
+
+  const center = [13.4, 52.52]
+  const map = new Map({
+    container: 'map',
+    center,
+    zoom: 17,
+    fadeDuration: 0,
+    style: {
+      version: 8,
+      sources: {},
+      layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#111' } }],
+    },
+  })
+
+  // Two short lines, far apart: A at the left edge of the view, B at the right edge. At zoom 17 they lie in
+  // different 512 px tiles, so a diff that touches only A must reload A's tile and nothing else.
+  const line = (id, dx) => ({
+    type: 'Feature',
+    id,
+    properties: { name: id === 1 ? 'A' : 'B' },
+    geometry: {
+      type: 'LineString',
+      coordinates: [
+        [center[0] + dx, center[1]],
+        [center[0] + dx + 0.0002, center[1] + 0.0001],
+      ],
+    },
+  })
+  const a = line(1, -0.0035)
+  const b = line(2, 0.0033)
+
+  // The application's collection: one object, its `features` kept at the latest list (as a React wrapper does
+  // when it must not change the identity of the `data` it passes on)
+  const collection = { type: 'FeatureCollection', features: [a, b] }
+
+  const idle = () => new Promise((resolve) => map.once('idle', resolve))
+  const ids = () =>
+    [...new Set(map.querySourceFeatures('s').map((f) => f.id))].sort((x, y) => x - y)
+
+  map.on('load', async () => {
+    map.addSource('s', { type: 'geojson', data: COPY ? structuredClone(collection) : collection })
+    map.addLayer({
+      id: 'l',
+      type: 'line',
+      source: 's',
+      paint: { 'line-color': '#fff', 'line-width': 6 },
+    })
+    await idle()
+    const before = ids()
+
+    // Remove A. The application first brings its collection up to date, then sends the diff.
+    collection.features = [b]
+    await map.getSource('s').updateData({ remove: [a.id] })
+    map.triggerRepaint()
+    await idle()
+
+    const pointA = map.project(a.geometry.coordinates[0])
+    const result = {
+      copy: COPY,
+      before,
+      // what the worker has: A is gone there
+      getData: (await map.getSource('s').getData()).features.map((f) => f.id),
+      // what the tiles hold
+      tiles: ids(),
+      renderedAtA: map.queryRenderedFeatures(pointA, { layers: ['l'] }).map((f) => f.id),
+    }
+    result.ok = !result.tiles.includes(a.id) && result.renderedAtA.length === 0
+    document.getElementById('out').textContent = JSON.stringify(result, null, 1)
+    window.__result = result
+  })
+</script>
