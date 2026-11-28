@@ -4,8 +4,8 @@
 // Location sets follow iD when a `loc` is given (locations.ts holds the lookup); without one they are ignored.
 // Categories and the defaults per geometry are in defaults.ts; recents and the browse list in browse.ts.
 // Not ported: addable presets, suggestion presets
-// (none in the bundled data), preferences, the file fetcher, and the localizer (labels come straight
-// from the English translation).
+// (none in the bundled data), preferences and the file fetcher. The localizer is reduced to a lookup: the texts of
+// `data.localized` (the shown language) first, then English (`data.translations`), then the schema's own text.
 import { createDefaults } from './defaults.ts'
 import { deprecatedIndexOf, deprecatedTagsOf } from './deprecated.ts'
 import { createLocations } from './locations.ts'
@@ -18,6 +18,7 @@ import {
   asTags,
   own,
   referenceOf,
+  translationSection,
 } from './raw.ts'
 import type { RawRecord } from './raw.ts'
 import { relationSchemaOf, validRelationRoles } from './relation.ts'
@@ -67,20 +68,34 @@ const AREA_KEY_IGNORE: ReadonlySet<string> = new Set([
   'type',
 ])
 
-/** The translation section of the English file: 'presets' (id → {name}) or 'fields' (id → {label, options, ...}). */
-function translationSection(translations: unknown, section: 'presets' | 'fields') {
-  const en = asRecord(asRecord(translations)?.en)
-  const presets = asRecord(en?.presets)
-  return asRecord(presets?.[section]) ?? {}
+/**
+ * The texts of one section ('presets': id → {name, terms, …}; 'fields': id → {label, options, …}), the shown
+ * language first and English last. A text is looked up in each in turn, so a text the language lacks is English.
+ */
+type Texts = RawRecord[]
+
+function textsOf(data: PresetData, section: 'presets' | 'fields'): Texts {
+  const english = translationSection(data.translations, section)
+  return data.localized === undefined
+    ? [english]
+    : [translationSection(data.localized, section), english]
 }
 
-function textOf(section: RawRecord, id: string, key: string) {
-  return asString(asRecord(own(section, id))?.[key])
+function textOf(texts: Texts, id: string, key: string) {
+  for (const section of texts) {
+    const text = asString(asRecord(own(section, id))?.[key])
+    if (text !== undefined) return text
+  }
+  return undefined
 }
 
 /** The translation's own value of a list (`terms`, `aliases`): a string or an array, else the preset's raw value. */
-function translatedList(section: RawRecord, id: string, key: string, raw: unknown): unknown {
-  return asRecord(own(section, id))?.[key] ?? raw
+function translatedList(texts: Texts, id: string, key: string, raw: unknown): unknown {
+  for (const section of texts) {
+    const value = asRecord(own(section, id))?.[key]
+    if (value !== undefined) return value
+  }
+  return raw
 }
 
 /**
@@ -458,8 +473,8 @@ export function createPresets(data: PresetData): Presets {
   }
 
   // Fields first: presets refer to them.
-  const presetNames = translationSection(data.translations, 'presets')
-  const fieldTexts = translationSection(data.translations, 'fields')
+  const presetNames = textsOf(data, 'presets')
+  const fieldTexts = textsOf(data, 'fields')
   const rawFields = new Map<string, RawRecord>()
   for (const [id, value] of Object.entries(data.fields)) {
     const raw = asRecord(value)
@@ -549,11 +564,13 @@ export function createPresets(data: PresetData): Presets {
 
   // iD's option label: the translation of the field the label points to, then of the field itself.
   function optionText(owner: string, id: string, value: string) {
-    for (const source of owner === id ? [id] : [owner, id]) {
-      const options = asRecord(asRecord(own(fieldTexts, source))?.options)
-      const entry = options ? own(options, value) : undefined
-      const text = asString(entry) ?? asString(asRecord(entry)?.title)
-      if (text !== undefined) return text
+    for (const section of fieldTexts) {
+      for (const source of owner === id ? [id] : [owner, id]) {
+        const options = asRecord(asRecord(own(section, source))?.options)
+        const entry = options ? own(options, value) : undefined
+        const text = asString(entry) ?? asString(asRecord(entry)?.title)
+        if (text !== undefined) return text
+      }
     }
     return value
   }
@@ -1082,9 +1099,13 @@ export function createPresets(data: PresetData): Presets {
 
   // iD's preset.t('relation.role_labels.<role>'): the English translation of the role's label of a preset
   function translatedRoleLabel(presetId: string, role: string) {
-    const relation = asRecord(asRecord(own(presetNames, presetId))?.relation)
-    const labels = asRecord(relation?.role_labels)
-    return labels === undefined ? undefined : asString(own(labels, role))
+    for (const section of presetNames) {
+      const relation = asRecord(asRecord(own(section, presetId))?.relation)
+      const labels = asRecord(relation?.role_labels)
+      const text = labels === undefined ? undefined : asString(own(labels, role))
+      if (text !== undefined) return text
+    }
+    return undefined
   }
 
   // The label of a role of a preset. The translation comes first, then the schema's own text. A reference to

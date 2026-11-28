@@ -26,6 +26,7 @@ import {
   relations,
   sceneBounds,
   validation,
+  presetTranslations,
 } from '@osm-editor-kit/maid-shell'
 import { defaultRules } from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
@@ -51,7 +52,11 @@ const BBOX: Record<string, Bbox> = {
  * (see presets.ts, which holds the data and the changes, so that they are a chunk of their own that is not read
  * before the map exists). Until they are there, pins and vertices have no icon and the inspector waits.
  */
-const presets = lazyPresets(() => import('./presets').then((module) => module.makePresets()))
+const presets = lazyPresets(() =>
+  Promise.all([import('./presets'), presetTranslations()]).then(([module, localized]) =>
+    module.makePresets(localized),
+  ),
+)
 
 // the imagery module, made once
 const background = imagery()

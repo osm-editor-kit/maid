@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./default": "./src/default.ts"
+    "./default": "./src/default.ts",
+    "./translations": "./src/translations.ts"
   },
   "dependencies": {
     "@openstreetmap/id-tagging-schema": "^7.3.0",

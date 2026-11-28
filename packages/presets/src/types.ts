@@ -119,12 +119,16 @@ export type Field = {
  * - presets: the parsed `dist/presets.min.json`
  * - fields: the parsed `dist/fields.min.json`
  * - translations: the parsed `dist/translations/en.min.json` (top-level key `en`)
+ * - localized: the parsed translation file of the shown language (`dist/translations/de.min.json`, top-level key
+ *   `de`); its texts come first, English fills what it lacks
  * Values are unknown and are narrowed while the indexes are built; malformed entries are skipped.
  */
 export type PresetData = {
   presets: Record<string, unknown>
   fields: Record<string, unknown>
   translations: unknown
+  /** The translation file of the shown language. Absent: English. `withChanges` drops its texts of what it changes. */
+  localized?: unknown
   /** The schema's `deprecated.json` (a list of `{ old, replace? }`), read by `deprecatedTags`. Absent: no deprecated tags. */
   deprecated?: unknown
   /** The schema's `preset_categories.json` (id → `{ icon?, members }`), read by `defaults`. Absent: no categories. */
