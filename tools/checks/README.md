@@ -2,7 +2,7 @@
 
 Each check drives an app with real input and compares data and map after each step. `bun run check-all` runs them one after another (list and expected `ok` lines in `check-all.ts`).
 
-The browser checks need `bun run dev` and take `[scene]` and `--app maid|bicycle|parking|indoor` (read in `tools/bench/args.ts`):
+The browser checks need `bun run dev` and take `[scene]` and `--app maid|bicycle|parking|indoor` (read in `tools/bench/args.ts`). `MAID_APP_PORT=<port>` opens the app on another port, for a dev server of your own while another `bun run dev` holds the default one (its HMR websocket is pinned to the default port in each `vite.config.ts`, so that server needs `server.hmr.port` moved too):
 
 | Check                   | What it does, with real input, comparing data and map after each step                                                                                                                                                                                                                                                |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

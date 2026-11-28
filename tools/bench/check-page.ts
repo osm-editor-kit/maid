@@ -17,6 +17,9 @@ import { noBackground } from './no-background'
  */
 export const app = takeApp()
 
+/** The app's dev server port; `MAID_APP_PORT=<port>` for a server on another port (one another session's `bun run dev` does not hold) */
+export const appPort = Number(process.env.MAID_APP_PORT ?? APPS[app].port)
+
 /**
  * Apps whose config starts with other filter states than the default ones (Maid Lanes shows points
  * and buildings read-only, Maid Golf roads and buildings). A check that edits those objects would fail there, so it gets the
@@ -53,7 +56,7 @@ export async function runCheck(
     FOCUSED_APPS.includes(app) && !appFilters && !query.includes('filters=')
       ? `&${DEFAULT_FILTER_PARAM}`
       : ''
-  console.log(`app ${app} on port ${APPS[app].port}`)
+  console.log(`app ${app} on port ${appPort}`)
   const browser = await chromium.launch({ channel: 'chrome', headless: true })
   let failed = 0
   const report: Check['report'] = (label, expected, actual) => {
@@ -97,7 +100,7 @@ export async function runCheck(
     // a query that starts with # goes into the hash, as iD's links have it; the background stays off (noBackground)
     await page.goto(
       noBackground(
-        `http://localhost:${APPS[app].port}/?scene=${sceneName}${filterParam}${query && !query.startsWith('#') ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}${query.startsWith('#') ? `&${query.slice(1)}` : ''}`,
+        `http://localhost:${appPort}/?scene=${sceneName}${filterParam}${query && !query.startsWith('#') ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}${query.startsWith('#') ? `&${query.slice(1)}` : ''}`,
       ),
     )
     await page.waitForFunction(() => window.__bench !== undefined, undefined, {

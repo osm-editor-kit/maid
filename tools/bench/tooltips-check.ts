@@ -62,10 +62,12 @@ let failed = await runCheck(
     const point = button(/^Add a point/)
 
     // the first button of the top bar's group: nothing before the delay, the tooltip after it
+    // sampled 50 ms after the move, well inside OPEN_DELAY_MS (400): with 150 ms a busy machine's round trips
+    // to the browser could pass the delay before the read, and the check failed although the tooltip waited
     await pointAt(page, search)
-    await page.waitForTimeout(150)
+    await page.waitForTimeout(50)
     report('hover: no tooltip before the delay', 0, (await readTooltip(page)).count)
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(600)
     const first = await readTooltip(page)
     await page.evaluate(() => {
       ;(window as unknown as { __tip: Element | null }).__tip =
@@ -94,13 +96,13 @@ let failed = await runCheck(
 
     // the tool row is a group of its own: the first tool waits for the delay, and shows its key
     await pointAt(page, point)
-    await page.waitForTimeout(150)
+    await page.waitForTimeout(50)
     report(
       'hover Point (another group): no Point tooltip before the delay',
       0,
       (await shownLabels(page)).includes(POINT_LABEL) ? 1 : 0,
     )
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(600)
     report(
       'hover Point (another group): then the label and key 1',
       { count: 1, label: POINT_LABEL, kbd: '1', kbdTag: 'KBD' },
